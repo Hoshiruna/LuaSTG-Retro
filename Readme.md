@@ -1,6 +1,6 @@
 # LuaSTG Retro  
 
-[![C++ CI](https://github.com/Hoshiruna/Luastg-Retro/actions/workflows/cpp-ci.yml/badge.svg)](https://github.com/Hoshiruna/Luastg-Retro/actions/workflows/cpp-ci.yml)
+[![C/C++ CI](https://github.com/Hoshiruna/LuaSTG-Retro/actions/workflows/c-cpp.yml/badge.svg)](https://github.com/Hoshiruna/LuaSTG-Retro/actions/workflows/c-cpp.yml)
 
 ![Luastg Retro](artwork/logo.png)
 
@@ -80,3 +80,4 @@ LuaSTG Retro是作为[LuaSTG Sub](https://github.com/Legacy-LuaSTG-Engine/LuaSTG
 - [ESC](https://github.com/ExboCooope)（LuaSTG Ex Plus 开发者）  
 - [Xiliusha](https://github.com/Xiliusha)（LuaSTG Ex Plus 开发者）  
 - [璀境石](https://github.com/Demonese)（LuaSTG Sub 开发者）  
+
