@@ -66,14 +66,14 @@ BEGIN
     BEGIN
         BLOCK "000004b0"
         BEGIN
-            VALUE "CompanyName", "璀境石"
-            VALUE "FileDescription", "LuaSTG Sub"
-            VALUE "FileVersion", "0.21.115.0"
-            VALUE "InternalName", "LuaSTG Sub"
-            VALUE "LegalCopyright", "Copyright 2020-2025 璀境石"
-            VALUE "OriginalFilename", "LuaSTGSub.exe"
-            VALUE "ProductName", "LuaSTG Sub"
-            VALUE "ProductVersion", "0.21.115.0"
+            VALUE "CompanyName", "Hoshiruna"
+            VALUE "FileDescription", "Luastg Retro"
+            VALUE "FileVersion", "0.00"
+            VALUE "InternalName", "Luastg Retro"
+            VALUE "LegalCopyright", "Copyright 2025-2026 Hoshiruna"
+            VALUE "OriginalFilename", "LuaSTGRetro.exe"
+            VALUE "ProductName", "Luastg Retro"
+            VALUE "ProductVersion", "0.00"
         END
     END
     BLOCK "VarFileInfo"

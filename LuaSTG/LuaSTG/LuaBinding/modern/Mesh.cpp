@@ -6,7 +6,7 @@
 using std::string_view_literals::operator ""sv;
 
 namespace {
-	constexpr auto embedded_script = R"(--- LuaSTG Sub built-in script
+	constexpr auto embedded_script = R"(--- Luastg Retro built-in script
 local Mesh = require("lstg.Mesh")
 --- High-level Mesh data operation
 function Mesh:createVertexWriter()

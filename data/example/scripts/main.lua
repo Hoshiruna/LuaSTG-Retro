@@ -154,7 +154,7 @@ local function renderText(font, text, x, y, scale, color, oscale, ocolor, align)
 end
 local function renderBackground()
     local cx, cy = window.width / 2, window.height / 2
-    renderText("Sans", "海内存知己\n天涯若比邻\n欢迎来到 LuaSTG Sub",
+    renderText("Sans", "海内存知己\n天涯若比邻\n欢迎来到 Luastg Retro",
         cx, cy,
         1, lstg.Color(255, 2255, 255, 255),
         4, lstg.Color(255, 0, 0, 0),

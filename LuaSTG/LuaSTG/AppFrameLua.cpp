@@ -346,7 +346,7 @@ namespace luastg
 			binding::RegistBuiltInClassWrapper(L); // LuaSTG API
 			registerCommandLineArguments(L); // command line args
 
-			constexpr std::string_view boost_script(R"(-- LuaSTG Sub boost script
+			constexpr std::string_view boost_script(R"(-- Luastg Retro boost script
 package.cpath = ""
 package.path = "?.lua;?/init.lua;"
 require("luastg.main")

@@ -49,8 +49,8 @@ if (-not [System.IO.Directory]::Exists($ReleaseRoot)) {
 
 $BinaryFilesAMD64 = @(
     @{
-        Source = [System.IO.Path]::Join($BinaryRootAMD64, "LuaSTGSub.exe")
-        Destination = [System.IO.Path]::Join($ReleaseRoot, "LuaSTGSub.exe")
+        Source = [System.IO.Path]::Join($BinaryRootAMD64, "LuastgRetro.exe")
+        Destination = [System.IO.Path]::Join($ReleaseRoot, "LuastgRetro.exe")
     },
     @{
         Source = [System.IO.Path]::Join($BinaryRootAMD64, "d3dcompiler_47.dll")
@@ -72,8 +72,8 @@ foreach ($BinaryFile in $BinaryFilesAMD64) {
 $Release32Root = [System.IO.Path]::Join($ReleaseRoot, "windows-32bit")
 $BinaryFilesX86 = @(
     @{
-        Source = [System.IO.Path]::Join($BinaryRootX86, "LuaSTGSub.exe")
-        Destination = [System.IO.Path]::Join($Release32Root, "LuaSTGSub.exe")
+        Source = [System.IO.Path]::Join($BinaryRootX86, "LuastgRetro.exe")
+        Destination = [System.IO.Path]::Join($Release32Root, "LuastgRetro.exe")
     },
     @{
         Source = [System.IO.Path]::Join($BinaryRootX86, "d3dcompiler_47.dll")
