@@ -1,8 +1,8 @@
 #pragma once
 
 #define LUASTG_NAME          "LuaSTG"
-#define LUASTG_BRANCH        "Sub"
-#define LUASTG_VERSION_NAME  "v0.21.115"
+#define LUASTG_BRANCH        "Retro"
+#define LUASTG_VERSION_NAME  "v0.00"
 #define LUASTG_VERSION_MAJOR 0
 #define LUASTG_VERSION_MINOR 21
 #define LUASTG_VERSION_PATCH 115
