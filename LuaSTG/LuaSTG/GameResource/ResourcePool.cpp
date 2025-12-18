@@ -470,7 +470,7 @@ namespace luastg
         SmartReference<IAudioDecoder> p_decoder;
         if (!IAudioDecoder::create(path, p_decoder.put()))
         {
-            spdlog::error("[luastg] LoadMusic: 无法解码文件 '{}'，要求文件格式为 WAV/OGG/FLAC", path);
+            spdlog::error("[luastg] LoadMusic: 无法解码文件 '{}'，要求文件格式为 WAV/OGG/FLAC/PMD", path);
             return false;
         }
         auto to_sample = [&p_decoder](double t) -> uint32_t

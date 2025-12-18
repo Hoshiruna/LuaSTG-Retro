@@ -4,6 +4,7 @@
 #include "backend/AudioDecoderWAV.hpp"
 #include "backend/AudioDecoderVorbis.hpp"
 #include "backend/AudioDecoderFLAC.hpp"
+#include "backend/AudioDecoderPMD.hpp"
 
 namespace {
 	template<typename T>
@@ -35,6 +36,14 @@ namespace core {
 		SmartReference<IData> data;
 		if (!FileSystemManager::readFile(path, data.put())) {
 			return false;
+		}
+		{
+			SmartReference<AudioDecoderPMD> decoder;
+			decoder.attach(new AudioDecoderPMD);
+			if (decoder->open(path, data.get())) {
+				*output_decoder = decoder.detach();
+				return true;
+			}
 		}
 		return create(data.get(), output_decoder);
 	}

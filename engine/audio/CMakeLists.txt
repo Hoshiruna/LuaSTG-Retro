@@ -24,6 +24,7 @@ target_link_libraries(${lib_name} PUBLIC
     Microsoft.XAudio2.Redist
     win32
     xmath
+    pmdmini
 )
 
 set_target_properties(${lib_name} PROPERTIES FOLDER engine)

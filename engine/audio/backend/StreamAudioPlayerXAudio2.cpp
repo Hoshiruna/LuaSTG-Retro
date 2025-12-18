@@ -228,7 +228,7 @@ namespace core {
 
 		// 准备解码缓冲区
 
-		auto const buffer_bytes = static_cast<size_t>(m_decoder->getFrameSize()) * 2048u;
+		auto const buffer_bytes = static_cast<size_t>(m_decoder->getFrameSize()) * 8192u;
 		raw_buffer.resize(buffer_bytes * 2u);
 		p_audio_buffer[0] = raw_buffer.data();
 		p_audio_buffer[1] = raw_buffer.data() + buffer_bytes;

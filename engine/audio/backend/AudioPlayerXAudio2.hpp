@@ -5,6 +5,8 @@
 #include "backend/CommonAudioPlayerXAudio2.hpp"
 #include "backend/AudioEngineXAudio2.hpp"
 #include <atomic>
+#include <mutex>
+#include <thread>
 
 namespace core {
 	class AudioPlayerXAudio2 final
@@ -61,7 +63,15 @@ namespace core {
 		bool submitBuffer();
 
 	private:
+		void joinDecodeThread();
+		void decodeAll();
+		bool startPlaybackLocked();
+		bool submitBufferLocked();
+
+		std::mutex m_voice_mutex;
 		SmartReference<AudioEngineXAudio2> m_parent;
+		SmartReference<IAudioDecoder> m_decoder;
+		std::thread m_decode_thread;
 		IXAudio2SourceVoice* m_voice{};
 		WAVEFORMATEX m_format{};
 		XAUDIO2_BUFFER m_voice_buffer = {};
@@ -71,7 +81,7 @@ namespace core {
 		float m_output_balance = 0.0f;
 		float m_speed = 1.0f;
 		double m_total_seconds{};
-		AudioPlayerState m_state{ AudioPlayerState::stopped };
+		std::atomic<AudioPlayerState> m_state{ AudioPlayerState::stopped };
 
 		double m_start_time{};
 		bool m_loop{};
@@ -80,5 +90,9 @@ namespace core {
 		uint32_t m_total_frame{};
 		uint32_t m_sample_rate{};
 		uint16_t m_frame_size{};
+		uint32_t m_frames_read{};
+		std::atomic<bool> m_decode_ready{ true };
+		std::atomic<bool> m_decode_failed{ false };
+		bool m_async_decode{ false };
 	};
 }

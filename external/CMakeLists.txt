@@ -140,6 +140,29 @@ target_sources(libqoi PRIVATE
 
 set_target_properties(libqoi PROPERTIES FOLDER external)
 
+# ==================== pmdwin (embedded) ====================
+
+set(PMDWIN_ROOT "${CMAKE_SOURCE_DIR}/external/pmdwin")
+
+file(GLOB PMDMINI_SOURCES
+    "${PMDWIN_ROOT}/*.cpp"
+    "${PMDWIN_ROOT}/ymfm/*.cpp"
+)
+
+add_library(pmdmini STATIC)
+luastg_target_common_options(pmdmini)
+target_include_directories(pmdmini PUBLIC
+    "${PMDWIN_ROOT}"
+    "${PMDWIN_ROOT}/ymfm"
+)
+target_compile_definitions(pmdmini PRIVATE
+    _CRT_SECURE_NO_WARNINGS
+    NOMINMAX
+)
+target_sources(pmdmini PRIVATE ${PMDMINI_SOURCES})
+
+set_target_properties(pmdmini PROPERTIES FOLDER external)
+
 # ==================== steam api ====================
 
 add_subdirectory(steam_api)
