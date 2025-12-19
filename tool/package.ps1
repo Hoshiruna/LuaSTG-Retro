@@ -36,7 +36,7 @@ foreach ($Line in $ConfigFile.Split("`n")) {
     }
 }
 $VersionFull = "$VersionMajor.$VersionMinor.$VersionPatch"
-$ReleaseRoot = [System.IO.Path]::Join($ReleasesRoot, "LuaSTG-Sub-v$VersionFull")
+$ReleaseRoot = [System.IO.Path]::Join($ReleasesRoot, "LuaSTG-Retro-v$VersionFull")
 
 Write-Output "Version            : $VersionFull"
 Write-Output "Release Root       : $ReleaseRoot"
@@ -128,5 +128,5 @@ Copy-Item -Path $LicenseRoot -Destination $ReleaseLicenseRoot -Recurse
 
 # archive
 
-$ArchivePath = [System.IO.Path]::Join($ReleasesRoot, "LuaSTG-Sub-v$VersionFull.zip")
+$ArchivePath = [System.IO.Path]::Join($ReleasesRoot, "LuaSTG-Retro-v$VersionFull.zip")
 Compress-Archive -Path $ReleaseRoot -DestinationPath $ArchivePath -CompressionLevel Optimal -Force

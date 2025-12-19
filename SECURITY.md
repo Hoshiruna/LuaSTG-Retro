@@ -12,7 +12,6 @@ We only make security updates to the latest 2 major versions.
 
 ## Reporting a Vulnerability
 
-* GitHub Security: https://github.com/Legacy-LuaSTG-Engine/LuaSTG-Sub/security/advisories
-* E-mail: contact@luastg-sub.com
-* LuaSTG 交流群 (QQ group): 230927410
-* LuaSTG 寒流群 (QQ group): 563868788
+* GitHub Security: https://github.com/Legacy-LuaSTG-Engine/LuaSTG-Retro/security/advisories
+* E-mail: hoshiruna05@gmail.com
+

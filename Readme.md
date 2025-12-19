@@ -46,7 +46,7 @@ See [Build Projects](./BUILD.md).
 
 ## 介绍  
 
-LuaSTG Retro是作为[LuaSTG Sub](https://github.com/Legacy-LuaSTG-Engine/LuaSTG-Sub)的分支而进行开发的，旨在满足一些Retro玩家的爱好（它基于主分支LuaSTG Sub来更新）
+LuaSTG Retro 是作为 [LuaSTG Sub](https://github.com/Legacy-LuaSTG-Engine/LuaSTG-Sub) 的分支而进行开发的，旨在满足一些Retro玩家的爱好（它基于主分支LuaSTG Sub来更新）
 
 其他分支收录在 [Legacy LuaSTG Engine 组织首页](https://github.com/Legacy-LuaSTG-Engine)。  
 
