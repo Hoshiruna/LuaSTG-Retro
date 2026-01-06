@@ -84,6 +84,15 @@ luastg_cmake_option(
     VALUE ON
 )
 
+# LuaSTG - Audio
+
+luastg_cmake_option(
+    NAME LUASTG_AUDIO_PMDMINI_ENABLE
+    TYPE BOOL
+    HELP "LuaSTG: Audio: Enable PMD decoder (pmdmini)"
+    VALUE FALSE
+)
+
 # LuaSTG - Steam API
 
 luastg_cmake_option(
