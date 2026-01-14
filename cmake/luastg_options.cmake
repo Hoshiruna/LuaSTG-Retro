@@ -87,10 +87,25 @@ luastg_cmake_option(
 # LuaSTG - Audio
 
 luastg_cmake_option(
-    NAME LUASTG_AUDIO_PMDMINI_ENABLE
+    NAME LUASTG_AUDIO_PMDWIN_ENABLE
     TYPE BOOL
-    HELP "LuaSTG: Audio: Enable PMD decoder (pmdmini)"
+    HELP "LuaSTG: Audio: Enable PMD decoder (pmdwin)"
     VALUE FALSE
+)
+
+# LuaSTG - Discord RPC
+
+luastg_cmake_option(
+    NAME LUASTG_DISCORD_RPC_ENABLE
+    TYPE BOOL
+    HELP "LuaSTG: Discord RPC: Enable Discord Rich Presence support"
+    VALUE TRUE
+)
+luastg_cmake_option(
+    NAME LUASTG_DISCORD_RPC_APP_ID
+    TYPE STRING
+    HELP "LuaSTG: Discord RPC: Application (Client) ID"
+    VALUE "0"
 )
 
 # LuaSTG - Steam API

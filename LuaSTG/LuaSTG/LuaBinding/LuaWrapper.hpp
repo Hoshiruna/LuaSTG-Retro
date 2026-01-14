@@ -75,6 +75,12 @@ namespace luastg::binding
 	public:
 		static void Register(lua_State* L) noexcept;
 	};
+
+	class DiscordRPC
+	{
+	public:
+		static void Register(lua_State* L) noexcept;
+	};
 	
 	class Platform
 	{

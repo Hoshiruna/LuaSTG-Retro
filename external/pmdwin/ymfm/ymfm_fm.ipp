@@ -1034,7 +1034,7 @@ void fm_channel<RegisterType>::output_4op(output_data &output, uint32_t rshift, 
 	uint32_t algorithm_ops = s_algorithm_ops[m_regs.ch_algorithm(m_choffs)];
 
 	// populate the opout table
-	int16_t opout[8] = {};
+	int16_t opout[8];
 	opout[0] = 0;
 	opout[1] = op1value;
 
@@ -1412,8 +1412,8 @@ void fm_engine_base<RegisterType>::write(uint16_t regnum, uint8_t data)
 	m_modified_channels = ALL_CHANNELS;
 
 	// most writes are passive, consumed only when needed
-	uint32_t keyon_channel = 0;
-	uint32_t keyon_opmask = 0;
+	uint32_t keyon_channel;
+	uint32_t keyon_opmask;
 	if (m_regs.write(regnum, data, keyon_channel, keyon_opmask))
 	{
 		// handle writes to the keyon register(s)
@@ -1453,7 +1453,7 @@ uint8_t fm_engine_base<RegisterType>::status() const
 template<class RegisterType>
 void fm_engine_base<RegisterType>::assign_operators()
 {
-	typename RegisterType::operator_mapping map = {};
+	typename RegisterType::operator_mapping map;
 	m_regs.operator_map(map);
 
 	for (uint32_t chnum = 0; chnum < CHANNELS; chnum++)
@@ -1563,7 +1563,7 @@ void fm_engine_base<RegisterType>::engine_mode_write(uint8_t data)
 	m_modified_channels = ALL_CHANNELS;
 
 	// actually write the mode register now
-	uint32_t dummy1 = 0, dummy2 = 0;
+	uint32_t dummy1, dummy2;
 	m_regs.write(RegisterType::REG_MODE, data, dummy1, dummy2);
 
 	// reset IRQ status -- when written, all other bits are ignored

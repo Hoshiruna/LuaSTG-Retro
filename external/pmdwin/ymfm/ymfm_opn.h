@@ -546,10 +546,6 @@ public:
 	// generate one sample of sound
 	void generate(output_data *output, uint32_t numsamples = 1);
 
-	// set volume
-	void setfmvolume(int32_t vol);
-	void setpsgvolume(int32_t vol);
-
 protected:
 	// internal helpers
 	void update_prescale(uint8_t prescale);
@@ -567,9 +563,6 @@ protected:
 	ssg_resampler<output_data, 2, true> m_ssg_resampler; // SSG resampler helper
 	adpcm_a_engine m_adpcm_a;           // ADPCM-A engine
 	adpcm_b_engine m_adpcm_b;           // ADPCM-B engine
-
-	int32_t fmvolume;
-	int32_t psgvolume;
 };
 
 
@@ -800,7 +793,7 @@ public:
 	ymf276(ymfm_interface &intf) : ym2612(intf) { }
 
 	// generate one sample of sound
-	void generate(output_data *output, uint32_t numsamples);
+	void generate(output_data *output, uint32_t numsamples = 1);
 };
 
 }

@@ -12,7 +12,7 @@
 	url = https://github.com/openresty/lua-cjson.git
 [submodule "doc"]
 	path = doc
-	url = https://github.com/Legacy-LuaSTG-Engine/LuaSTG-Sub-Documentation.git
+	url = https://github.com/Hoshiruna/LuaSTG-Retro-Documentation.git
 [submodule "external/image.qoi"]
 	path = external/image.qoi
 	url = https://github.com/phoboslab/qoi.git
@@ -22,3 +22,6 @@
 [submodule "external/beautiful-win32-api"]
 	path = external/beautiful-win32-api
 	url = https://github.com/Demonese/beautiful-win32-api
+[submodule "external/discord-rpc"]
+	path = external/discord-rpc
+	url = https://github.com/discordapp/discord-rpc.git

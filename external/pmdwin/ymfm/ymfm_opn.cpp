@@ -408,7 +408,7 @@ std::string opn_registers_base<IsOpnA>::log_keyon(uint32_t choffs, uint32_t opof
 			block_freq = multi_block_freq(0);
 	}
 
-	char buffer[256] = {};
+	char buffer[256];
 	int end = 0;
 
 	end += snprintf(&buffer[end], sizeof(buffer) - end, "%u.%02u freq=%04X dt=%u fb=%u alg=%X mul=%X tl=%02X ksr=%u adsr=%02X/%02X/%02X/%X sl=%X",
@@ -982,9 +982,7 @@ ym2608::ym2608(ymfm_interface &intf) :
 	m_ssg(intf),
 	m_ssg_resampler(m_ssg),
 	m_adpcm_a(intf, 0),
-	m_adpcm_b(intf),
-	fmvolume(65536),
-	psgvolume(65536)
+	m_adpcm_b(intf)
 {
 	m_last_fm.clear();
 	update_prescale(m_fm.clock_prescale());
@@ -1326,7 +1324,6 @@ void ym2608::generate(output_data *output, uint32_t numsamples)
 
 	// resample the SSG as configured
 	m_ssg_resampler.resample(output - numsamples, numsamples);
-	(output - numsamples)->data[2] = (output - numsamples)->data[2] * psgvolume / 65536;
 }
 
 
@@ -1414,24 +1411,7 @@ void ym2608::clock_fm_and_adpcm()
 	// mix in the ADPCM and clamp
 	m_adpcm_a.output(m_last_fm, 0x3f);
 	m_adpcm_b.output(m_last_fm, 1);
-
-	for (int i = 0; i < 2; i++) {
-		m_last_fm.data[i] = m_last_fm.data[i] * fmvolume / (65536 / 2);
-	}
-
 	m_last_fm.clamp16();
-}
-
-
-void ym2608::setfmvolume(int32_t vol)
-{
-	fmvolume = vol;
-}
-
-
-void ym2608::setpsgvolume(int32_t vol)
-{
-	psgvolume = vol;
 }
 
 
@@ -2409,7 +2389,7 @@ void ym2612::generate(output_data *output, uint32_t numsamples)
 
 		// sum individual channels to apply DAC discontinuity on each
 		output->clear();
-		output_data temp = {};
+		output_data temp;
 
 		// first do FM-only channels; OPN2 is 9-bit with intermediate clipping
 		int const last_fm_channel = m_dac_enable ? 5 : 6;

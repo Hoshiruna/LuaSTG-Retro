@@ -92,6 +92,7 @@ set(LUASTG_ENGINE_SOURCES
     LuaSTG/LuaBinding/LuaWrapperMisc.hpp
     LuaSTG/LuaBinding/LW_Archive.cpp
     LuaSTG/LuaBinding/LW_Audio.cpp
+    LuaSTG/LuaBinding/LW_DiscordRPC.cpp
     LuaSTG/LuaBinding/LW_BentLaser.cpp
     LuaSTG/LuaBinding/LW_Color.cpp
     LuaSTG/LuaBinding/LW_DInput.cpp
@@ -163,6 +164,9 @@ set(LUASTG_ENGINE_SOURCES
     LuaSTG/LuaBinding/generated/GameObjectMember.cpp
     LuaSTG/LuaBinding/generated/GameObjectMember.hpp
 
+    LuaSTG/DiscordRPC/DiscordRPC.cpp
+    LuaSTG/DiscordRPC/DiscordRPC.hpp
+
     LuaSTG/SteamAPI/SteamAPI.cpp
     LuaSTG/SteamAPI/SteamAPI.hpp
 
@@ -229,6 +233,11 @@ target_link_libraries(LuaSTG PRIVATE
     Core.Audio
     LuaSTG.InternalLuaScriptsFileSystem
 )
+
+if (LUASTG_DISCORD_RPC_ENABLE)
+    target_link_libraries(LuaSTG PRIVATE discord-rpc)
+    message(STATUS "[LuaSTG] Link: discord-rpc")
+endif ()
 
 include(${CMAKE_CURRENT_LIST_DIR}/import_luastg_options.cmake)
 

@@ -4,6 +4,7 @@
 #include "Platform/XInput.hpp"
 #include "Utility/Utility.h"
 #include "Debugger/ImGuiExtension.h"
+#include "DiscordRPC/DiscordRPC.hpp"
 #include "LuaBinding/LuaAppFrame.hpp"
 #include "utf8.hpp"
 #include "core/Configuration.hpp"
@@ -415,6 +416,7 @@ bool AppFrame::onUpdate()
 		}
 
 		UpdateInput();
+		DiscordRPC::RunCallbacks();
 	}
 
 #if (defined(_DEBUG) && defined(LuaSTG_enable_GameObjectManager_Debug))

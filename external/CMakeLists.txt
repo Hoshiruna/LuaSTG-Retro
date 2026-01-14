@@ -142,29 +142,42 @@ set_target_properties(libqoi PROPERTIES FOLDER external)
 
 # ==================== pmdwin (embedded) ====================
 
-if (LUASTG_AUDIO_PMDMINI_ENABLE)
+if (LUASTG_AUDIO_pmdwin_ENABLE)
     set(PMDWIN_ROOT "${CMAKE_SOURCE_DIR}/external/pmdwin")
 
-    file(GLOB PMDMINI_SOURCES
+    file(GLOB pmdwin_SOURCES
         "${PMDWIN_ROOT}/*.cpp"
         "${PMDWIN_ROOT}/ymfm/*.cpp"
     )
 
-    add_library(pmdmini STATIC)
-    luastg_target_common_options(pmdmini)
-    target_include_directories(pmdmini PUBLIC
+    add_library(pmdwin STATIC)
+    luastg_target_common_options(pmdwin)
+    target_include_directories(pmdwin PUBLIC
         "${PMDWIN_ROOT}"
         "${PMDWIN_ROOT}/ymfm"
     )
-    target_compile_definitions(pmdmini PRIVATE
+    target_compile_definitions(pmdwin PRIVATE
         _CRT_SECURE_NO_WARNINGS
         NOMINMAX
     )
-    target_sources(pmdmini PRIVATE ${PMDMINI_SOURCES})
+    target_sources(pmdwin PRIVATE ${pmdwin_SOURCES})
 
-    set_target_properties(pmdmini PROPERTIES FOLDER external)
+    set_target_properties(pmdwin PROPERTIES FOLDER external)
 else ()
-    message(STATUS "[external] pmdmini disabled by LUASTG_AUDIO_PMDMINI_ENABLE=OFF")
+    message(STATUS "[external] pmdwin disabled by LUASTG_AUDIO_pmdwin_ENABLE=OFF")
+endif ()
+
+# ==================== discord rpc ====================
+
+if (LUASTG_DISCORD_RPC_ENABLE)
+    set(BUILD_EXAMPLES OFF CACHE BOOL "Build discord-rpc examples" FORCE)
+    add_subdirectory(discord-rpc)
+    set_target_properties(discord-rpc PROPERTIES FOLDER external)
+    target_include_directories(discord-rpc PUBLIC
+        "${CMAKE_SOURCE_DIR}/external/discord-rpc/include"
+    )
+else ()
+    message(STATUS "[external] discord-rpc disabled by LUASTG_DISCORD_RPC_ENABLE=OFF")
 endif ()
 
 # ==================== steam api ====================

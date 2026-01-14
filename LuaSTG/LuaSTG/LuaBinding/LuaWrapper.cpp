@@ -57,6 +57,7 @@ namespace luastg::binding
 		GameObjectManager::Register(L);
 		ResourceManager::Register(L);
 		Audio::Register(L);
+		DiscordRPC::Register(L);
 		Platform::Register(L);
 		FileManager::Register(L); //内建函数库，文件资源管理，请确保位于内建函数库后加载
 		Archive::Register(L); //压缩包

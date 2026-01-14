@@ -4,6 +4,7 @@
 #include "Platform/MessageBox.hpp"
 #include "Platform/ApplicationSingleInstance.hpp"
 #include "Debugger/Logger.hpp"
+#include "DiscordRPC/DiscordRPC.hpp"
 #include "SteamAPI/SteamAPI.hpp"
 #include "Utility/Utility.h"
 #include "AppFrame.h"
@@ -60,6 +61,7 @@ int luastg::main() {
 	int result = EXIT_SUCCESS;
 	if (SteamAPI::Init())
 	{
+		DiscordRPC::Init();
 		if (LAPP.Init())
 		{
 			auto const t3 = std::chrono::high_resolution_clock::now();
@@ -77,6 +79,7 @@ int luastg::main() {
 			result = EXIT_FAILURE;
 		}
 		LAPP.Shutdown();
+		DiscordRPC::Shutdown();
 		SteamAPI::Shutdown();
 	}
 	else
