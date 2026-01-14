@@ -33,9 +33,9 @@ set(audio_public_libs
 
 if (LUASTG_AUDIO_PMDWIN_ENABLE)
     list(APPEND audio_public_libs pmdwin)
-    target_compile_definitions(${lib_name} PRIVATE LUASTG_ENABLE_pmdwin=1)
+    target_compile_definitions(${lib_name} PRIVATE LUASTG_ENABLE_PMDWIN=1)
 else ()
-    target_compile_definitions(${lib_name} PRIVATE LUASTG_ENABLE_pmdwin=0)
+    target_compile_definitions(${lib_name} PRIVATE LUASTG_ENABLE_PMDWIN=0)
 endif ()
 
 target_link_libraries(${lib_name} PUBLIC ${audio_public_libs})
