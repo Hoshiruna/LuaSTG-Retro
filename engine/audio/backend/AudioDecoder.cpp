@@ -4,7 +4,7 @@
 #include "backend/AudioDecoderWAV.hpp"
 #include "backend/AudioDecoderVorbis.hpp"
 #include "backend/AudioDecoderFLAC.hpp"
-#if LUASTG_ENABLE_PMDMINI
+#if LUASTG_ENABLE_PMDWIN
 #include "backend/AudioDecoderPMD.hpp"
 #endif
 
@@ -39,7 +39,7 @@ namespace core {
 		if (!FileSystemManager::readFile(path, data.put())) {
 			return false;
 		}
-#if LUASTG_ENABLE_PMDMINI
+#if LUASTG_ENABLE_PMDWIN
 		{
 			SmartReference<AudioDecoderPMD> decoder;
 			decoder.attach(new AudioDecoderPMD);

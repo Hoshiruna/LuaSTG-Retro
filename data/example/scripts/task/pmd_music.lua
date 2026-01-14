@@ -3,7 +3,7 @@
 --------------------------------------------------------------------------------
 
 local function load_pmd()
-    -- Requires LUASTG_AUDIO_pmdwin_ENABLE=ON and PMD/PPZ/P86 assets.
+    -- Requires LUASTG_AUDIO_PMDWIN_ENABLE=ON and PMD/PPZ/P86 assets.
 
     -- Use the legacy LuaSTG module for resource and audio helpers.
     local lstg = require("lstg")

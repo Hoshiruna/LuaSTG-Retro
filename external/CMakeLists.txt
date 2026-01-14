@@ -142,7 +142,7 @@ set_target_properties(libqoi PROPERTIES FOLDER external)
 
 # ==================== pmdwin (embedded) ====================
 
-if (LUASTG_AUDIO_pmdwin_ENABLE)
+if (LUASTG_AUDIO_PMDWIN_ENABLE)
     set(PMDWIN_ROOT "${CMAKE_SOURCE_DIR}/external/pmdwin")
 
     file(GLOB pmdwin_SOURCES
@@ -164,7 +164,7 @@ if (LUASTG_AUDIO_pmdwin_ENABLE)
 
     set_target_properties(pmdwin PROPERTIES FOLDER external)
 else ()
-    message(STATUS "[external] pmdwin disabled by LUASTG_AUDIO_pmdwin_ENABLE=OFF")
+    message(STATUS "[external] pmdwin disabled by LUASTG_AUDIO_PMDWIN_ENABLE=OFF")
 endif ()
 
 # ==================== discord rpc ====================

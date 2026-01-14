@@ -20,7 +20,7 @@ You can download from [Releases Page](). Usually displayed on the right or botto
 
 ## Features(TODO)
 
-* Added PMD Decoder (Complete) (Thanks [pmdwin](https://github.com/gzaffin/pmdwin)) (If you enable this feature, please read [this](./pmdwin.md).)
+* Added PMD Decoder (Complete) (Thanks [pmdmini](https://github.com/gzaffin/pmdmini)) (This feature is disabled by default.)(If you enable this feature, please read [this](./PMDwin.md).)
 * Modify the game packaging method (TODO)
 * Modify image scaling mode (TODO)
 
@@ -56,7 +56,7 @@ LuaSTG Retro 是作为 [LuaSTG Sub](https://github.com/Legacy-LuaSTG-Engine/LuaS
 
 ## 功能
 
-* 增加PMD解码器 (感谢[pmdwin](https://github.com/gzaffin/pmdwin)) (启用此功能前请阅读[这个](./pmdwin.md)) 
+* 增加PMD解码器 (感谢[pmdmini](https://github.com/gzaffin/pmdmini)) (启用此功能前请阅读[这个](./PMDwin.md)) 
 * 修改引擎打包方式 (正在做)
 * 修改引擎图像缩放模式 (正在做)
 
