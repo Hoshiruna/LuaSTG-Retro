@@ -20,8 +20,8 @@ You can download from [Releases Page](). Usually displayed on the right or botto
 
 ## Features(TODO)
 
-* Added PMD Decoder (Complete) (Thanks [pmdmini](https://github.com/gzaffin/pmdmini)) (This feature is disabled by default.)(If you enable this feature, please read [this](./PMDwin.md).)
-* Modify the game packaging method (TODO)
+* Added PMD Decoder (Complete) (Disabled by default.) (Please check [this](./PMDwin.md).)
+* Modify the game packaging method (Incomplete)
 * Modify image scaling mode (TODO)
 
 ## Requirements
@@ -42,6 +42,12 @@ See [Build Projects](./BUILD.md).
 - [Xiliusha](https://github.com/Xiliusha) (developer of LuaSTG Ex Plus)  
 - [璀境石](https://github.com/Demonese) (developer of LuaSTG Sub)  
 
+## Special Thanks
+
+- [Gzaffin](https://github.com/gzaffin) (developer of [pmdmini](https://github.com/gzaffin/pmdmini))
+- [C60](https://c60.la.coocan.jp/) (developer of PMDwin)
+- [Aaron Giles](https://github.com/aaronsgiles) (developer of [ymfm](https://github.com/aaronsgiles/ymfm))
+- [Natashi](https://github.com/Natashi) (developer of [Danmakufu ph3sx](https://github.com/Natashi/Touhou-Danmakufu-ph3sx-2))  
 ---
 
 ## 介绍  
@@ -56,8 +62,8 @@ LuaSTG Retro 是作为 [LuaSTG Sub](https://github.com/Legacy-LuaSTG-Engine/LuaS
 
 ## 功能
 
-* 增加PMD解码器 (感谢[pmdmini](https://github.com/gzaffin/pmdmini)) (启用此功能前请阅读[这个](./PMDwin.md)) 
-* 修改引擎打包方式 (正在做)
+* 增加PMD解码器（该功能默认不启用）（请阅读[这个](./PMDwin.md)）
+* 修改引擎打包方式 (未完成)
 * 修改引擎图像缩放模式 (正在做)
 
 ## 主要迁移内容  
@@ -83,3 +89,9 @@ LuaSTG Retro 是作为 [LuaSTG Sub](https://github.com/Legacy-LuaSTG-Engine/LuaS
 - [Xiliusha](https://github.com/Xiliusha)（LuaSTG Ex Plus 开发者）  
 - [璀境石](https://github.com/Demonese)（LuaSTG Sub 开发者）  
 
+## 特别感谢
+
+- [Gzaffin](https://github.com/gzaffin) ([pmdmini](https://github.com/gzaffin/pmdmini) 开发者)
+- [C60](https://c60.la.coocan.jp/) (PMDwin 开发者)
+- [Aaron Giles](https://github.com/aaronsgiles) ([ymfm](https://github.com/aaronsgiles/ymfm) 开发者)
+- [Natashi](https://github.com/Natashi) ([Danmakufu ph3sx](https://github.com/Natashi/Touhou-Danmakufu-ph3sx-2) 开发者)  
