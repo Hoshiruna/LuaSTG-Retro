@@ -1,6 +1,13 @@
 cmake_minimum_required(VERSION 3.22)
 project(LuastgRetro)
 
+# CMake 4.x removed compatibility with policy versions older than 3.5.
+# Some third-party subprojects (e.g. discord-rpc) still declare very old
+# minima, so raise the policy floor for subdirectory processing.
+if (CMAKE_VERSION VERSION_GREATER_EQUAL "4.0")
+    set(CMAKE_POLICY_VERSION_MINIMUM "3.5")
+endif ()
+
 include(cmake/luastg_options.cmake)
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)

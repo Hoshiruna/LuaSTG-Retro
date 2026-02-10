@@ -6,14 +6,18 @@
 
 #if __has_include(<zlib-ng.h>)
 #  include <zlib-ng.h>
+#  define LSTG_USE_ZLIB_NG 1
 #else
 #  include <zlib.h>
+#  define LSTG_USE_ZLIB_NG 0
 #endif
 
 #include <algorithm>
 #include <cassert>
 #include <cstring>
 #include <filesystem>
+
+namespace core {
 
 // ─── file-local helpers ──────────────────────────────────────────────────────
 namespace {
@@ -27,9 +31,15 @@ static void normalizeSlashes(std::string& path) {
 
 // Compress src → out (zlib-wrapper format).  Returns false on error.
 static bool zlibDeflate(uint8_t const* src, size_t srcLen, std::vector<uint8_t>& out) {
+#if LSTG_USE_ZLIB_NG
+	out.resize(zng_compressBound(srcLen));
+	size_t destLen = out.size();
+	int ret = zng_compress2(out.data(), &destLen, src, srcLen, Z_DEFAULT_COMPRESSION);
+#else
 	out.resize(compressBound(static_cast<uLong>(srcLen)));
 	uLongf destLen = static_cast<uLongf>(out.size());
 	int ret = compress2(out.data(), &destLen, src, static_cast<uLong>(srcLen), Z_DEFAULT_COMPRESSION);
+#endif
 	if (ret != Z_OK) { out.clear(); return false; }
 	out.resize(destLen);
 	return true;
@@ -37,27 +47,49 @@ static bool zlibDeflate(uint8_t const* src, size_t srcLen, std::vector<uint8_t>&
 
 // Decompress src → out using streaming inflate (output size need not be known in advance).
 static bool zlibInflate(uint8_t const* src, size_t srcLen, std::vector<uint8_t>& out) {
+#if LSTG_USE_ZLIB_NG
+	zng_stream strm{};
+	if (zng_inflateInit(&strm) != Z_OK) return false;
+
+	strm.next_in  = const_cast<uint8_t*>(src);
+	strm.avail_in = static_cast<uint32_t>(srcLen);
+#else
 	z_stream strm{};
 	if (inflateInit(&strm) != Z_OK) return false;
 
 	strm.next_in  = const_cast<Bytef*>(src);   // zlib does not take const*
 	strm.avail_in = static_cast<uInt>(srcLen);
+#endif
 
 	uint8_t chunk[32768];
 	int ret;
 	do {
+#if LSTG_USE_ZLIB_NG
+		strm.next_out  = chunk;
+		strm.avail_out = static_cast<uint32_t>(sizeof(chunk));
+		ret = zng_inflate(&strm, Z_NO_FLUSH);
+#else
 		strm.next_out  = chunk;
 		strm.avail_out = static_cast<uInt>(sizeof(chunk));
 		ret = inflate(&strm, Z_NO_FLUSH);
+#endif
 		if (ret == Z_STREAM_ERROR || ret == Z_DATA_ERROR || ret == Z_MEM_ERROR) {
+#if LSTG_USE_ZLIB_NG
+			zng_inflateEnd(&strm);
+#else
 			inflateEnd(&strm);
+#endif
 			return false;
 		}
 		size_t produced = sizeof(chunk) - strm.avail_out;
 		out.insert(out.end(), chunk, chunk + produced);
 	} while (ret != Z_STREAM_END);
 
+#if LSTG_USE_ZLIB_NG
+	zng_inflateEnd(&strm);
+#else
 	inflateEnd(&strm);
+#endif
 	return true;
 }
 
@@ -65,11 +97,24 @@ static bool zlibInflate(uint8_t const* src, size_t srcLen, std::vector<uint8_t>&
 static bool zlibInflateKnown(uint8_t const* src, size_t srcLen,
                              std::vector<uint8_t>& out, size_t expectedSize) {
 	out.resize(expectedSize);
+#if LSTG_USE_ZLIB_NG
+	size_t destLen = expectedSize;
+	int ret = zng_uncompress(out.data(), &destLen, src, srcLen);
+#else
 	uLongf destLen = static_cast<uLongf>(expectedSize);
 	int ret = uncompress(out.data(), &destLen, src, static_cast<uLong>(srcLen));
+#endif
 	if (ret != Z_OK) { out.clear(); return false; }
 	out.resize(destLen);
 	return true;
+}
+
+static uint32_t zlibCrc32(uint8_t const* data, size_t size) {
+#if LSTG_USE_ZLIB_NG
+	return static_cast<uint32_t>(zng_crc32_z(0, data, size));
+#else
+	return static_cast<uint32_t>(crc32(0, data, static_cast<uInt>(size)));
+#endif
 }
 
 // ── entry-record serialization (binary layout matches v2) ─────────────────
@@ -384,8 +429,7 @@ bool FileSystemDATArchive::readEntryData(DATArchiveEntry const& entry, IData** c
 
 	// CRC-32 verification.
 	if (entry.crc32Value != 0 && !outBuf.empty()) {
-		uint32_t actual = static_cast<uint32_t>(
-			crc32(0, outBuf.data(), static_cast<uInt>(outBuf.size())));
+		uint32_t actual = zlibCrc32(outBuf.data(), outBuf.size());
 		if (actual != entry.crc32Value) {
 			Logger::warn("FileSystemDATArchive: CRC mismatch for '{}' "
 			             "(expected 0x{:08X}, got 0x{:08X})",
@@ -586,7 +630,7 @@ bool DATArchiveCreator::create(std::string_view const& baseDir,
 		entry.offsetPos   = static_cast<uint32_t>(tmpFile.tellp());
 
 		// CRC-32 on the original (uncompressed) data.
-		entry.crc32Value  = static_cast<uint32_t>(crc32(0, content.data(), static_cast<uInt>(fileSize)));
+		entry.crc32Value  = zlibCrc32(content.data(), fileSize);
 
 		// Per-file encryption key (derived from the relative path).
 		ArchiveEncryption::getKeyHashFile(m_files[i], headerKeyBase, headerKeyStep,
@@ -739,3 +783,5 @@ bool DATArchiveCreator::encryptArchive(std::fstream&                src,
 	dest.close();
 	return true;
 }
+
+} // namespace core
