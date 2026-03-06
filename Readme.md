@@ -48,6 +48,11 @@ See [Build Projects](./BUILD.md).
 - [C60](https://c60.la.coocan.jp/) (developer of PMDwin)
 - [Aaron Giles](https://github.com/aaronsgiles) (developer of [ymfm](https://github.com/aaronsgiles/ymfm))
 - [Natashi](https://github.com/Natashi) (developer of [Danmakufu ph3sx](https://github.com/Natashi/Touhou-Danmakufu-ph3sx-2))  
+- And all contributors to danmakufu ph3sx
+
+## Warning
+This branch incorporates new features developed with AI (artificial intelligence) assistance. If you believe this branch may introduce uncertain risks to your project, please refrain from using it.
+
 ---
 
 ## 介绍  
@@ -95,3 +100,8 @@ LuaSTG Retro 是作为 [LuaSTG Sub](https://github.com/Legacy-LuaSTG-Engine/LuaS
 - [C60](https://c60.la.coocan.jp/) (PMDwin 开发者)
 - [Aaron Giles](https://github.com/aaronsgiles) ([ymfm](https://github.com/aaronsgiles/ymfm) 开发者)
 - [Natashi](https://github.com/Natashi) ([Danmakufu ph3sx](https://github.com/Natashi/Touhou-Danmakufu-ph3sx-2) 开发者)  
+- 还有所有 danmakufu ph3sx 的贡献者
+
+## 警告
+该分支部分新功能使用了AI（即人工智能）进行辅助开发，如果您认为该分支会对你的项目产生不确定的风险，请勿尝试使用。
+
