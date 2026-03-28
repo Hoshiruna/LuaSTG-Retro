@@ -2,7 +2,7 @@
 
 CPMAddPackage(
     NAME tracy
-    VERSION 0.12.2
+    VERSION 0.13.1
     GITHUB_REPOSITORY wolfpld/tracy
     DOWNLOAD_ONLY YES
 )
@@ -13,6 +13,7 @@ if(tracy_ADDED)
     if(LUASTG_LINK_TRACY_CLIENT)
         target_compile_definitions(tracy PUBLIC
             TRACY_ENABLE
+            TRACY_ON_DEMAND
         )
     endif()
     # WTF ???
