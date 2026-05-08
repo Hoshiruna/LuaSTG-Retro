@@ -50,6 +50,13 @@ namespace luastg
 		return tRet;
 	}
 
+	core::SmartReference<IResourceVideo> ResourceMgr::FindVideo(const char* name) noexcept {
+		core::SmartReference<IResourceVideo> tRet;
+		if (!(tRet = m_StageResourcePool.GetVideo(name)))
+			tRet = m_GlobalResourcePool.GetVideo(name);
+		return tRet;
+	}
+
 	core::SmartReference<IResourceSprite> ResourceMgr::FindSprite(const char* name) noexcept {
 		core::SmartReference<IResourceSprite> tRet;
 		if (!(tRet = m_StageResourcePool.GetSprite(name)))
@@ -142,6 +149,12 @@ namespace luastg
 		{
 			snd.second->FlushCommand();
 		}
+	}
+
+	void ResourceMgr::UpdateVideo(double const delta_seconds)
+	{
+		m_GlobalResourcePool.UpdateVideo(delta_seconds);
+		m_StageResourcePool.UpdateVideo(delta_seconds);
 	}
 
 	// 其他

@@ -1,5 +1,6 @@
 #include "GameResource/ResourceManager.h"
 #include "GameResource/Implement/ResourceTextureImpl.hpp"
+#include "GameResource/Implement/ResourceVideoImpl.hpp"
 #include "GameResource/Implement/ResourceSpriteImpl.hpp"
 #include "GameResource/Implement/ResourceAnimationImpl.hpp"
 #include "GameResource/Implement/ResourceMusicImpl.hpp"
@@ -224,6 +225,37 @@ namespace luastg
             spdlog::info("[luastg] LoadTexture: 已从 '{}' 加载纹理 '{}' ({})", path, name, getResourcePoolTypeName());
         }
     
+        return true;
+    }
+
+    bool ResourcePool::LoadVideo(const char* name, const char* path, bool loop) noexcept
+    {
+        if (m_TexturePool.find(std::string_view(name)) != m_TexturePool.end())
+        {
+            if (ResourceMgr::GetResourceLoadingLog())
+            {
+                spdlog::warn("[luastg] LoadVideo: 视频纹理 '{}' 已存在，加载操作已取消", name);
+            }
+            return true;
+        }
+
+        try
+        {
+            core::SmartReference<IResourceTexture> tRes;
+            tRes.attach(new ResourceVideoImpl(name, path, loop));
+            m_TexturePool.emplace(name, tRes);
+        }
+        catch (std::exception const& e)
+        {
+            spdlog::error("[luastg] LoadVideo: 从 '{}' 加载视频纹理 '{}' 失败 ({})", path, name, e.what());
+            return false;
+        }
+
+        if (ResourceMgr::GetResourceLoadingLog())
+        {
+            spdlog::info("[luastg] LoadVideo: 已从 '{}' 加载视频纹理 '{}' ({})", path, name, getResourcePoolTypeName());
+        }
+
         return true;
     }
 
@@ -906,6 +938,23 @@ namespace luastg
         return findResource(m_TexturePool, name);
 	}
 
+    core::SmartReference<IResourceVideo> ResourcePool::GetVideo(std::string_view name) noexcept
+    {
+        auto texture = GetTexture(name);
+        if (!texture)
+        {
+            return {};
+        }
+        auto* video = dynamic_cast<IResourceVideo*>(texture.get());
+        if (!video)
+        {
+            return {};
+        }
+        core::SmartReference<IResourceVideo> result;
+        result = video;
+        return result;
+    }
+
 	core::SmartReference<IResourceSprite> ResourcePool::GetSprite(std::string_view name) noexcept
     {
         return findResource(m_SpritePool, name);
@@ -966,5 +1015,16 @@ namespace luastg
         , m_ModelPool(&m_memory_resource)
     {
 
+    }
+
+    void ResourcePool::UpdateVideo(double delta_seconds)
+    {
+        for (auto& item : m_TexturePool)
+        {
+            if (auto* video = dynamic_cast<IResourceVideo*>(item.second.get()))
+            {
+                video->Update(delta_seconds);
+            }
+        }
     }
 }

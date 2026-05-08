@@ -1,0 +1,26 @@
+# Video
+
+file(GLOB_RECURSE lib_src RELATIVE ${CMAKE_CURRENT_LIST_DIR} core/*.hpp core/*.cpp backend/*.hpp backend/*.cpp)
+source_group(TREE ${CMAKE_CURRENT_LIST_DIR} FILES ${lib_src})
+
+set(lib_name "Core.Video")
+
+add_library(${lib_name})
+luastg_target_common_options(${lib_name})
+luastg_target_more_warning(${lib_name})
+target_include_directories(${lib_name} PUBLIC .)
+target_sources(${lib_name} PRIVATE ${lib_src})
+target_link_libraries(${lib_name} PUBLIC
+    Core.ReferenceCounted
+    Core.FileSystem
+    Core.Logging
+    utf8
+    win32
+    mfplat.lib
+    mfreadwrite.lib
+    mfuuid.lib
+    ole32.lib
+)
+target_link_libraries(${lib_name} PRIVATE options_compile_utf8)
+
+set_target_properties(${lib_name} PROPERTIES FOLDER engine)

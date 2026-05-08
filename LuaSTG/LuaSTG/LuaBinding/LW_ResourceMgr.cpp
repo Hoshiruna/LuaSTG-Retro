@@ -52,6 +52,19 @@ void luastg::binding::ResourceManager::Register(lua_State* L) noexcept
 				return luaL_error(L, "can't load texture from file '%s'.", path);
 			return 0;
 		}
+		static int LoadVideo(lua_State* L) noexcept
+		{
+			const char* name = luaL_checkstring(L, 1);
+			const char* path = luaL_checkstring(L, 2);
+
+			ResourcePool* pActivedPool = LRES.GetActivedPool();
+			if (!pActivedPool)
+				return luaL_error(L, "can't load resource at this time.");
+			bool const loop = lua_gettop(L) >= 3 ? lua_toboolean(L, 3) != 0 : false;
+			if (!pActivedPool->LoadVideo(name, path, loop))
+				return luaL_error(L, "can't load video from file '%s'.", path);
+			return 0;
+		}
 		static int LoadSprite(lua_State* L) noexcept
 		{
 			const char* name = luaL_checkstring(L, 1);
@@ -452,6 +465,101 @@ void luastg::binding::ResourceManager::Register(lua_State* L) noexcept
 			lua_pushinteger(L, (lua_Integer)size.y);
 			return 2;
 		}
+		static int PlayVideo(lua_State* L) noexcept
+		{
+			const char* name = luaL_checkstring(L, 1);
+			auto video = LRES.FindVideo(name);
+			if (!video)
+				return luaL_error(L, "video '%s' not found.", name);
+			bool const restart = lua_gettop(L) >= 2 ? lua_toboolean(L, 2) != 0 : true;
+			if (!video->Play(restart))
+				return luaL_error(L, "can't play video '%s'.", name);
+			return 0;
+		}
+		static int PauseVideo(lua_State* L) noexcept
+		{
+			const char* name = luaL_checkstring(L, 1);
+			auto video = LRES.FindVideo(name);
+			if (!video)
+				return luaL_error(L, "video '%s' not found.", name);
+			if (!video->Pause())
+				return luaL_error(L, "can't pause video '%s'.", name);
+			return 0;
+		}
+		static int ResumeVideo(lua_State* L) noexcept
+		{
+			const char* name = luaL_checkstring(L, 1);
+			auto video = LRES.FindVideo(name);
+			if (!video)
+				return luaL_error(L, "video '%s' not found.", name);
+			if (!video->Resume())
+				return luaL_error(L, "can't resume video '%s'.", name);
+			return 0;
+		}
+		static int StopVideo(lua_State* L) noexcept
+		{
+			const char* name = luaL_checkstring(L, 1);
+			auto video = LRES.FindVideo(name);
+			if (!video)
+				return luaL_error(L, "video '%s' not found.", name);
+			if (!video->Stop())
+				return luaL_error(L, "can't stop video '%s'.", name);
+			return 0;
+		}
+		static int SeekVideo(lua_State* L) noexcept
+		{
+			const char* name = luaL_checkstring(L, 1);
+			auto video = LRES.FindVideo(name);
+			if (!video)
+				return luaL_error(L, "video '%s' not found.", name);
+			if (!video->Seek(luaL_checknumber(L, 2)))
+				return luaL_error(L, "can't seek video '%s'.", name);
+			return 0;
+		}
+		static int GetVideoState(lua_State* L) noexcept
+		{
+			const char* name = luaL_checkstring(L, 1);
+			auto video = LRES.FindVideo(name);
+			if (!video)
+				return luaL_error(L, "video '%s' not found.", name);
+			switch (video->GetVideoState())
+			{
+			case VideoPlaybackState::Stopped:
+				lua_pushstring(L, "stopped");
+				break;
+			case VideoPlaybackState::Playing:
+				lua_pushstring(L, "playing");
+				break;
+			case VideoPlaybackState::Paused:
+				lua_pushstring(L, "paused");
+				break;
+			case VideoPlaybackState::Ended:
+				lua_pushstring(L, "ended");
+				break;
+			default:
+				lua_pushstring(L, "stopped");
+				break;
+			}
+			return 1;
+		}
+		static int GetVideoTime(lua_State* L) noexcept
+		{
+			const char* name = luaL_checkstring(L, 1);
+			auto video = LRES.FindVideo(name);
+			if (!video)
+				return luaL_error(L, "video '%s' not found.", name);
+			lua_pushnumber(L, video->GetVideoTime());
+			return 1;
+		}
+		static int GetVideoDuration(lua_State* L) noexcept
+		{
+			const char* name = luaL_checkstring(L, 1);
+			auto video = LRES.FindVideo(name);
+			if (!video)
+				return luaL_error(L, "video '%s' not found.", name);
+			lua_pushnumber(L, video->GetVideoDuration());
+			return 1;
+		}
 		static int RemoveResource(lua_State* L) noexcept
 		{
 			ResourcePoolType t;
@@ -678,6 +786,7 @@ void luastg::binding::ResourceManager::Register(lua_State* L) noexcept
 		{ "SetResourceStatus", &Wrapper::SetResourceStatus },
 		{ "GetResourceStatus", &Wrapper::GetResourceStatus },
 		{ "LoadTexture", &Wrapper::LoadTexture },
+		{ "LoadVideo", &Wrapper::LoadVideo },
 		{ "LoadImage", &Wrapper::LoadSprite },
 		{ "LoadAnimation", &Wrapper::LoadAnimation },
 		{ "LoadPS", &Wrapper::LoadPS },
@@ -693,6 +802,14 @@ void luastg::binding::ResourceManager::Register(lua_State* L) noexcept
 		{ "SetTexturePreMulAlphaState", &Wrapper::SetTexturePreMulAlphaState },
 		{ "SetTextureSamplerState", &Wrapper::SetTextureSamplerState },
 		{ "GetTextureSize", &Wrapper::GetTextureSize },
+		{ "PlayVideo", &Wrapper::PlayVideo },
+		{ "PauseVideo", &Wrapper::PauseVideo },
+		{ "ResumeVideo", &Wrapper::ResumeVideo },
+		{ "StopVideo", &Wrapper::StopVideo },
+		{ "SeekVideo", &Wrapper::SeekVideo },
+		{ "GetVideoState", &Wrapper::GetVideoState },
+		{ "GetVideoTime", &Wrapper::GetVideoTime },
+		{ "GetVideoDuration", &Wrapper::GetVideoDuration },
 		{ "RemoveResource", &Wrapper::RemoveResource },
 		{ "CheckRes", &Wrapper::CheckRes },
 		{ "EnumRes", &Wrapper::EnumRes },

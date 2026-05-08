@@ -107,6 +107,7 @@ end
 require("test_rendertarget")
 require("test_textrenderer")
 require("test_texture")
+require("test_video")
 require("test_sampler")
 require("test_model")
 require("test_mesh")

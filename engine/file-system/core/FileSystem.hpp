@@ -1,6 +1,7 @@
 #pragma once
 #include "core/ReferenceCounted.hpp"
 #include "core/Data.hpp"
+#include <string>
 
 namespace core {
 	enum class FileSystemNodeType : uint8_t {
@@ -90,6 +91,7 @@ namespace core {
 		static bool hasFile(std::string_view const& name);
 		static size_t getFileSize(std::string_view const& name);;
 		static bool readFile(std::string_view const& name, IData** data);
+		static bool resolvePhysicalPath(std::string_view const& name, std::string& path);
 		static bool hasDirectory(std::string_view const& name);
 
 		static bool writeFile(std::string_view const& name, IData* data);

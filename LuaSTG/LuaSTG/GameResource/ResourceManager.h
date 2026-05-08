@@ -1,6 +1,7 @@
 #pragma once
 #include "core/SmartReference.hpp"
 #include "GameResource/ResourceTexture.hpp"
+#include "GameResource/ResourceVideo.hpp"
 #include "GameResource/ResourceSprite.hpp"
 #include "GameResource/ResourceAnimation.hpp"
 #include "GameResource/ResourceMusic.hpp"
@@ -97,6 +98,7 @@ namespace luastg
         
         // 纹理
         bool LoadTexture(const char* name, const char* path, bool mipmaps = true) noexcept;
+        bool LoadVideo(const char* name, const char* path, bool loop = false) noexcept;
         bool CreateTexture(const char* name, int width, int height) noexcept;
         // 渲染目标
         bool CreateRenderTarget(const char* name, int width = 0, int height = 0, bool depth_buffer = false) noexcept;
@@ -134,6 +136,7 @@ namespace luastg
         bool LoadModel(const char* name, const char* path) noexcept;
         
         core::SmartReference<IResourceTexture> GetTexture(std::string_view name) noexcept;
+        core::SmartReference<IResourceVideo> GetVideo(std::string_view name) noexcept;
         core::SmartReference<IResourceSprite> GetSprite(std::string_view name) noexcept;
         core::SmartReference<IResourceAnimation> GetAnimation(std::string_view name) noexcept;
         core::SmartReference<IResourceMusic> GetMusic(std::string_view name) noexcept;
@@ -145,6 +148,7 @@ namespace luastg
         core::SmartReference<IResourceModel> GetModel(std::string_view name) noexcept;
     public:
         ResourcePool(ResourceMgr* mgr, ResourcePoolType t);
+        void UpdateVideo(double delta_seconds);
         ResourcePool& operator=(const ResourcePool&) = delete;
         ResourcePool(const ResourcePool&) = delete;
     };
@@ -164,6 +168,7 @@ namespace luastg
         void ClearAllResource() noexcept;
 
         core::SmartReference<IResourceTexture> FindTexture(const char* name) noexcept;
+        core::SmartReference<IResourceVideo> FindVideo(const char* name) noexcept;
         core::SmartReference<IResourceSprite> FindSprite(const char* name) noexcept;
         core::SmartReference<IResourceAnimation> FindAnimation(const char* name) noexcept;
         core::SmartReference<IResourceMusic> FindMusic(const char* name) noexcept;
@@ -177,6 +182,7 @@ namespace luastg
         bool GetTextureSize(const char* name, core::Vector2U& out) noexcept;
         void CacheTTFFontString(const char* name, const char* text, size_t len) noexcept;
         void UpdateSound();
+        void UpdateVideo(double delta_seconds);
     private:
         static bool g_ResourceLoadingLog;
         float m_GlobalImageScaleFactor = 1.0f;

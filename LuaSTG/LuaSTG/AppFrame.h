@@ -65,6 +65,7 @@ namespace luastg {
 		// 测量值
 		double m_fFPS = 0.;
 		double m_fAvgFPS = 0.;
+		double m_last_video_update_time = 0.;
 
 		// 渲染状态
 		bool m_bRenderStarted = false;

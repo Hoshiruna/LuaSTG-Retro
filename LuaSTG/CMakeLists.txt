@@ -47,6 +47,7 @@ set(LUASTG_ENGINE_SOURCES
     LuaSTG/GameResource/LegacyBlendStateHelper.hpp
     LuaSTG/GameResource/ResourceBase.hpp
     LuaSTG/GameResource/ResourceTexture.hpp
+    LuaSTG/GameResource/ResourceVideo.hpp
     LuaSTG/GameResource/ResourceSprite.hpp
     LuaSTG/GameResource/ResourceAnimation.hpp
     LuaSTG/GameResource/ResourceMusic.hpp
@@ -67,6 +68,8 @@ set(LUASTG_ENGINE_SOURCES
     LuaSTG/GameResource/Implement/ResourceBaseImpl.cpp
     LuaSTG/GameResource/Implement/ResourceTextureImpl.hpp
     LuaSTG/GameResource/Implement/ResourceTextureImpl.cpp
+    LuaSTG/GameResource/Implement/ResourceVideoImpl.hpp
+    LuaSTG/GameResource/Implement/ResourceVideoImpl.cpp
     LuaSTG/GameResource/Implement/ResourceSpriteImpl.hpp
     LuaSTG/GameResource/Implement/ResourceSpriteImpl.cpp
     LuaSTG/GameResource/Implement/ResourceAnimationImpl.hpp
@@ -231,6 +234,7 @@ target_link_libraries(LuaSTG PRIVATE
     Core.Clipboard
     Core.ShellIntegration
     Core.Audio
+    Core.Video
     LuaSTG.InternalLuaScriptsFileSystem
 )
 

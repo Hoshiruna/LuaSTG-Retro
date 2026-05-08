@@ -372,6 +372,18 @@ namespace core {
 		}
 		return r.file_system->readFile(r.path, data);
 	}
+	bool FileSystemManager::resolvePhysicalPath(std::string_view const& name, std::string& path) {
+		auto const l = ResourceLocation::parse(name);
+		[[maybe_unused]] std::lock_guard lock_file_systems(s_file_systems_mutex);
+		[[maybe_unused]] std::lock_guard lock_search_paths(s_search_paths_mutex);
+		auto const r = resolve(l);
+		auto const os_file_system = IFileSystemOS::getInstance();
+		if (r.file_system != os_file_system || !os_file_system->hasFile(r.path)) {
+			return false;
+		}
+		path = r.path;
+		return true;
+	}
 	bool FileSystemManager::hasDirectory(std::string_view const& name) {
 		auto const l = ResourceLocation::parse(name);
 		[[maybe_unused]] std::lock_guard lock_file_systems(s_file_systems_mutex);

@@ -307,6 +307,7 @@ void AppFrame::Run()noexcept
 	m_pAppModel->getSwapChain()->addEventListener(this);
 
 	m_pAppModel->getFrameRateController()->setTargetFPS(m_target_fps);
+	m_last_video_update_time = 0.0;
 	m_pAppModel->run();
 
 	m_pAppModel->getSwapChain()->removeEventListener(this);
@@ -440,6 +441,13 @@ bool AppFrame::onUpdate()
 		if (tAbort)
 			m_pAppModel->requestExit();
 		m_ResourceMgr.UpdateSound();
+		double const video_update_time = m_pAppModel->getFrameRateController()->getTotalTime();
+		double video_delta_time = video_update_time - m_last_video_update_time;
+		if (m_last_video_update_time <= 0.0 || video_delta_time < 0.0 || video_delta_time > 1.0) {
+			video_delta_time = 1.0 / static_cast<double>(std::max(1u, m_target_fps));
+		}
+		m_last_video_update_time = video_update_time;
+		m_ResourceMgr.UpdateVideo(video_delta_time);
 	}
 
 	// check again after FrameFunc
