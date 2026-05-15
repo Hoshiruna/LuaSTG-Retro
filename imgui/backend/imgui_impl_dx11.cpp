@@ -160,6 +160,10 @@ static void ImGui_ImplDX11_SetupRenderState(const ImDrawData* draw_data, ID3D11D
     device_ctx->RSSetState(bd->pRasterizerState);
 }
 
+#if IMGUI_VERSION_NUM >= 19280
+static void ImGui_ImplDX11_DrawCallback_ResetRenderState(const ImDrawList*, const ImDrawCmd*) {}
+#endif
+
 // Render function
 void ImGui_ImplDX11_RenderDrawData(ImDrawData* draw_data)
 {
@@ -295,7 +299,13 @@ void ImGui_ImplDX11_RenderDrawData(ImDrawData* draw_data)
             {
                 // User callback, registered via ImDrawList::AddCallback()
                 // (ImDrawCallback_ResetRenderState is a special callback value used by the user to request the renderer to reset render state.)
-                if (pcmd->UserCallback == ImDrawCallback_ResetRenderState)
+                if (pcmd->UserCallback ==
+#if IMGUI_VERSION_NUM >= 19280
+                    ImGui_ImplDX11_DrawCallback_ResetRenderState
+#else
+                    ImDrawCallback_ResetRenderState
+#endif
+                )
                     ImGui_ImplDX11_SetupRenderState(draw_data, device);
                 else
                     pcmd->UserCallback(draw_list, pcmd);
@@ -638,6 +648,9 @@ bool    ImGui_ImplDX11_Init(ID3D11Device* device, ID3D11DeviceContext* device_co
 
     ImGuiPlatformIO& platform_io = ImGui::GetPlatformIO();
     platform_io.Renderer_TextureMaxWidth = platform_io.Renderer_TextureMaxHeight = D3D11_REQ_TEXTURE2D_U_OR_V_DIMENSION;
+#if IMGUI_VERSION_NUM >= 19280
+    platform_io.DrawCallback_ResetRenderState = ImGui_ImplDX11_DrawCallback_ResetRenderState;
+#endif
 
     // Get factory from device
     IDXGIDevice* pDXGIDevice = nullptr;

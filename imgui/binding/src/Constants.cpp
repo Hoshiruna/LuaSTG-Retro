@@ -128,7 +128,11 @@ void imgui::binding::registerConstants(lua_State* const vm) {
 		ctx.set_map_value(e, "MouseButtonRight"sv, ImGuiPopupFlags_MouseButtonRight);
 		ctx.set_map_value(e, "MouseButtonMiddle"sv, ImGuiPopupFlags_MouseButtonMiddle);
 		ctx.set_map_value(e, "MouseButtonMask_"sv, ImGuiPopupFlags_MouseButtonMask_);
+#if IMGUI_VERSION_NUM >= 19260
+		ctx.set_map_value(e, "MouseButtonDefault_"sv, ImGuiPopupFlags_MouseButtonRight);
+#else
 		ctx.set_map_value(e, "MouseButtonDefault_"sv, ImGuiPopupFlags_MouseButtonDefault_);
+#endif
 		ctx.set_map_value(e, "NoReopen"sv, ImGuiPopupFlags_NoReopen);
 		ctx.set_map_value(e, "NoOpenOverExistingPopup"sv, ImGuiPopupFlags_NoOpenOverExistingPopup);
 		ctx.set_map_value(e, "NoOpenOverItems"sv, ImGuiPopupFlags_NoOpenOverItems);
@@ -805,7 +809,11 @@ void imgui::binding::registerConstants(lua_State* const vm) {
 		ctx.set_map_value(e, "ClearOnClickVoid"sv, ImGuiMultiSelectFlags_ClearOnClickVoid);
 		ctx.set_map_value(e, "ScopeWindow"sv, ImGuiMultiSelectFlags_ScopeWindow);
 		ctx.set_map_value(e, "ScopeRect"sv, ImGuiMultiSelectFlags_ScopeRect);
+#if IMGUI_VERSION_NUM >= 19260
+		ctx.set_map_value(e, "SelectOnClick"sv, ImGuiMultiSelectFlags_SelectOnAuto);
+#else
 		ctx.set_map_value(e, "SelectOnClick"sv, ImGuiMultiSelectFlags_SelectOnClick);
+#endif
 		ctx.set_map_value(e, "SelectOnClickRelease"sv, ImGuiMultiSelectFlags_SelectOnClickRelease);
 		ctx.set_map_value(e, "NavWrapX"sv, ImGuiMultiSelectFlags_NavWrapX);
 		ctx.set_map_value(e, "NoSelectOnRightClick"sv, ImGuiMultiSelectFlags_NoSelectOnRightClick);

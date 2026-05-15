@@ -43,6 +43,41 @@ namespace {
 		}
 		return { buffer, static_cast<size_t>(count) };
 	}
+
+	template <typename T>
+	void plotInfLinesStyled(char const* label_id, T const* values, int count, ImPlotInfLinesFlags flags, ImVec4 const& color) {
+#if defined(IMPLOT_VERSION_NUM) && IMPLOT_VERSION_NUM >= 10000
+		ImPlot::PlotInfLines(label_id, values, count, {
+			ImPlotProp_LineColor, color,
+			ImPlotProp_Flags, flags,
+		});
+#else
+		ImPlot::SetNextLineStyle(color);
+		ImPlot::PlotInfLines(label_id, values, count, flags);
+#endif
+	}
+
+	template <typename T>
+	void plotShadedAlpha(char const* label_id, T const* xs, T const* ys, int count, float alpha) {
+#if defined(IMPLOT_VERSION_NUM) && IMPLOT_VERSION_NUM >= 10000
+		ImPlot::PlotShaded(label_id, xs, ys, count, 0.0, { ImPlotProp_FillAlpha, alpha });
+#else
+		ImPlot::PushStyleVar(ImPlotStyleVar_FillAlpha, alpha);
+		ImPlot::PlotShaded(label_id, xs, ys, count);
+		ImPlot::PopStyleVar();
+#endif
+	}
+
+	template <typename T>
+	void plotShadedAlpha(char const* label_id, T const* xs, T const* ys1, T const* ys2, int count, float alpha) {
+#if defined(IMPLOT_VERSION_NUM) && IMPLOT_VERSION_NUM >= 10000
+		ImPlot::PlotShaded(label_id, xs, ys1, ys2, count, { ImPlotProp_FillAlpha, alpha });
+#else
+		ImPlot::PushStyleVar(ImPlotStyleVar_FillAlpha, alpha);
+		ImPlot::PlotShaded(label_id, xs, ys1, ys2, count);
+		ImPlot::PopStyleVar();
+#endif
+	}
 }
 
 namespace imgui {
@@ -473,22 +508,17 @@ namespace {
 							1000.0 / 30.0,
 							1000.0 / 20.0,
 						};
-						ImPlot::SetNextLineStyle(ImVec4(0.2f, 1.0f, 0.2f, 1.0f));
-						ImPlot::PlotInfLines("##60 FPS", arr_ms, 1, ImPlotInfLinesFlags_Horizontal);
+						plotInfLinesStyled("##60 FPS", arr_ms, 1, ImPlotInfLinesFlags_Horizontal, ImVec4(0.2f, 1.0f, 0.2f, 1.0f));
 						//ImPlot::SetNextLineStyle(ImVec4(1.0f, 1.2f, 0.2f, 1.0f));
 						//ImPlot::PlotHLines("##30 FPS", arr_ms + 1, 1);
 						//ImPlot::SetNextLineStyle(ImVec4(1.0f, 0.2f, 0.2f, 1.0f));
 						//ImPlot::PlotHLines("##20 FPS", arr_ms + 2, 1);
 
-						ImPlot::PushStyleVar(ImPlotStyleVar_FillAlpha, 0.25f);
-						ImPlot::PlotShaded("Total", arr_x.data(), arr_wait_time.data(), arr_total_time.data(), (int)record_range);
-						ImPlot::PlotShaded("Wait", arr_x.data(), arr_present_time.data(), arr_wait_time.data(), (int)record_range);
-						ImPlot::PopStyleVar();
-						ImPlot::PushStyleVar(ImPlotStyleVar_FillAlpha, 0.5f);
-						ImPlot::PlotShaded("Present", arr_x.data(), arr_render_time.data(), arr_present_time.data(), (int)record_range);
-						ImPlot::PlotShaded("Render", arr_x.data(), arr_update_time.data(), arr_render_time.data(), (int)record_range);
-						ImPlot::PlotShaded("Update", arr_x.data(), arr_update_time.data(), (int)record_range);
-						ImPlot::PopStyleVar();
+						plotShadedAlpha("Total", arr_x.data(), arr_wait_time.data(), arr_total_time.data(), (int)record_range, 0.25f);
+						plotShadedAlpha("Wait", arr_x.data(), arr_present_time.data(), arr_wait_time.data(), (int)record_range, 0.25f);
+						plotShadedAlpha("Present", arr_x.data(), arr_render_time.data(), arr_present_time.data(), (int)record_range, 0.5f);
+						plotShadedAlpha("Render", arr_x.data(), arr_update_time.data(), arr_render_time.data(), (int)record_range, 0.5f);
+						plotShadedAlpha("Update", arr_x.data(), arr_update_time.data(), (int)record_range, 0.5f);
 
 						ImPlot::PlotLine("Total", arr_total_time.data(), (int)record_range);
 						ImPlot::PlotLine("Wait", arr_wait_time.data(), (int)record_range);
@@ -496,8 +526,7 @@ namespace {
 						ImPlot::PlotLine("Render", arr_render_time.data(), (int)record_range);
 						ImPlot::PlotLine("Update", arr_update_time.data(), (int)record_range);
 
-						ImPlot::SetNextLineStyle(ImVec4(0.2f, 0.2f, 0.2f, 1.0f));
-						ImPlot::PlotInfLines("##Current Time", &arr_index, 1, ImPlotInfLinesFlags_None);
+						plotInfLinesStyled("##Current Time", &arr_index, 1, ImPlotInfLinesFlags_None, ImVec4(0.2f, 0.2f, 0.2f, 1.0f));
 
 						ImPlot::EndPlot();
 					}
@@ -532,21 +561,17 @@ namespace {
 							1000.0 / 30.0,
 							1000.0 / 20.0,
 						};
-						ImPlot::SetNextLineStyle(ImVec4(0.2f, 1.0f, 0.2f, 1.0f));
-						ImPlot::PlotInfLines("##60 FPS", arr_ms, 1, ImPlotInfLinesFlags_Horizontal);
+						plotInfLinesStyled("##60 FPS", arr_ms, 1, ImPlotInfLinesFlags_Horizontal, ImVec4(0.2f, 1.0f, 0.2f, 1.0f));
 						//ImPlot::SetNextLineStyle(ImVec4(1.0f, 1.2f, 0.2f, 1.0f));
 						//ImPlot::PlotHLines("##30 FPS", arr_ms + 1, 1);
 						//ImPlot::SetNextLineStyle(ImVec4(1.0f, 0.2f, 0.2f, 1.0f));
 						//ImPlot::PlotHLines("##20 FPS", arr_ms + 2, 1);
 
-						ImPlot::PushStyleVar(ImPlotStyleVar_FillAlpha, 0.5f);
-						ImPlot::PlotShaded("Render", arr_x.data(), arr_gpu_render_time.data(), arr_gpu_render_time.data(), (int)record_range);
-						ImPlot::PopStyleVar();
+						plotShadedAlpha("Render", arr_x.data(), arr_gpu_render_time.data(), arr_gpu_render_time.data(), (int)record_range, 0.5f);
 
 						ImPlot::PlotLine("Render", arr_gpu_render_time.data(), (int)record_range);
 
-						ImPlot::SetNextLineStyle(ImVec4(0.2f, 0.2f, 0.2f, 1.0f));
-						ImPlot::PlotInfLines("##Current Time", &arr_index, 1, ImPlotInfLinesFlags_None);
+						plotInfLinesStyled("##Current Time", &arr_index, 1, ImPlotInfLinesFlags_None, ImVec4(0.2f, 0.2f, 0.2f, 1.0f));
 
 						ImPlot::EndPlot();
 					}
@@ -594,8 +619,7 @@ namespace {
 						ImPlot::PlotLine("GPU (MiB)", arr_mem_gpu.data(), (int)record_range);
 						ImPlot::PlotLine("Lua (MiB)", arr_mem_lua.data(), (int)record_range);
 
-						ImPlot::SetNextLineStyle(ImVec4(0.2f, 0.2f, 0.2f, 1.0f));
-						ImPlot::PlotInfLines("##Current Time", &arr_index, 1, ImPlotInfLinesFlags_None);
+						plotInfLinesStyled("##Current Time", &arr_index, 1, ImPlotInfLinesFlags_None, ImVec4(0.2f, 0.2f, 0.2f, 1.0f));
 
 						ImPlot::EndPlot();
 					}
@@ -650,8 +674,7 @@ namespace {
 						ImPlot::PlotLine("Colli Check", arr_obj_colli.data(), (int)record_range);
 						ImPlot::PlotLine("Colli Callback", arr_obj_colli_cb.data(), (int)record_range);
 
-						ImPlot::SetNextLineStyle(ImVec4(0.2f, 0.2f, 0.2f, 1.0f));
-						ImPlot::PlotInfLines("##Current Time", &arr_index, 1, ImPlotInfLinesFlags_None);
+						plotInfLinesStyled("##Current Time", &arr_index, 1, ImPlotInfLinesFlags_None, ImVec4(0.2f, 0.2f, 0.2f, 1.0f));
 
 						ImPlot::EndPlot();
 					}
