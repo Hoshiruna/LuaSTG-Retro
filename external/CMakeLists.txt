@@ -147,6 +147,7 @@ add_subdirectory(steam_api)
 # ==================== discord rpc ====================
 
 set(BUILD_EXAMPLES OFF CACHE BOOL "Build discord-rpc examples" FORCE)
+set(CLANG_FORMAT_CMD "" CACHE FILEPATH "Disable discord-rpc clang-format target" FORCE)
 add_subdirectory(discord-rpc)
 set_target_properties(discord-rpc PROPERTIES FOLDER external)
 
