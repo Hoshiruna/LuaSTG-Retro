@@ -11,17 +11,23 @@ endif ()
 include(cmake/luastg_options.cmake)
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
-include(cmake/TargetCommonOptions.cmake)
-include(cmake/options.cmake)
-include(cmake/msvc.crt.cmake)
-#msvc_hybrid_runtime_library()
+
+# Although this project doesn't make use of C++20 Modules,
+# the module scanning process runs during every build, this increases the build time.
+# See: https://cmake.org/cmake/help/latest/manual/cmake-cxxmodules.7.html#scanning-without-modules
+set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
+
+include(cmake/architecture.cmake)
+include(cmake/luastg-options.cmake)
+include(cmake/luastg-utils.cmake)
+include(cmake/msvc-c-runtime.cmake)
+
 msvc_static_runtime_library()
 
 include(cmake/import/all.cmake)
 include(cmake/build/all.cmake)
 add_subdirectory(external)
 include(cmake/packages.lua.cmake)
-include(LuaSTG/shaders.cmake)
 add_subdirectory(imgui)
 
 add_subdirectory(engine)

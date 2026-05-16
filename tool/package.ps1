@@ -1,3 +1,8 @@
+param(
+    [ValidateSet("vs2022", "vs2026-v143", "vs2026")]
+    [string]$Toolchain = "vs2026-v143"
+)
+
 $ProjectRoot = [System.IO.Path]::GetFullPath([System.IO.Path]::Join($PSScriptRoot, ".."))
 $ReleasesRoot = [System.IO.Path]::Join($ProjectRoot, "build", "releases")
 $BinaryRootX86 = [System.IO.Path]::Join($ProjectRoot, "build", "x86", "bin")
@@ -14,8 +19,14 @@ Write-Output "Example Root       : $ExampleRoot"
 
 Set-Location $ProjectRoot
 
-cmake --workflow --preset windows-amd64-release
-cmake --workflow --preset windows-x86-release
+$Presets = switch ($Toolchain) {
+    "vs2022"     { @{ AMD64 = "windows-amd64-release"; X86 = "windows-x86-release" } }
+    "vs2026-v143"{ @{ AMD64 = "windows-vs2026-v143-amd64-release"; X86 = "windows-vs2026-v143-x86-release" } }
+    "vs2026"     { @{ AMD64 = "windows-vs2026-amd64-release"; X86 = "windows-vs2026-x86-release" } }
+}
+
+cmake --workflow --preset $Presets.AMD64
+cmake --workflow --preset $Presets.X86
 
 # read version info
 
@@ -36,7 +47,7 @@ foreach ($Line in $ConfigFile.Split("`n")) {
     }
 }
 $VersionFull = "$VersionMajor.$VersionMinor.$VersionPatch"
-$ReleaseRoot = [System.IO.Path]::Join($ReleasesRoot, "LuaSTG-Retro-v$VersionFull")
+$ReleaseRoot = [System.IO.Path]::Join($ReleasesRoot, "LuaSTG-Sub-v$VersionFull")
 
 Write-Output "Version            : $VersionFull"
 Write-Output "Release Root       : $ReleaseRoot"
@@ -49,8 +60,8 @@ if (-not [System.IO.Directory]::Exists($ReleaseRoot)) {
 
 $BinaryFilesAMD64 = @(
     @{
-        Source = [System.IO.Path]::Join($BinaryRootAMD64, "LuastgRetro.exe")
-        Destination = [System.IO.Path]::Join($ReleaseRoot, "LuastgRetro.exe")
+        Source = [System.IO.Path]::Join($BinaryRootAMD64, "LuaSTGSub.exe")
+        Destination = [System.IO.Path]::Join($ReleaseRoot, "LuaSTGSub.exe")
     },
     @{
         Source = [System.IO.Path]::Join($BinaryRootAMD64, "d3dcompiler_47.dll")
@@ -72,8 +83,8 @@ foreach ($BinaryFile in $BinaryFilesAMD64) {
 $Release32Root = [System.IO.Path]::Join($ReleaseRoot, "windows-32bit")
 $BinaryFilesX86 = @(
     @{
-        Source = [System.IO.Path]::Join($BinaryRootX86, "LuastgRetro.exe")
-        Destination = [System.IO.Path]::Join($Release32Root, "LuastgRetro.exe")
+        Source = [System.IO.Path]::Join($BinaryRootX86, "LuaSTGSub.exe")
+        Destination = [System.IO.Path]::Join($Release32Root, "LuaSTGSub.exe")
     },
     @{
         Source = [System.IO.Path]::Join($BinaryRootX86, "d3dcompiler_47.dll")
@@ -102,7 +113,7 @@ $ExampleAssets = [System.IO.Path]::Join($ExampleRoot, "assets")
 $ReleaseAssets = [System.IO.Path]::Join($ReleaseRoot, "assets")
 $ExampleScripts = [System.IO.Path]::Join($ExampleRoot, "scripts")
 $ReleaseScripts = [System.IO.Path]::Join($ReleaseRoot, "scripts")
-$DocRoot = [System.IO.Path]::Join($ProjectRoot, "doc")
+$DocRoot = [System.IO.Path]::Join($ProjectRoot, "LuaSTG", "doc")
 $ReleaseDocRoot = [System.IO.Path]::Join($ReleaseRoot, "doc")
 $LicenseRoot = [System.IO.Path]::Join($ProjectRoot, "data", "license")
 $ReleaseLicenseRoot = [System.IO.Path]::Join($ReleaseRoot, "license")
@@ -128,5 +139,5 @@ Copy-Item -Path $LicenseRoot -Destination $ReleaseLicenseRoot -Recurse
 
 # archive
 
-$ArchivePath = [System.IO.Path]::Join($ReleasesRoot, "LuaSTG-Retro-v$VersionFull.zip")
+$ArchivePath = [System.IO.Path]::Join($ReleasesRoot, "LuaSTG-Sub-v$VersionFull.zip")
 Compress-Archive -Path $ReleaseRoot -DestinationPath $ArchivePath -CompressionLevel Optimal -Force
