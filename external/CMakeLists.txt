@@ -144,4 +144,10 @@ set_target_properties(libqoi PROPERTIES FOLDER external)
 
 add_subdirectory(steam_api)
 
+# ==================== discord rpc ====================
+
+set(BUILD_EXAMPLES OFF CACHE BOOL "Build discord-rpc examples" FORCE)
+add_subdirectory(discord-rpc)
+set_target_properties(discord-rpc PROPERTIES FOLDER external)
+
 add_subdirectory(tracy-patch)
