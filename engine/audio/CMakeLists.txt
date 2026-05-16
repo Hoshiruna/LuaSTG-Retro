@@ -3,11 +3,6 @@
 file(GLOB_RECURSE lib_src RELATIVE ${CMAKE_CURRENT_LIST_DIR} core/*.hpp core/*.cpp backend/*.hpp backend/*.cpp)
 source_group(TREE ${CMAKE_CURRENT_LIST_DIR} FILES ${lib_src})
 
-if (NOT LUASTG_AUDIO_PMDWIN_ENABLE)
-    list(FILTER lib_src EXCLUDE REGEX ".*/AudioDecoderPMD\\.cpp$")
-    list(FILTER lib_src EXCLUDE REGEX ".*/AudioDecoderPMD\\.hpp$")
-endif ()
-
 set(lib_name "Core.Audio")
 
 add_library(${lib_name})
@@ -30,13 +25,6 @@ set(audio_public_libs
     win32
     xmath
 )
-
-if (LUASTG_AUDIO_PMDWIN_ENABLE)
-    list(APPEND audio_public_libs pmdwin)
-    target_compile_definitions(${lib_name} PRIVATE LUASTG_ENABLE_PMDWIN=1)
-else ()
-    target_compile_definitions(${lib_name} PRIVATE LUASTG_ENABLE_PMDWIN=0)
-endif ()
 
 target_link_libraries(${lib_name} PUBLIC ${audio_public_libs})
 

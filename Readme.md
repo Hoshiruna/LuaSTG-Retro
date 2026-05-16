@@ -20,7 +20,7 @@ You can download from [Releases Page](). Usually displayed on the right or botto
 
 ## Features(TODO)
 
-* Added PMD Decoder (Complete) (Disabled by default.) (Please check [this](./PMDwin.md).)
+* Add the PMD music decoding solution within the license
 * Modify the game packaging method (Incomplete)
 * Modify image scaling mode (TODO)
 
@@ -44,9 +44,6 @@ See [Build Projects](./BUILD.md).
 
 ## Special Thanks
 
-- [Gzaffin](https://github.com/gzaffin) (developer of [pmdmini](https://github.com/gzaffin/pmdmini))
-- [C60](https://c60.la.coocan.jp/) (developer of PMDwin)
-- [Aaron Giles](https://github.com/aaronsgiles) (developer of [ymfm](https://github.com/aaronsgiles/ymfm))
 - [Natashi](https://github.com/Natashi) (developer of [Danmakufu ph3sx](https://github.com/Natashi/Touhou-Danmakufu-ph3sx-2))  
 - And all contributors to danmakufu ph3sx
 
@@ -66,10 +63,9 @@ LuaSTG Retro 是作为 [LuaSTG Sub](https://github.com/Legacy-LuaSTG-Engine/LuaS
 你可以从 [Releases 页面]() 下载，一般显示在右侧或者底部（手机版页面）。  
 
 ## 功能
-
-* 增加PMD解码器（该功能默认不启用）（请阅读[这个](./PMDwin.md)）
+* 添加在版权许可内的的PMD音乐解码方案
 * 修改引擎打包方式 (未完成)
-* 修改引擎图像缩放模式 (正在做)
+* 修改引擎图像缩放模式 (未完成)
 
 ## 主要迁移内容  
 
@@ -96,9 +92,6 @@ LuaSTG Retro 是作为 [LuaSTG Sub](https://github.com/Legacy-LuaSTG-Engine/LuaS
 
 ## 特别感谢
 
-- [Gzaffin](https://github.com/gzaffin) ([pmdmini](https://github.com/gzaffin/pmdmini) 开发者)
-- [C60](https://c60.la.coocan.jp/) (PMDwin 开发者)
-- [Aaron Giles](https://github.com/aaronsgiles) ([ymfm](https://github.com/aaronsgiles/ymfm) 开发者)
 - [Natashi](https://github.com/Natashi) ([Danmakufu ph3sx](https://github.com/Natashi/Touhou-Danmakufu-ph3sx-2) 开发者)  
 - 还有所有 danmakufu ph3sx 的贡献者
 

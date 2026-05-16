@@ -84,15 +84,6 @@ luastg_cmake_option(
     VALUE ON
 )
 
-# LuaSTG - Audio
-
-luastg_cmake_option(
-    NAME LUASTG_AUDIO_PMDWIN_ENABLE
-    TYPE BOOL
-    HELP "LuaSTG: Audio: Enable PMD decoder (pmdwin)"
-    VALUE FALSE
-)
-
 # LuaSTG - Discord RPC
 
 luastg_cmake_option(

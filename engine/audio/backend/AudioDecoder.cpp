@@ -4,9 +4,6 @@
 #include "backend/AudioDecoderWAV.hpp"
 #include "backend/AudioDecoderVorbis.hpp"
 #include "backend/AudioDecoderFLAC.hpp"
-#if LUASTG_ENABLE_PMDWIN
-#include "backend/AudioDecoderPMD.hpp"
-#endif
 
 namespace {
 	template<typename T>
@@ -39,16 +36,6 @@ namespace core {
 		if (!FileSystemManager::readFile(path, data.put())) {
 			return false;
 		}
-#if LUASTG_ENABLE_PMDWIN
-		{
-			SmartReference<AudioDecoderPMD> decoder;
-			decoder.attach(new AudioDecoderPMD);
-			if (decoder->open(path, data.get())) {
-				*output_decoder = decoder.detach();
-				return true;
-			}
-		}
-#endif
 		return create(data.get(), output_decoder);
 	}
 }
