@@ -228,10 +228,6 @@ bool FileSystemDATArchive::open(std::string_view const& path, size_t readOffset)
 		}
 	}
 
-	if (header.version != DATArchiveEncryption::VERSION_CURRENT) {
-		Logger::error("FileSystemDATArchive: unsupported version {} in '{}'", header.version, path);
-		return false;
-	}
 	if (header.headerSize == 0) {
 		Logger::error("FileSystemDATArchive: metadata size {} is invalid in '{}'", header.headerSize, path);
 		return false;
@@ -553,7 +549,6 @@ bool DATArchiveCreator::create(std::string_view const& baseDir,
 
 	DATArchiveHeader header{};
 	std::memcpy(header.magic, DATArchiveEncryption::HEADER_MAGIC, sizeof(header.magic));
-	header.version    = DATArchiveEncryption::VERSION_CURRENT;
 	header.entryCount = static_cast<uint32_t>(m_files.size());
 	tmpFile.write(reinterpret_cast<char const*>(&header), sizeof(header));
 

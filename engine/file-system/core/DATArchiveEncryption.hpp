@@ -10,8 +10,6 @@ public:
 	static constexpr char const HEADER_MAGIC[]       = "LSTGRETROARC\0\0";
 	static constexpr size_t     HEADER_MAGIC_LENGTH  = 8;
 
-	static constexpr uint32_t VERSION_CURRENT = 2;
-
 	static constexpr char const ENCRYPTION_KEY[]    = "Sonic The Hedgehog";
 	static constexpr size_t     ENCRYPTION_KEY_LEN  = sizeof(ENCRYPTION_KEY) - 1;
 

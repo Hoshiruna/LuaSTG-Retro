@@ -17,7 +17,6 @@ namespace core {
 #pragma pack(push, 1)
 struct DATArchiveHeader {
 	char     magic[8];
-	uint32_t version;
 	uint32_t entryCount;
 	uint32_t headerOffset;
 	uint32_t headerSize;
