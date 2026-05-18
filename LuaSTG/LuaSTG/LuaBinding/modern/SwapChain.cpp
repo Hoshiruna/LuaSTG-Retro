@@ -148,7 +148,7 @@ namespace luastg::binding {
 			auto const e = S.create_module("lstg.SwapChain.ScalingMode");
 			S.set_map_value(e, "stretch", static_cast<int32_t>(core::Graphics::SwapChainScalingMode::Stretch));
 			S.set_map_value(e, "aspect_ratio", static_cast<int32_t>(core::Graphics::SwapChainScalingMode::AspectRatio));
-			S.set_map_value(e, "integer_aspect_ratio", static_cast<int32_t>(core::Graphics::SwapChainScalingMode::IntegerAspectRatio));
+			S.set_map_value(e, "use_point_sampler", static_cast<int32_t>(core::Graphics::SwapChainScalingMode::IntegerAspectRatio));
 		}
 
 		// method
