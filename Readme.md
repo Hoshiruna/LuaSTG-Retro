@@ -37,7 +37,7 @@ See [Build Projects](./BUILD.md).
 
 ## Contributions
 
-If you'd like to contribute, please read [Contributing](./CONTRIBUTING.md).
+See [Contributing](./CONTRIBUTING.md).
 
 ## Major Contributors
 
@@ -92,7 +92,7 @@ LuaSTG Retro 是作为 [LuaSTG Sub](https://github.com/Legacy-LuaSTG-Engine/LuaS
 
 ## 贡献
 
-如果你想进行贡献，请阅读[贡献](./CONTRIBUTING.md)。
+请阅读[贡献](./CONTRIBUTING.md)。
 
 ## 主要贡献者  
 
