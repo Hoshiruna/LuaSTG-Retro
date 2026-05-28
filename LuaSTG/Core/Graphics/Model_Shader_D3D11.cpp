@@ -479,8 +479,8 @@ namespace core::Graphics
                 macro, NULL, entry.data(), type ? "ps_4_0" : "vs_4_0", compile_flags, 0, blob, &err);
             if (FAILED(hr))
             {
-                spdlog::error("[core] D3DCompile 调用失败");
-                spdlog::error("[core] 编译着色器 '{}' 失败：{}", name, (char*)err->GetBufferPointer());
+                spdlog::error("[core] D3DCompile failed");
+                spdlog::error("[core] Failed to compile shader '{}' : {}", name, (char*)err->GetBufferPointer());
                 assert(false);
                 return false;
             }

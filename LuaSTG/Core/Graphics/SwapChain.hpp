@@ -1,5 +1,4 @@
 #pragma once
-#include <algorithm>
 #include "core/Vector2.hpp"
 #include "core/Rational.hpp"
 #include "core/ReferenceCounted.hpp"
@@ -23,52 +22,6 @@ namespace core::Graphics
 		AspectRatio,
 		IntegerAspectRatio,
 	};
-
-	struct SwapChainPresentationLayout
-	{
-		Vector2F offset;
-		Vector2F size;
-		Vector2F scale;
-		bool use_point_filter{ false };
-	};
-
-	inline SwapChainPresentationLayout makeSwapChainPresentationLayout(Vector2U outer_size, Vector2U inner_size, SwapChainScalingMode mode) noexcept
-	{
-		SwapChainPresentationLayout layout;
-
-		if (outer_size.x == 0 || outer_size.y == 0 || inner_size.x == 0 || inner_size.y == 0)
-		{
-			return layout;
-		}
-
-		if (mode == SwapChainScalingMode::Stretch)
-		{
-			layout.offset = Vector2F(0.0f, 0.0f);
-			layout.size = Vector2F(static_cast<float>(outer_size.x), static_cast<float>(outer_size.y));
-			layout.scale = Vector2F(
-				static_cast<float>(static_cast<double>(outer_size.x) / static_cast<double>(inner_size.x)),
-				static_cast<float>(static_cast<double>(outer_size.y) / static_cast<double>(inner_size.y)));
-			return layout;
-		}
-
-		double scale = std::min(
-			static_cast<double>(outer_size.x) / static_cast<double>(inner_size.x),
-			static_cast<double>(outer_size.y) / static_cast<double>(inner_size.y));
-		if (mode == SwapChainScalingMode::IntegerAspectRatio && scale >= 1.0)
-		{
-			scale = static_cast<double>(static_cast<uint32_t>(scale));
-			layout.use_point_filter = true;
-		}
-
-		double const width = static_cast<double>(inner_size.x) * scale;
-		double const height = static_cast<double>(inner_size.y) * scale;
-		layout.offset = Vector2F(
-			static_cast<float>((static_cast<double>(outer_size.x) - width) * 0.5),
-			static_cast<float>((static_cast<double>(outer_size.y) - height) * 0.5));
-		layout.size = Vector2F(static_cast<float>(width), static_cast<float>(height));
-		layout.scale = Vector2F(static_cast<float>(scale), static_cast<float>(scale));
-		return layout;
-	}
 
 	struct ISwapChainEventListener
 	{

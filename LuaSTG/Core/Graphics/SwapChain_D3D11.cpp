@@ -10,6 +10,8 @@
 
 #include "ScreenGrab11.h"
 
+#include <algorithm>
+
 //#define _log(x) OutputDebugStringA(x "\n")
 #define _log(x)
 
@@ -60,6 +62,48 @@ namespace {
 		}
 
 		return false;
+	}
+
+	struct PresentationPlacement {
+		core::Vector2F offset;
+		core::Vector2F size;
+		core::Vector2F scale;
+		bool point_sampler{ false };
+	};
+
+	PresentationPlacement calcPresentationPlacement(
+		core::Vector2U outer_size,
+		core::Vector2U inner_size,
+		core::Graphics::SwapChainScalingMode mode) noexcept
+	{
+		PresentationPlacement ret;
+		if (outer_size.x == 0 || outer_size.y == 0 || inner_size.x == 0 || inner_size.y == 0) {
+			return ret;
+		}
+
+		if (mode == core::Graphics::SwapChainScalingMode::Stretch) {
+			ret.offset = core::Vector2F(0.0f, 0.0f);
+			ret.size = core::Vector2F((float)outer_size.x, (float)outer_size.y);
+			ret.scale = core::Vector2F(
+				(float)outer_size.x / (float)inner_size.x,
+				(float)outer_size.y / (float)inner_size.y);
+			return ret;
+		}
+
+		float scale = std::min(
+			(float)outer_size.x / (float)inner_size.x,
+			(float)outer_size.y / (float)inner_size.y);
+		if (mode == core::Graphics::SwapChainScalingMode::IntegerAspectRatio && scale >= 1.0f) {
+			scale = (float)(uint32_t)scale;
+			ret.point_sampler = true;
+		}
+
+		ret.size = core::Vector2F((float)inner_size.x * scale, (float)inner_size.y * scale);
+		ret.offset = core::Vector2F(
+			((float)outer_size.x - ret.size.x) * 0.5f,
+			((float)outer_size.y - ret.size.y) * 0.5f);
+		ret.scale = core::Vector2F(scale, scale);
+		return ret;
 	}
 }
 
@@ -1475,12 +1519,12 @@ namespace core::Graphics
 			(uint32_t)(rc.right - rc.left),
 			(uint32_t)(rc.bottom - rc.top));
 		auto const swap_chain_size_u = Vector2U(desc1.Width, desc1.Height);
-		auto const layout = makeSwapChainPresentationLayout(window_size_u, swap_chain_size_u, m_scaling_mode);
+		auto const layout = calcPresentationPlacement(window_size_u, swap_chain_size_u, m_scaling_mode);
 
 		// 让背景铺满整个画面（由 Window Class 的背景来处理）
 
 		HRGet = dcomp_visual_swap_chain->SetBitmapInterpolationMode(
-			layout.use_point_filter
+			layout.point_sampler
 			? DCOMPOSITION_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR
 			: DCOMPOSITION_BITMAP_INTERPOLATION_MODE_LINEAR);
 		HRCheckCallReturnBool("IDCompositionVisual2::SetBitmapInterpolationMode");
@@ -1870,7 +1914,7 @@ namespace core::Graphics
 		HRGet = dxgi_swapchain->GetDesc1(&desc1);
 		HRCheckCallReturnBool("IDXGISwapChain1::GetDesc1");
 
-		auto const layout = makeSwapChainPresentationLayout(
+		auto const layout = calcPresentationPlacement(
 			Vector2U(desc1.Width, desc1.Height),
 			m_canvas_size,
 			m_scaling_mode);
@@ -1878,7 +1922,11 @@ namespace core::Graphics
 		return m_scaling_renderer.UpdateTransform(
 			m_canvas_d3d11_srv.Get(),
 			m_swap_chain_d3d11_rtv.Get(),
-			layout
+			layout.offset.x,
+			layout.offset.y,
+			layout.size.x,
+			layout.size.y,
+			layout.point_sampler
 		);
 	}
 	bool SwapChain_D3D11::presentLetterBoxingRenderer()

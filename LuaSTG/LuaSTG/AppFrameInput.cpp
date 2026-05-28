@@ -184,12 +184,28 @@ namespace luastg
         auto const c_size = GetAppModel()->getSwapChain()->getCanvasSize();
 
         auto const scaling_mode = GetAppModel()->getSwapChain()->getScalingMode();
-        auto const layout = core::Graphics::makeSwapChainPresentationLayout(w_size, c_size, scaling_mode);
-        return core::Vector4F(
-            -layout.offset.x,
-            -layout.offset.y,
-            1.0f / layout.scale.x,
-            1.0f / layout.scale.y);
+        if (scaling_mode == core::Graphics::SwapChainScalingMode::Stretch)
+        {
+            return core::Vector4F(
+                0.0f,
+                0.0f,
+                (float)c_size.x / (float)w_size.x,
+                (float)c_size.y / (float)w_size.y);
+        }
+
+        float scale = std::min(
+            (float)w_size.x / (float)c_size.x,
+            (float)w_size.y / (float)c_size.y);
+        if (scaling_mode == core::Graphics::SwapChainScalingMode::IntegerAspectRatio && scale >= 1.0f)
+        {
+            scale = (float)(uint32_t)scale;
+        }
+
+        float const sizew = scale * (float)c_size.x;
+        float const sizeh = scale * (float)c_size.y;
+        float const dx = ((float)w_size.x - sizew) * 0.5f;
+        float const dy = ((float)w_size.y - sizeh) * 0.5f;
+        return core::Vector4F(-dx, -dy, 1.0f / scale, 1.0f / scale);
     }
     int32_t AppFrame::GetMouseWheelDelta()noexcept
     {

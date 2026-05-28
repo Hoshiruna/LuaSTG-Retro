@@ -5,7 +5,6 @@
 #include "core/DATArchiveEncryption.hpp"
 
 #include <fstream>
-#include <functional>
 #include <map>
 #include <mutex>
 #include <set>
@@ -110,15 +109,10 @@ private:
 
 class DATArchiveCreator {
 public:
-	using StatusCallback   = std::function<void(std::string_view const&)>;
-	using ProgressCallback = std::function<void(float)>;
-
 	void addFile(std::string_view const& relativePath);
 
 	bool create(std::string_view const& baseDir,
-	            std::string_view const& outputPath,
-	            StatusCallback   onStatus   = {},
-	            ProgressCallback onProgress = {});
+	            std::string_view const& outputPath);
 
 private:
 	std::vector<std::string> m_files;

@@ -7,6 +7,7 @@
 ---
 
 ## Introduction
+
 Luastg-Retro was developed as a fork of [LuaSTG Sub](https://github.com/Legacy-LuaSTG-Engine/LuaSTG-Sub) to cater to the interests of certain retro fans (it updates based on the main branch of LuaSTG Sub).
 
 ## Download
@@ -18,11 +19,11 @@ You can download from [Releases Page](). Usually displayed on the right or botto
 * Graphic API: Direct3D 9 to Direct3D 11
 * Audio API: DirectSound to XAudio2
 
-## Features(TODO)
+## Features
 
 * Add the PMD music decoding solution within the license
 * Modify the game packaging method (Incomplete)
-* Modify image scaling mode (TODO)
+* Modify image scaling mode (Incomplete)
 
 ## Requirements
 
@@ -48,7 +49,10 @@ See [Build Projects](./BUILD.md).
 - And all contributors to danmakufu ph3sx
 
 ## Warning
-This branch incorporates new features developed with AI (artificial intelligence) assistance. If you believe this branch may introduce uncertain risks to your project, please refrain from using it.
+
+In the past, LuaSTG Retro’s new features utilized code generated entirely by AI and included libraries incompatible with the MIT License. The team is now focused on removing all AI-generated code and eliminating GPL-licensed libraries to mitigate risks.
+
+However, some new features in this branch still rely on AI for development. If you believe this branch poses an uncertain risk to your project, please do not use it.
 
 ---
 
@@ -63,7 +67,7 @@ LuaSTG Retro 是作为 [LuaSTG Sub](https://github.com/Legacy-LuaSTG-Engine/LuaS
 你可以从 [Releases 页面]() 下载，一般显示在右侧或者底部（手机版页面）。  
 
 ## 功能
-* 添加在版权许可内的的PMD音乐解码方案
+* 添加在版权许可内的的 PMD 音乐解码方案
 * 修改引擎打包方式 (未完成)
 * 修改引擎图像缩放模式 (未完成)
 
@@ -82,6 +86,10 @@ LuaSTG Retro 是作为 [LuaSTG Sub](https://github.com/Legacy-LuaSTG-Engine/LuaS
 
 请阅读[编译项目](./BUILD.md)。
 
+## 贡献
+
+如果你想进行贡献，请阅读[贡献](./CONTRIBUTING.md)。
+
 ## 主要贡献者  
 
 - 隔壁的桌子（LuaSTG 开发者）  
@@ -96,5 +104,6 @@ LuaSTG Retro 是作为 [LuaSTG Sub](https://github.com/Legacy-LuaSTG-Engine/LuaS
 - 还有所有 danmakufu ph3sx 的贡献者
 
 ## 警告
-该分支部分新功能使用了AI（即人工智能）进行辅助开发，如果您认为该分支会对你的项目产生不确定的风险，请勿尝试使用。
 
+LuaSTG Retro 在之前一段时间内的新功能采用过完全由 AI 生成的代码和链接了与 MIT 协议不兼容的库，现在团队正致力于清理掉完全由 AI 生成的代码，并且移除 GPL 协议的库来避免产生风险。
+但该分支的一些新功能仍然使用了AI（即人工智能）进行辅助开发，如果您认为该分支会对你的项目产生不确定的风险，请勿尝试使用。

@@ -165,11 +165,11 @@ namespace luastg
 				if (errmsg == nullptr) {
 					errmsg = "(error object is a nil value)";
 				}
-				spdlog::error("[luajit] 调用全局函数'{}'时出错：{}", name, errmsg);
+				spdlog::error("[luajit] Error while calling global function'{}':{}", name, errmsg);
 				MessageBoxW(
 					m_pAppModel ? (HWND)m_pAppModel->getWindow()->getNativeHandle() : NULL,
 					utf8::to_wstring(
-						fmt::format("调用全局函数'{}'时出错：\n{}", name, errmsg)
+						fmt::format("Error while calling global function '{}':\n{}", name, errmsg)
 					).c_str(),
 					L"" LUASTG_INFO,
 					MB_ICONERROR | MB_OK
@@ -199,7 +199,7 @@ namespace luastg
 		#ifdef _DEBUG
 			try
 			{
-				spdlog::error("[luajit] 调用全局函数'{}'时出错：全局函数'{}'不存在", name, name);
+				spdlog::error("[luajit] Error while calling global function '{}': function does not exist", name);
 				/*
 				MessageBoxW(
 					m_pAppModel ? (HWND)m_pAppModel->getWindow()->getNativeHandle() : NULL,
@@ -226,11 +226,11 @@ namespace luastg
 			//															// ? trace errmsg
 			try
 			{
-				spdlog::error("[luajit] 调用全局函数'{}'时出错：{}", name, lua_tostring(L, -1));
+				spdlog::error("[luajit] Error while calling global function '{}': {}", name, lua_tostring(L, -1));
 				MessageBoxW(
 					m_pAppModel ? (HWND)m_pAppModel->getWindow()->getNativeHandle() : NULL,
 					utf8::to_wstring(
-						fmt::format("调用全局函数'{}'时出错：\n{}", name, lua_tostring(L, -1))
+						fmt::format("Error while calling global function '{}':\n{}", name, lua_tostring(L, -1))
 					).c_str(),
 					L"" LUASTG_INFO,
 					MB_ICONERROR | MB_OK);

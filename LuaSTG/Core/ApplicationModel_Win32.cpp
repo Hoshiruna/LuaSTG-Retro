@@ -296,15 +296,17 @@ namespace core
 		MEMORYSTATUSEX info = { sizeof(MEMORYSTATUSEX) };
 		if (GlobalMemoryStatusEx(&info))
 		{
-			spdlog::info("[core] 系统内存使用情况：\n"
-				"    使用百分比：{}%\n"
-				"    总物理内存：{}\n"
-				"    剩余物理内存：{}\n"
-				"    当前进程可提交内存限制：{}\n"
-				"    当前进程剩余的可提交内存：{}\n"
-				"    当前进程用户模式内存空间限制*1：{}\n"
-				"    当前进程剩余的用户模式内存空间：{}\n"
-				"        *1 此项反映此程序实际上能用的最大内存，在 32 位应用程序上此项一般为 2 GB，修改 Windows 操作系统注册表后可能为 1 到 3 GB"
+			spdlog::info("[core] System memory usage:\n"
+				"    Physical memory usage: {}%\n"
+				"    Total physical memory: {}\n"
+				"    Available physical memory: {}\n"
+				"    Current process commit memory limit: {}\n"
+				"    Current process available commit memory: {}\n"
+				"    Current process user-mode address space limit*1: {}\n"
+				"    Current process available user-mode address space: {}\n"
+				"        *1 This value reflects the maximum memory actually available to this program. "
+				"For 32-bit applications, it is usually 2 GB, but it may range from 1 GB to 3 GB "
+				"after modifying the Windows registry."
 				, info.dwMemoryLoad
 				, bytes_count_to_string(info.ullTotalPhys)
 				, bytes_count_to_string(info.ullAvailPhys)
@@ -316,7 +318,7 @@ namespace core
 		}
 		else
 		{
-			spdlog::error("[core] 无法获取系统内存使用情况");
+			spdlog::error("[core] Failed to retrieve system memory usage");
 		}
 	}
 

@@ -1,5 +1,4 @@
 #include "Core/Graphics/Direct3D11/LetterBoxingRenderer.hpp"
-#include "Core/Graphics/SwapChain.hpp"
 #include "Core/i18n.hpp"
 
 #define HRNew HRESULT hr = S_OK;
@@ -237,7 +236,8 @@ namespace core::Graphics::Direct3D11
 		d3d11_device.Reset();
 		d3d11_device_context.Reset();
 	}
-	bool LetterBoxingRenderer::UpdateTransform(ID3D11ShaderResourceView* srv, ID3D11RenderTargetView* rtv, SwapChainPresentationLayout const& layout)
+	bool LetterBoxingRenderer::UpdateTransform(ID3D11ShaderResourceView* srv, ID3D11RenderTargetView* rtv,
+		float x, float y, float w, float h, bool point_sampler)
 	{
 		assert(srv);
 		assert(rtv);
@@ -246,7 +246,7 @@ namespace core::Graphics::Direct3D11
 		assert(d3d11_constant_buffer);
 
 		HRNew;
-		use_point_sampler = layout.use_point_filter;
+		use_point_sampler = point_sampler;
 
 		// info
 
@@ -260,15 +260,10 @@ namespace core::Graphics::Direct3D11
 		float const window_w = float(rtv_res_tex_info.Width);
 		float const window_h = float(rtv_res_tex_info.Height);
 
-		float const draw_x = layout.offset.x;
-		float const draw_y = layout.offset.y;
-		float const draw_w = layout.size.x;
-		float const draw_h = layout.size.y;
-
-		vertex_buffer[0] = { draw_x, draw_y + draw_h, 0.0f, 0.0f };
-		vertex_buffer[1] = { draw_x + draw_w, draw_y + draw_h, 1.0f, 0.0f };
-		vertex_buffer[2] = { draw_x + draw_w, draw_y, 1.0f, 1.0f };
-		vertex_buffer[3] = { draw_x, draw_y, 0.0f, 1.0f };
+		vertex_buffer[0] = { x, y + h, 0.0f, 0.0f };
+		vertex_buffer[1] = { x + w, y + h, 1.0f, 0.0f };
+		vertex_buffer[2] = { x + w, y, 1.0f, 1.0f };
+		vertex_buffer[3] = { x, y, 0.0f, 1.0f };
 		
 		D3D11_MAPPED_SUBRESOURCE vertex_data_range = {};
 		HRGet = d3d11_device_context->Map(d3d11_vertex_buffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &vertex_data_range);

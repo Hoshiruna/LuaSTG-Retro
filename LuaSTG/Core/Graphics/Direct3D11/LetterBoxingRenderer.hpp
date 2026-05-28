@@ -1,10 +1,5 @@
 #pragma once
 
-namespace core::Graphics
-{
-	struct SwapChainPresentationLayout;
-}
-
 namespace core::Graphics::Direct3D11
 {
 	class LetterBoxingRenderer
@@ -48,7 +43,8 @@ namespace core::Graphics::Direct3D11
 	public:
 		bool AttachDevice(ID3D11Device* device);
 		void DetachDevice();
-		bool UpdateTransform(ID3D11ShaderResourceView* srv, ID3D11RenderTargetView* rtv, SwapChainPresentationLayout const& layout);
+		bool UpdateTransform(ID3D11ShaderResourceView* srv, ID3D11RenderTargetView* rtv,
+			float x, float y, float w, float h, bool point_sampler);
 		bool Draw(ID3D11ShaderResourceView* srv, ID3D11RenderTargetView* rtv, bool clear_rtv);
 	public:
 		LetterBoxingRenderer();

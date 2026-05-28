@@ -55,79 +55,70 @@ static bool zlibInflate(uint8_t const* src, size_t srcLen, std::vector<uint8_t>&
 	return true;
 }
 
-static bool zlibInflateKnown(uint8_t const* src, size_t srcLen,
-                             std::vector<uint8_t>& out, size_t expectedSize) {
-	out.resize(expectedSize);
-	size_t destLen = expectedSize;
-	int ret = zng_uncompress(out.data(), &destLen, src, srcLen);
-	if (ret != Z_OK) { out.clear(); return false; }
-	out.resize(destLen);
-	return true;
-}
-
-static uint32_t zlibCrc32(uint8_t const* data, size_t size) {
-	return static_cast<uint32_t>(zng_crc32_z(0, data, size));
-}
-
-static size_t entryRecordSize(DATArchiveEntry const& entry) {
+static bool writeEntryRecord(std::vector<uint8_t>& buf, DATArchiveEntry const& entry) {
 	std::wstring wpath = utf8::to_wstring(entry.path);
-	return wpath.size() * sizeof(wchar_t)
-		+ sizeof(uint32_t)
+	if (wpath.size() > std::numeric_limits<uint32_t>::max()) return false;
+
+	size_t const oldSize = buf.size();
+	size_t const recordSize = sizeof(uint32_t)
+		+ wpath.size() * sizeof(wchar_t)
 		+ sizeof(uint8_t)
 		+ sizeof(uint32_t) * 4
 		+ sizeof(uint8_t) * 2;
-}
+	buf.resize(oldSize + recordSize);
 
-static void writeEntryRecord(std::vector<uint8_t>& buf, DATArchiveEntry const& entry) {
-	auto append = [&](void const* data, size_t len) {
-		buf.insert(buf.end(),
-		           static_cast<uint8_t const*>(data),
-		           static_cast<uint8_t const*>(data) + len);
-	};
+	uint8_t* cursor = buf.data() + oldSize;
+#define WRITE_BYTES(SRC, SIZE) \
+	std::memcpy(cursor, (SRC), (SIZE)); \
+	cursor += (SIZE)
 
-	std::wstring wpath = utf8::to_wstring(entry.path);
 	uint32_t charCount = static_cast<uint32_t>(wpath.size());
-	append(&charCount,        sizeof(charCount));
-	append(wpath.data(),      charCount * sizeof(wchar_t));
+	WRITE_BYTES(&charCount,        sizeof(charCount));
+	WRITE_BYTES(wpath.data(),      charCount * sizeof(wchar_t));
 
 	uint8_t ct = static_cast<uint8_t>(entry.compressionType);
-	append(&ct,               sizeof(ct));
-	append(&entry.sizeFull,   sizeof(entry.sizeFull));
-	append(&entry.sizeStored, sizeof(entry.sizeStored));
-	append(&entry.offsetPos,  sizeof(entry.offsetPos));
-	append(&entry.keyBase,    sizeof(entry.keyBase));
-	append(&entry.keyStep,    sizeof(entry.keyStep));
-	append(&entry.crc32Value, sizeof(entry.crc32Value));
+	WRITE_BYTES(&ct,               sizeof(ct));
+	WRITE_BYTES(&entry.sizeFull,   sizeof(entry.sizeFull));
+	WRITE_BYTES(&entry.sizeStored, sizeof(entry.sizeStored));
+	WRITE_BYTES(&entry.offsetPos,  sizeof(entry.offsetPos));
+	WRITE_BYTES(&entry.keyBase,    sizeof(entry.keyBase));
+	WRITE_BYTES(&entry.keyStep,    sizeof(entry.keyStep));
+	WRITE_BYTES(&entry.crc32Value, sizeof(entry.crc32Value));
+#undef WRITE_BYTES
+
+	return true;
 }
 
 static bool readEntryRecord(uint8_t const*& cursor, uint8_t const* end, DATArchiveEntry& entry) {
-	auto read = [&](void* dest, size_t len) -> bool {
-		if (cursor + static_cast<ptrdiff_t>(len) > end) return false;
-		std::memcpy(dest, cursor, len);
-		cursor += len;
-		return true;
-	};
+#define READ_BYTES(DEST, SIZE) \
+	do { \
+		if (cursor + static_cast<ptrdiff_t>(SIZE) > end) return false; \
+		std::memcpy((DEST), cursor, (SIZE)); \
+		cursor += (SIZE); \
+	} while (false)
 
 	uint32_t charCount = 0;
-	if (!read(&charCount, sizeof(charCount))) return false;
+	READ_BYTES(&charCount, sizeof(charCount));
 	if (static_cast<size_t>(charCount) * sizeof(wchar_t) > static_cast<size_t>(end - cursor)) return false;
 
 	std::wstring wpath(charCount, L'\0');
-	if (!read(wpath.data(), charCount * sizeof(wchar_t))) return false;
+	READ_BYTES(wpath.data(), charCount * sizeof(wchar_t));
 
 	entry.path = utf8::to_string(wpath);
 	normalizeSlashes(entry.path);
 
 	uint8_t ct = 0;
-	if (!read(&ct, sizeof(ct))) return false;
+	READ_BYTES(&ct, sizeof(ct));
 	entry.compressionType = static_cast<DATArchiveEntry::CompressionType>(ct);
 
-	if (!read(&entry.sizeFull,   sizeof(entry.sizeFull)))   return false;
-	if (!read(&entry.sizeStored, sizeof(entry.sizeStored))) return false;
-	if (!read(&entry.offsetPos,  sizeof(entry.offsetPos)))  return false;
-	if (!read(&entry.keyBase,    sizeof(entry.keyBase)))    return false;
-	if (!read(&entry.keyStep,    sizeof(entry.keyStep)))    return false;
-	if (!read(&entry.crc32Value, sizeof(entry.crc32Value))) return false;
+	READ_BYTES(&entry.sizeFull,   sizeof(entry.sizeFull));
+	READ_BYTES(&entry.sizeStored, sizeof(entry.sizeStored));
+	READ_BYTES(&entry.offsetPos,  sizeof(entry.offsetPos));
+	READ_BYTES(&entry.keyBase,    sizeof(entry.keyBase));
+	READ_BYTES(&entry.keyStep,    sizeof(entry.keyStep));
+	READ_BYTES(&entry.crc32Value, sizeof(entry.crc32Value));
+#undef READ_BYTES
+
 	return true;
 }
 
@@ -383,11 +374,19 @@ bool FileSystemDATArchive::readEntryData(DATArchiveEntry const& entry, IData** c
 			outBuf.clear();
 			break;
 		}
-		if (entry.sizeStored == 0
-			|| !zlibInflateKnown(rawBuf.data(), rawBuf.size(), outBuf, entry.sizeFull)) {
+		if (entry.sizeStored == 0) {
 			Logger::warn("FileSystemDATArchive: inflate failed for '{}'", entry.path);
 			return false;
 		}
+		outBuf.resize(entry.sizeFull);
+		size_t destLen = entry.sizeFull;
+		int ret = zng_uncompress(outBuf.data(), &destLen, rawBuf.data(), rawBuf.size());
+		if (ret != Z_OK) {
+			outBuf.clear();
+			Logger::warn("FileSystemDATArchive: inflate failed for '{}'", entry.path);
+			return false;
+		}
+		outBuf.resize(destLen);
 		if (outBuf.size() != entry.sizeFull) {
 			Logger::warn("FileSystemDATArchive: size mismatch after inflate for '{}' "
 			             "(expected {} got {})",
@@ -402,7 +401,7 @@ bool FileSystemDATArchive::readEntryData(DATArchiveEntry const& entry, IData** c
 	}
 
 	if (entry.crc32Value != 0 && !outBuf.empty()) {
-		uint32_t actual = zlibCrc32(outBuf.data(), outBuf.size());
+		uint32_t actual = static_cast<uint32_t>(zng_crc32_z(0, outBuf.data(), outBuf.size()));
 		if (actual != entry.crc32Value) {
 			Logger::warn("FileSystemDATArchive: CRC mismatch for '{}' "
 			             "(expected 0x{:08X}, got 0x{:08X})",
@@ -518,11 +517,7 @@ void DATArchiveCreator::addFile(std::string_view const& relativePath) {
 }
 
 bool DATArchiveCreator::create(std::string_view const& baseDir,
-                               std::string_view const& outputPath,
-                               StatusCallback   onStatus,
-                               ProgressCallback onProgress) {
-	if (onProgress) onProgress(0.0f);
-
+                               std::string_view const& outputPath) {
 	uint8_t headerKeyBase, headerKeyStep;
 	DATArchiveEncryption::getKeyHashHeader(
 		std::string_view(DATArchiveEncryption::ENCRYPTION_KEY, DATArchiveEncryption::ENCRYPTION_KEY_LEN),
@@ -539,154 +534,141 @@ bool DATArchiveCreator::create(std::string_view const& baseDir,
 		return false;
 	}
 
-	if (onStatus) onStatus("Writing header");
-
-	if (m_files.size() > std::numeric_limits<uint32_t>::max()) {
-		Logger::error("DATArchiveCreator: too many files for DAT archive");
-		std::filesystem::remove(tmpPath);
-		return false;
-	}
-
-	DATArchiveHeader header{};
-	std::memcpy(header.magic, DATArchiveEncryption::HEADER_MAGIC, sizeof(header.magic));
-	header.entryCount = static_cast<uint32_t>(m_files.size());
-	tmpFile.write(reinterpret_cast<char const*>(&header), sizeof(header));
-
-	if (onProgress) onProgress(0.1f);
-
-	std::vector<DATArchiveEntry> entries;
-	entries.reserve(m_files.size());
-	float progressStep = m_files.empty() ? 0.0f : (0.75f - 0.10f) / static_cast<float>(m_files.size());
-
-	for (size_t i = 0; i < m_files.size(); ++i) {
-		if (onStatus) onStatus(std::format("Processing [{}]", m_files[i]));
-
-		std::string fullPath = base + m_files[i];
-		std::ifstream file(fullPath, std::ios::binary);
-		if (!file.is_open()) {
-			Logger::error("DATArchiveCreator: cannot open '{}'", fullPath);
-			std::filesystem::remove(tmpPath);
-			return false;
+	bool ok = false;
+	bool encrypting = false;
+	{
+		if (m_files.size() > std::numeric_limits<uint32_t>::max()) {
+			Logger::error("DATArchiveCreator: too many files for DAT archive");
+			goto finish;
 		}
 
-		file.seekg(0, std::ios::end);
-		uint32_t fileSize = 0;
-		if (!streamPosToU32(file.tellg(), fileSize)) {
-			Logger::error("DATArchiveCreator: '{}' is too large for DAT archive", fullPath);
-			std::filesystem::remove(tmpPath);
-			return false;
-		}
-		file.seekg(0, std::ios::beg);
+		DATArchiveHeader header{};
+		std::memcpy(header.magic, DATArchiveEncryption::HEADER_MAGIC, sizeof(header.magic));
+		header.entryCount = static_cast<uint32_t>(m_files.size());
+		tmpFile.write(reinterpret_cast<char const*>(&header), sizeof(header));
 
-		std::vector<uint8_t> content(fileSize);
-		if (fileSize > 0) {
-			file.read(reinterpret_cast<char*>(content.data()), fileSize);
-			if (!file) {
-				Logger::error("DATArchiveCreator: failed to read '{}'", fullPath);
-				std::filesystem::remove(tmpPath);
-				return false;
+		std::vector<DATArchiveEntry> entries;
+		entries.reserve(m_files.size());
+
+		for (auto const& name : m_files) {
+			std::string fullPath = base + name;
+			std::ifstream file(fullPath, std::ios::binary);
+			if (!file.is_open()) {
+				Logger::error("DATArchiveCreator: cannot open '{}'", fullPath);
+				goto finish;
 			}
-		}
-		file.close();
 
-		DATArchiveEntry entry;
-		entry.path        = m_files[i];
-		entry.sizeFull    = fileSize;
-		entry.sizeStored  = fileSize;
-		if (!streamPosToU32(tmpFile.tellp(), entry.offsetPos)) {
-			Logger::error("DATArchiveCreator: archive offset is too large before '{}'", m_files[i]);
-			std::filesystem::remove(tmpPath);
-			return false;
-		}
+			file.seekg(0, std::ios::end);
+			uint32_t fileSize = 0;
+			if (!streamPosToU32(file.tellg(), fileSize)) {
+				Logger::error("DATArchiveCreator: '{}' is too large for DAT archive", fullPath);
+				goto finish;
+			}
+			file.seekg(0, std::ios::beg);
 
-		entry.crc32Value  = zlibCrc32(content.data(), fileSize);
-
-		DATArchiveEncryption::getKeyHashFile(m_files[i], headerKeyBase, headerKeyStep,
-		                                  entry.keyBase, entry.keyStep);
-
-		if (fileSize >= 0x100) {
-			entry.compressionType = DATArchiveEntry::CT_ZLIB;
-			std::vector<uint8_t> compressed;
-			if (zlibDeflate(content.data(), fileSize, compressed)) {
-				if (compressed.size() > std::numeric_limits<uint32_t>::max()) {
-					Logger::error("DATArchiveCreator: compressed data is too large for '{}'", fullPath);
-					std::filesystem::remove(tmpPath);
-					return false;
+			std::vector<uint8_t> content(fileSize);
+			if (fileSize > 0) {
+				file.read(reinterpret_cast<char*>(content.data()), fileSize);
+				if (!file) {
+					Logger::error("DATArchiveCreator: failed to read '{}'", fullPath);
+					goto finish;
 				}
-				entry.sizeStored = static_cast<uint32_t>(compressed.size());
-				content          = std::move(compressed);
 			}
-			else {
-				entry.compressionType = DATArchiveEntry::CT_NONE;
-				entry.sizeStored      = fileSize;
+			file.close();
+
+			DATArchiveEntry entry;
+			entry.path        = name;
+			entry.sizeFull    = fileSize;
+			entry.sizeStored  = fileSize;
+			if (!streamPosToU32(tmpFile.tellp(), entry.offsetPos)) {
+				Logger::error("DATArchiveCreator: archive offset is too large before '{}'", name);
+				goto finish;
 			}
+
+			entry.crc32Value  = static_cast<uint32_t>(zng_crc32_z(0, content.data(), fileSize));
+
+			DATArchiveEncryption::getKeyHashFile(name, headerKeyBase, headerKeyStep,
+			                                  entry.keyBase, entry.keyStep);
+
+			if (fileSize >= 0x100) {
+				entry.compressionType = DATArchiveEntry::CT_ZLIB;
+				std::vector<uint8_t> compressed;
+				if (zlibDeflate(content.data(), fileSize, compressed)) {
+					if (compressed.size() > std::numeric_limits<uint32_t>::max()) {
+						Logger::error("DATArchiveCreator: compressed data is too large for '{}'", fullPath);
+						goto finish;
+					}
+					entry.sizeStored = static_cast<uint32_t>(compressed.size());
+					content          = std::move(compressed);
+				}
+				else {
+					entry.compressionType = DATArchiveEntry::CT_NONE;
+					entry.sizeStored      = fileSize;
+				}
+			}
+
+			if (!content.empty())
+				tmpFile.write(reinterpret_cast<char const*>(content.data()), entry.sizeStored);
+
+			entries.push_back(std::move(entry));
 		}
 
-		if (!content.empty())
-			tmpFile.write(reinterpret_cast<char const*>(content.data()), entry.sizeStored);
-
-		entries.push_back(std::move(entry));
-		if (onProgress) onProgress(0.1f + progressStep * static_cast<float>(i));
-	}
-
-	if (onStatus) onStatus("Writing entries info");
-	std::streampos metaBegin = tmpFile.tellp();
-	if (!streamPosToU32(metaBegin, header.headerOffset)) {
-		Logger::error("DATArchiveCreator: metadata offset is too large");
-		std::filesystem::remove(tmpPath);
-		return false;
-	}
-	tmpFile.flush();
-
-	std::vector<uint8_t> metaBuf;
-	for (auto const& entry : entries) {
-		size_t const recordSize = entryRecordSize(entry);
-		if (recordSize > std::numeric_limits<uint32_t>::max()) {
-			Logger::error("DATArchiveCreator: entry path is too long '{}'", entry.path);
-			std::filesystem::remove(tmpPath);
-			return false;
+		std::streampos metaBegin = tmpFile.tellp();
+		if (!streamPosToU32(metaBegin, header.headerOffset)) {
+			Logger::error("DATArchiveCreator: metadata offset is too large");
+			goto finish;
 		}
-		uint32_t const recSize = static_cast<uint32_t>(recordSize);
-		metaBuf.insert(metaBuf.end(),
-		               reinterpret_cast<uint8_t const*>(&recSize),
-		               reinterpret_cast<uint8_t const*>(&recSize) + sizeof(recSize));
-		writeEntryRecord(metaBuf, entry);
+		tmpFile.flush();
+
+		std::vector<uint8_t> metaBuf;
+		std::vector<uint8_t> recordBuf;
+		for (auto const& entry : entries) {
+			recordBuf.clear();
+			if (!writeEntryRecord(recordBuf, entry)
+				|| recordBuf.size() > std::numeric_limits<uint32_t>::max()) {
+				Logger::error("DATArchiveCreator: entry path is too long '{}'", entry.path);
+				goto finish;
+			}
+			uint32_t const recSize = static_cast<uint32_t>(recordBuf.size());
+			metaBuf.insert(metaBuf.end(),
+			               reinterpret_cast<uint8_t const*>(&recSize),
+			               reinterpret_cast<uint8_t const*>(&recSize) + sizeof(recSize));
+			metaBuf.insert(metaBuf.end(), recordBuf.begin(), recordBuf.end());
+		}
+
+		std::vector<uint8_t> compMeta;
+		if (!zlibDeflate(metaBuf.data(), metaBuf.size(), compMeta)) {
+			Logger::error("DATArchiveCreator: failed to compress metadata");
+			goto finish;
+		}
+		if (compMeta.size() > std::numeric_limits<uint32_t>::max()) {
+			Logger::error("DATArchiveCreator: metadata is too large");
+			goto finish;
+		}
+
+		tmpFile.write(reinterpret_cast<char const*>(compMeta.data()), compMeta.size());
+		header.headerSize = static_cast<uint32_t>(compMeta.size());
+
+		tmpFile.seekp(static_cast<std::streamoff>(offsetof(DATArchiveHeader, headerOffset)));
+		tmpFile.write(reinterpret_cast<char const*>(&header.headerOffset), sizeof(uint32_t));
+		tmpFile.write(reinterpret_cast<char const*>(&header.headerSize),   sizeof(uint32_t));
+		tmpFile.flush();
+
+		encrypting = true;
+		ok = encryptArchive(tmpFile, outputPath, header, headerKeyBase, headerKeyStep, entries);
 	}
 
-	std::vector<uint8_t> compMeta;
-	if (!zlibDeflate(metaBuf.data(), metaBuf.size(), compMeta)) {
-		Logger::error("DATArchiveCreator: failed to compress metadata");
-		std::filesystem::remove(tmpPath);
-		return false;
-	}
-	if (compMeta.size() > std::numeric_limits<uint32_t>::max()) {
-		Logger::error("DATArchiveCreator: metadata is too large");
-		std::filesystem::remove(tmpPath);
-		return false;
-	}
-
-	tmpFile.write(reinterpret_cast<char const*>(compMeta.data()), compMeta.size());
-	header.headerSize = static_cast<uint32_t>(compMeta.size());
-
-	tmpFile.seekp(static_cast<std::streamoff>(offsetof(DATArchiveHeader, headerOffset)));
-	tmpFile.write(reinterpret_cast<char const*>(&header.headerOffset), sizeof(uint32_t));
-	tmpFile.write(reinterpret_cast<char const*>(&header.headerSize),   sizeof(uint32_t));
-	tmpFile.flush();
-
-	if (onStatus) onStatus("Encrypting archive");
-	if (onProgress) onProgress(0.95f);
-
-	bool ok = encryptArchive(tmpFile, outputPath, header, headerKeyBase, headerKeyStep, entries);
+finish:
 	tmpFile.close();
 	std::filesystem::remove(tmpPath);
 
 	if (!ok) {
-		Logger::error("DATArchiveCreator: encryption pass failed");
+		if (encrypting) {
+			Logger::error("DATArchiveCreator: encryption pass failed");
+		}
 		return false;
 	}
 
-	if (onStatus) onStatus("Done");
-	if (onProgress) onProgress(1.0f);
 	return true;
 }
 

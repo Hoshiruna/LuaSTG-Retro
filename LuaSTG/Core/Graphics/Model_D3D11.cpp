@@ -705,7 +705,7 @@ namespace core::Graphics
             if (img.width <= 0 || img.height <= 0)
             {
                 image[idx] = shared_->default_image; // 兄啊，你这纹理好怪哦
-                spdlog::error("[core] 加载纹理 '{}' 失败", img.name);
+                spdlog::error("[core] Failed to load texture '{}'", img.name);
                 continue;
             }
 
