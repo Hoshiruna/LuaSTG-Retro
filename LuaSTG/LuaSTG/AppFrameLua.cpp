@@ -79,7 +79,7 @@ namespace luastg
             if (errmsg == nullptr) {
                 errmsg = "(error object is a nil value)";
             }
-            spdlog::error("[luajit] StackTraceback时发生错误：{}", errmsg);// ??? errmsg t errmsg
+            spdlog::error("[luajit] Error occurred during StackTraceback: {}", errmsg);// ??? errmsg t errmsg
             lua_pop(L, 2);                                                // ??? errmsg
             return 1;
         }
@@ -95,11 +95,11 @@ namespace luastg
 		{
 			try
 			{
-				spdlog::error("[luajit] 编译'{}'失败：{}", desc, lua_tostring(L, -1));
+				spdlog::error("[luajit] Failed to compile '{}': {}", desc, lua_tostring(L, -1));
 				MessageBoxW(
 					m_pAppModel ? (HWND)m_pAppModel->getWindow()->getNativeHandle() : NULL,
 					utf8::to_wstring(
-						fmt::format("编译'{}'失败：{}", desc, lua_tostring(L, -1))
+						fmt::format("Failed to compile '{}': {}", desc, lua_tostring(L, -1))
 					).c_str(),
 					L"" LUASTG_INFO,
 					MB_ICONERROR | MB_OK
@@ -107,7 +107,7 @@ namespace luastg
 			}
 			catch (const std::bad_alloc&)
 			{
-				spdlog::error("[luastg] 记录日志时出错");
+				spdlog::error("[luastg] Error occurred while writing log");
 			}
 			lua_pop(L, 2);
 			return false;
@@ -120,11 +120,11 @@ namespace luastg
 				if (errmsg == nullptr) {
 					errmsg = "(error object is a nil value)";
 				}
-				spdlog::error("[luajit] 运行'{}'时出错：{}", desc, errmsg);
+				spdlog::error("[luajit] Error while running '{}': {}", desc, errmsg);
 				MessageBoxW(
 					m_pAppModel ? (HWND)m_pAppModel->getWindow()->getNativeHandle() : NULL,
 					utf8::to_wstring(
-						fmt::format("运行'{}'时出错：\n{}", desc, errmsg)
+						fmt::format("Error while running '{}': \n{}", desc, errmsg)
 					).c_str(),
 					L"" LUASTG_INFO,
 					MB_ICONERROR | MB_OK
@@ -132,7 +132,7 @@ namespace luastg
 			}
 			catch (const std::bad_alloc&)
 			{
-				spdlog::error("[luastg] 记录日志时出错");
+				spdlog::error("[luastg] Failed to write log message");
 			}
 			lua_pop(L, 2);
 			return false;
@@ -165,7 +165,7 @@ namespace luastg
 				if (errmsg == nullptr) {
 					errmsg = "(error object is a nil value)";
 				}
-				spdlog::error("[luajit] Error while calling global function'{}':{}", name, errmsg);
+				spdlog::error("[luajit] Error while calling global function '{}':{}", name, errmsg);
 				MessageBoxW(
 					m_pAppModel ? (HWND)m_pAppModel->getWindow()->getNativeHandle() : NULL,
 					utf8::to_wstring(
@@ -177,7 +177,7 @@ namespace luastg
 			}
 			catch (const std::bad_alloc&)
 			{
-				spdlog::error("[luastg] 记录日志时出错");
+				spdlog::error("[luastg] Failed to write log message");
 			}
 			lua_pop(L, 2);
 			return false;
@@ -210,7 +210,7 @@ namespace luastg
 			}
 			catch (const std::bad_alloc&)
 			{
-				spdlog::error("[luastg] 记录日志时出错");
+				spdlog::error("[luastg] Failed to write log message");
 			}
 		#endif
 			lua_pop(L, argc + 2); 										// ?
@@ -237,7 +237,7 @@ namespace luastg
 			}
 			catch (const std::bad_alloc&)
 			{
-				spdlog::error("[luastg] 记录日志时出错");
+				spdlog::error("[luastg] Failed to write log message");
 			}
 			lua_pop(L, 2);												// ?
 			return false;
@@ -260,13 +260,13 @@ namespace luastg
 
 	void AppFrame::LoadScript(lua_State* SL, const char* path, const char* packname)
 	{
-	#define L (fuck) // 这里不能使用全局的 lua_State，必须使用传入的
+	#define L (fuck) // Do not use the global lua_State here; use the one passed in instead.
 		if (ResourceMgr::GetResourceLoadingLog())
 		{
 			if (packname)
-				spdlog::info("[luastg] 在资源包'{}'中加载脚本'{}'", packname, path);
+				spdlog::info("[luastg] Loading script '{}' from resource package '{}'", packname, path);
 			else
-				spdlog::info("[luastg] 加载脚本'{}'", path);
+				spdlog::info("[luastg] Loading script '{}'", path);
 		}
 		bool loaded = false;
 		core::SmartReference<core::IData> src;
@@ -283,43 +283,43 @@ namespace luastg
 		}
 		if (!loaded)
 		{
-			spdlog::error("[luastg] 无法加载文件'{}'", path);
+			spdlog::error("[luastg] can't load file '{}'", path);
 			luaL_error(SL, "can't load file '%s'", path);
 			return;
 		}
 		if (0 != luaL_loadbuffer(SL, (char const*)src->data(), src->size(), luaL_checkstring(SL, 1)))
 		{
 			const char* tDetail = lua_tostring(SL, -1);
-			spdlog::error("[luajit] 编译'{}'失败：{}", path, tDetail);
+			spdlog::error("[luajit] Failed to compile '{}': {}", path, tDetail);
 			luaL_error(SL, "failed to compile '%s': %s", path, tDetail);
 			return;
 		}
-		lua_call(SL, 0, LUA_MULTRET);//这个一般只会在lua代码调用，外层已经有pcall了
+		lua_call(SL, 0, LUA_MULTRET); // This is normally only called from Lua code, and the outer layer already has a pcall.这个一般只会在lua代码调用，外层已经有pcall了
 	#undef L
 	}
 
 	bool AppFrame::OnOpenLuaEngine()
 	{
-		// 挂载文件系统
+		// Mounting file system
 		core::FileSystemManager::addFileSystem("luastg", IEmbeddedFileSystem::getInstance());
 
-		// 加载lua虚拟机
+		// Loading Lua virtual machine
 		spdlog::info("[luajit] {}", LUAJIT_VERSION);
 		L = luaL_newstate();
 		if (!L)
 		{
-			spdlog::error("[luajit] 无法创建luajit引擎");
+			spdlog::error("[luajit] Failed to create LuaJIT engine");
 			return false;
 		}
 		if (0 == luaJIT_setmode(L, 0, LUAJIT_MODE_ENGINE | LUAJIT_MODE_ON))
 		{
-			spdlog::error("[luajit] 无法启动jit模式");
+			spdlog::error("[luajit] Failed to enable JIT mode");
 		}
-		lua_gc(L, LUA_GCSTOP, 0);  // 初始化时关闭GC
+		lua_gc(L, LUA_GCSTOP, 0);  // Disabling GC during initialization
 		{
-			spdlog::info("[luajit] 注册标准库与内置包");
-			luaL_openlibs(L);  // 内建库 (lua build in lib)
-			lua_register_custom_loader(L); // 加强版 package 库 (require)
+			spdlog::info("[luajit] Registering standard libraries and built-in packages");
+			luaL_openlibs(L);  // Built-in libraries (lua build in lib)
+			lua_register_custom_loader(L); // Enhanced package library (require)
 			luaopen_cjson(L);
 			luaopen_lfs(L);
 			//lua_xlsx_open(L);
@@ -355,7 +355,7 @@ require("luastg.main")
 				return false;
 			}
 		}
-		lua_gc(L, LUA_GCRESTART, -1);  // 重启GC
+		lua_gc(L, LUA_GCRESTART, -1);  // Restart GC
 
 		return true;
 	}

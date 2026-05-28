@@ -50,8 +50,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
-    FILEVERSION 0,0,1,0
-    PRODUCTVERSION 0,0,1,0
+    FILEVERSION 0,0,2,0
+    PRODUCTVERSION 0,0,2,0
     FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
     FILEFLAGS 0x1L
@@ -68,12 +68,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Hoshiruna"
             VALUE "FileDescription", "Luastg Retro"
-            VALUE "FileVersion", "0.00"
+            VALUE "FileVersion", "0.0.2"
             VALUE "InternalName", "Luastg Retro"
             VALUE "LegalCopyright", "Copyright 2025-2026 Hoshiruna"
             VALUE "OriginalFilename", "LuaSTGRetro.exe"
             VALUE "ProductName", "Luastg Retro"
-            VALUE "ProductVersion", "0.00"
+            VALUE "ProductVersion", "0.0.2"
         END
     END
     BLOCK "VarFileInfo"

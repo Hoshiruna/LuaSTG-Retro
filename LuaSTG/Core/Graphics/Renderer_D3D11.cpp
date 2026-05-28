@@ -743,25 +743,25 @@ namespace core::Graphics
 	{
 		assert(m_device->GetD3D11Device());
 
-		spdlog::info("[core] 开始创建渲染器");
+		spdlog::info("[core] Renderer creating");
 		
 		if (!createBuffers())
 		{
-			spdlog::error("[core] 无法创建渲染器所需的顶点、索引缓冲区和着色器常量缓冲区");
+			spdlog::error("[core] Unable to create the vertex, index, and shader constant buffers required by the renderer");
 			return false;
 		}
 		if (!createStates())
 		{
-			spdlog::error("[core] 无法创建渲染器所需的渲染状态");
+			spdlog::error("[core] Unable to create the render state required by the renderer");
 			return false;
 		}
 		if (!createShaders())
 		{
-			spdlog::error("[core] 无法创建渲染器所需的内置着色器");
+			spdlog::error("[core] Unable to create the built-in shader required by the renderer");
 			return false;
 		}
 
-		spdlog::info("[core] 已创建渲染器");
+		spdlog::info("[core] Renderer created");
 
 		return true;
 	}
@@ -821,7 +821,7 @@ namespace core::Graphics
 			v.Reset();
 		}
 
-		spdlog::info("[core] 已关闭渲染器");
+		spdlog::info("[core] Renderer shut down");
 	}
 
 	bool Renderer_D3D11::beginBatch()
@@ -1637,15 +1637,15 @@ namespace core::Graphics
 	{
 		if (!m_model_shared)
 		{
-			spdlog::info("[core] 创建模型渲染器共享组件");
+			spdlog::info("[core] Creating shared components for model renderer");
 			try
 			{
 				*(m_model_shared.put()) = new ModelSharedComponent_D3D11(m_device.get());
-				spdlog::info("[luastg] 已创建模型渲染器共享组件");
+				spdlog::info("[luastg] Created shared components for model renderer");
 			}
 			catch (...)
 			{
-				spdlog::error("[core] 无法创建模型渲染器共享组件");
+				spdlog::error("[core] Failed to create shared components for model renderer");
 				return false;
 			}
 		}
