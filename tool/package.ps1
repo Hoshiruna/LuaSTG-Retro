@@ -8,12 +8,16 @@ $ReleasesRoot = [System.IO.Path]::Join($ProjectRoot, "build", "releases")
 $BinaryRootX86 = [System.IO.Path]::Join($ProjectRoot, "build", "x86", "bin")
 $BinaryRootAMD64 = [System.IO.Path]::Join($ProjectRoot, "build", "amd64", "bin")
 $ExampleRoot = [System.IO.Path]::Join($ProjectRoot, "data", "example")
+$PackageName = "LuaSTG-Retro"
+$ExecutableName = "LuastgRetro.exe"
 
 Write-Output "Project Root       : $ProjectRoot"
 Write-Output "Releases Root      : $ReleasesRoot"
 Write-Output "Binary Root (x86)  : $BinaryRootX86"
 Write-Output "Binary Root (amd64): $BinaryRootAMD64"
 Write-Output "Example Root       : $ExampleRoot"
+Write-Output "Package Name       : $PackageName"
+Write-Output "Executable Name    : $ExecutableName"
 
 # build
 
@@ -34,7 +38,7 @@ $ConfigFilePath = [System.IO.Path]::Join($ProjectRoot, "LuaSTG", "LuaSTG", "LCon
 $ConfigFile = [System.IO.File]::ReadAllText($ConfigFilePath, [System.Text.Encoding]::UTF8)
 $VersionMajor = "0"
 $VersionMinor = "0"
-$VersionPatch = "0"
+$VersionPatch = "1"
 foreach ($Line in $ConfigFile.Split("`n")) {
     if ($Line.Contains("LUASTG_VERSION_MAJOR")) {
         $VersionMajor = $Line.Replace("#define", "").Replace("LUASTG_VERSION_MAJOR", "").Trim()
@@ -47,7 +51,7 @@ foreach ($Line in $ConfigFile.Split("`n")) {
     }
 }
 $VersionFull = "$VersionMajor.$VersionMinor.$VersionPatch"
-$ReleaseRoot = [System.IO.Path]::Join($ReleasesRoot, "LuaSTG-Sub-v$VersionFull")
+$ReleaseRoot = [System.IO.Path]::Join($ReleasesRoot, "$PackageName-v$VersionFull")
 
 Write-Output "Version            : $VersionFull"
 Write-Output "Release Root       : $ReleaseRoot"
@@ -60,8 +64,8 @@ if (-not [System.IO.Directory]::Exists($ReleaseRoot)) {
 
 $BinaryFilesAMD64 = @(
     @{
-        Source = [System.IO.Path]::Join($BinaryRootAMD64, "LuaSTGSub.exe")
-        Destination = [System.IO.Path]::Join($ReleaseRoot, "LuaSTGSub.exe")
+        Source = [System.IO.Path]::Join($BinaryRootAMD64, $ExecutableName)
+        Destination = [System.IO.Path]::Join($ReleaseRoot, $ExecutableName)
     },
     @{
         Source = [System.IO.Path]::Join($BinaryRootAMD64, "d3dcompiler_47.dll")
@@ -83,8 +87,8 @@ foreach ($BinaryFile in $BinaryFilesAMD64) {
 $Release32Root = [System.IO.Path]::Join($ReleaseRoot, "windows-32bit")
 $BinaryFilesX86 = @(
     @{
-        Source = [System.IO.Path]::Join($BinaryRootX86, "LuaSTGSub.exe")
-        Destination = [System.IO.Path]::Join($Release32Root, "LuaSTGSub.exe")
+        Source = [System.IO.Path]::Join($BinaryRootX86, $ExecutableName)
+        Destination = [System.IO.Path]::Join($Release32Root, $ExecutableName)
     },
     @{
         Source = [System.IO.Path]::Join($BinaryRootX86, "d3dcompiler_47.dll")
@@ -135,9 +139,12 @@ Copy-Item -Path $ExampleScripts -Destination $ReleaseScripts -Recurse
 Copy-Item -Path $DocRoot -Destination $ReleaseDocRoot -Recurse -Exclude ".git"
 Copy-Item -Path $LicenseRoot -Destination $ReleaseLicenseRoot -Recurse
 [System.IO.File]::Copy([System.IO.Path]::Join($ExampleRoot, "config.json"), [System.IO.Path]::Join($ReleaseRoot, "config.json"), $true)
-[System.IO.File]::Copy([System.IO.Path]::Join($ExampleRoot, "使用说明.txt"), [System.IO.Path]::Join($ReleaseRoot, "使用说明.txt"), $true)
+$ReadmePath = [System.IO.Path]::Join($ExampleRoot, "使用说明.txt")
+if ([System.IO.File]::Exists($ReadmePath)) {
+    [System.IO.File]::Copy($ReadmePath, [System.IO.Path]::Join($ReleaseRoot, "使用说明.txt"), $true)
+}
 
 # archive
 
-$ArchivePath = [System.IO.Path]::Join($ReleasesRoot, "LuaSTG-Sub-v$VersionFull.zip")
+$ArchivePath = [System.IO.Path]::Join($ReleasesRoot, "$PackageName-v$VersionFull.zip")
 Compress-Archive -Path $ReleaseRoot -DestinationPath $ArchivePath -CompressionLevel Optimal -Force
