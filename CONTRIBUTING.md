@@ -5,6 +5,7 @@
 ## Licensing
 
 LuaSTG Retro is currently licensed under the MIT License. Therefore, by submitting code to Luastg Retro, you agree to the following:
+
 * **Your code is licensed under the MIT License.** You may also explicitly provide other optional licenses if you wish.
 * Your submission does not contain code that is incompatible with the MIT License. (For example, your submission must not be based on GPL-licensed code, nor may it include GPL libraries.)
 
@@ -46,17 +47,17 @@ When creating a Pull Request, keep the following in mind:
 
 ## Coding Conventions
 
-LuaSTG Retro requires that the entire codebase adhere to consistent naming conventions. 
+LuaSTG Retro requires that the entire codebase adhere to consistent naming conventions.
 
 Currently, most of these conventions are enforced using clang-format (for C++); any code submitted to LuaSTG Retro must be processed by this tool. In Visual Studio, you can configure the tool to run automatically when you save. On other platforms, you can use the following command:
 
-- clang-format: `find ./ -iname ‘*.h’ -o -iname ‘*.cpp’ | xargs clang-format -i`
+* clang-format: `find ./ -iname ‘*.h’ -o -iname ‘*.cpp’ | xargs clang-format -i`
 
 Additionally, we require adherence to the following naming conventions:
 
-- ExampleFunction
-- exampleVariable
-- _exampleMemberVariable
+* ExampleFunction
+*exampleVariable
+* _exampleMemberVariable
 
 If in doubt, please refer to the formatting guidelines elsewhere in the project.
 
@@ -64,10 +65,10 @@ If in doubt, please refer to the formatting guidelines elsewhere in the project.
 
 > Even if a feature works correctly, a pull request may still be rejected for various reasons. Please be sure to consult with the team before making any major changes.
 
-- Performance: Changes that result in a performance degradation may be rejected. Whenever possible, ensure that your changes avoid adding operations such as `if` statements to hot paths.
-- Warnings: The MSVC build of LuaSTG Retro treats warnings as errors. These warnings must be resolved before the code can be accepted.
-- Commit Messages: Including background information in your pull request helps us evaluate the code more easily and quickly. If we cannot understand a modification, it is less likely to be accepted.
-- Practicality: If we deem a modification or feature to be impractical or outside the scope of the project, it may not be accepted. LuaSTG Retro is not intended to cover all niche use cases.
+* Performance: Changes that result in a performance degradation may be rejected. Whenever possible, ensure that your changes avoid adding operations such as `if` statements to hot paths.
+* Warnings: The MSVC build of LuaSTG Retro treats warnings as errors. These warnings must be resolved before the code can be accepted.
+* Commit Messages: Including background information in your pull request helps us evaluate the code more easily and quickly. If we cannot understand a modification, it is less likely to be accepted.
+* Practicality: If we deem a modification or feature to be impractical or outside the scope of the project, it may not be accepted. LuaSTG Retro is not intended to cover all niche use cases.
 
 ---
 
@@ -78,6 +79,7 @@ If in doubt, please refer to the formatting guidelines elsewhere in the project.
 ## 许可协议
 
 LuaSTG Retro 目前采用 MIT 许可协议。因此，向 LuaSTG Retro 提交代码即表示您同意以下条款：
+
 * **您的代码采用 MIT 许可协议。** 如果您愿意，也可以明确提供其他可选许可协议。
 * 您的提交内容不包含与 MIT 许可证不兼容的代码。（例如，您的提交内容不得基于 GPL 许可的代码，也不得包含 GPL 库。）
 
@@ -138,4 +140,4 @@ LuaSTG Retro 要求整个代码库遵循一致的命名规范。目前，大多�
 * 性能：会导致性能下降的修改可能会被拒绝。请尽可能确保您的修改避免在热点路径中添加诸如 `if` 语句之类的操作。
 * 警告：LuaSTG Retro 的 MSVC 构建版本将警告视为错误。必须先解决这些警告，代码才能被接受。
 * 提交信息：在拉取请求中包含背景信息有助于我们更轻松、更快速地评估代码。如果我们无法理解某项修改，该修改被接受的可能性较低。
-* 实用性：若我们认为某项修改或功能不切实际，或超出项目范围，则可能不予接受。LuaSTG Retro 并非旨在覆盖所有小众用例。
+* 实用性：若我们认为某项修改或功能不切实际，或超出项目范围，则可能不予接受。LuaSTG Retro 并非旨在覆盖所有小众用例
