@@ -2,7 +2,7 @@
 
 > The term "we" in the following text refers to the LuaSTG Retro development team.
 
-# Licensing
+## Licensing
 
 LuaSTG Retro is currently licensed under the MIT License. Therefore, by submitting code to Luastg Retro, you agree to the following:
 * **Your code is licensed under the MIT License.** You may also explicitly provide other optional licenses if you wish.
@@ -19,7 +19,7 @@ We offer several ways to report bugs:
 
 Every bug report helps improve the quality of the engine's code, even if you haven't written a single line of code.
 
-# AI / LLM code
+## AI / LLM code
 
 **Code generated entirely by AI is prohibited.** While you may refer to suggestions from large language models (LLMs), all submitted code must be written and understood by you (the contributor) personally to ensure its accuracy and copyright integrity.
 
@@ -44,12 +44,13 @@ When creating a Pull Request, keep the following in mind:
 * If your changes break compatibility, they may not be merged into the main branch but instead into a separate feature branch
 * If there are too many changes, reviewing the code may take a long time
 
-# Coding Conventions
+## Coding Conventions
 
-LuaSTG Retro requires consistent coding conventions throughout the codebase. Currently, most conventions are enforced using clang-format (for C++) and dotnet format (for C#); any code submitted to LuaSTG Retro must be run through these tools. In Visual Studio, you can configure these tools to run automatically upon saving. On other platforms, you can use the following commands:
+LuaSTG Retro requires that the entire codebase adhere to consistent naming conventions. 
+
+Currently, most of these conventions are enforced using clang-format (for C++); any code submitted to LuaSTG Retro must be processed by this tool. In Visual Studio, you can configure the tool to run automatically when you save. On other platforms, you can use the following command:
 
 - clang-format: `find ./ -iname ‘*.h’ -o -iname ‘*.cpp’ | xargs clang-format -i`
-- dotnet format: `dotnet format`
 
 Additionally, we require adherence to the following naming conventions:
 
@@ -59,7 +60,7 @@ Additionally, we require adherence to the following naming conventions:
 
 If in doubt, please refer to the formatting guidelines elsewhere in the project.
 
-# Guidelines
+## Guidelines
 
 > Even if a feature works correctly, a pull request may still be rejected for various reasons. Please be sure to consult with the team before making any major changes.
 
@@ -74,7 +75,7 @@ If in doubt, please refer to the formatting guidelines elsewhere in the project.
 
 > 下文中的“我们”指 LuaSTG Retro 引擎开发团队
 
-# 许可协议
+## 许可协议
 
 LuaSTG Retro 目前采用 MIT 许可协议。因此，向 LuaSTG Retro 提交代码即表示您同意以下条款：
 * **您的代码采用 MIT 许可协议。** 如果您愿意，也可以明确提供其他可选许可协议。
@@ -91,7 +92,7 @@ LuaSTG Retro 目前采用 MIT 许可协议。因此，向 LuaSTG Retro 提交代
 
 每一个缺陷报告都会帮助改善引擎代码质量，即使你并未编写一行代码。
 
-# AI / LLM 代码
+## AI / LLM 代码
 
 **严禁提交完全由人工智能生成的代码。** 虽然您可以参考大型语言模型（LLM）的建议，但所有提交的代码必须由您（贡献者）亲自编写并理解，以确保其准确性和版权完整性。
 
@@ -116,12 +117,11 @@ LuaSTG Retro 目前采用 MIT 许可协议。因此，向 LuaSTG Retro 提交代
 * 存在破坏兼容性的修改时，可能不会合并到主分支，而是合并到单独的特性分支
 * 修改内容过多时，审阅代码可能需要花费很长的时间
 
-# 命名规范
+## 命名规范
 
-LuaSTG Retro 要求整个代码库遵循一致的 命名规范。目前，大多数规范是通过 clang-format（针对 C++）和 dotnet format（针对 C#）来强制执行的；提交给 LuaSTG Retro 的任何代码都必须经过这些工具的处理。在 Visual Studio 中，您可以配置这些工具，使其在保存时自动运行。在其他平台上，您可以使用以下命令：
+LuaSTG Retro 要求整个代码库遵循一致的命名规范。目前，大多数规范是通过 clang-format（针对 C++）来强制执行的；提交给 LuaSTG Retro 的任何代码都必须经过该工具的处理。在 Visual Studio 中，您可以配置该工具，使其在保存时自动运行。在其他平台上，您可以使用以下命令：
 
 * clang-format：`find ./ -iname ‘*.h’ -o -iname ‘*.cpp’ | xargs clang-format -i`
-* dotnet format：`dotnet format`
 
 此外，我们要求遵循以下命名规范：
 
@@ -131,7 +131,7 @@ LuaSTG Retro 要求整个代码库遵循一致的 命名规范。目前，大多
 
 如有疑问，请参阅项目中其他位置的格式指南。
 
-# 指南
+## 指南
 
 > 即使某项功能运行正常，拉取请求仍可能因各种原因被拒绝。在进行任何重大更改前，请务必与团队商议。
 

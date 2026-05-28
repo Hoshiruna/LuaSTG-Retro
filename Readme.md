@@ -35,6 +35,10 @@ You can download from [Releases Page](). Usually displayed on the right or botto
 
 See [Build Projects](./BUILD.md).
 
+## Contributions
+
+If you'd like to contribute, please read [Contributing](./CONTRIBUTING.md).
+
 ## Major Contributors
 
 - 隔壁的桌子 (developer of vanilla LuaSTG)  
@@ -58,7 +62,7 @@ However, some new features in this branch still rely on AI for development. If y
 
 ## 介绍  
 
-LuaSTG Retro 是作为 [LuaSTG Sub](https://github.com/Legacy-LuaSTG-Engine/LuaSTG-Sub) 的分支而进行开发的，旨在满足一些Retro玩家的爱好（它基于主分支LuaSTG Sub来更新）
+LuaSTG Retro 是作为 [LuaSTG Sub](https://github.com/Legacy-LuaSTG-Engine/LuaSTG-Sub) 的分支而进行开发的，旨在满足一些怀旧玩家的需求和喜好（它基于主分支LuaSTG Sub来更新）。
 
 其他分支收录在 [Legacy LuaSTG Engine 组织首页](https://github.com/Legacy-LuaSTG-Engine)。  
 
@@ -106,4 +110,5 @@ LuaSTG Retro 是作为 [LuaSTG Sub](https://github.com/Legacy-LuaSTG-Engine/LuaS
 ## 警告
 
 LuaSTG Retro 在之前一段时间内的新功能采用过完全由 AI 生成的代码和链接了与 MIT 协议不兼容的库，现在团队正致力于清理掉完全由 AI 生成的代码，并且移除 GPL 协议的库来避免产生风险。
-但该分支的一些新功能仍然使用了AI（即人工智能）进行辅助开发，如果您认为该分支会对你的项目产生不确定的风险，请勿尝试使用。
+
+但是该分支的一些新功能仍然使用了AI（即人工智能）进行辅助开发，如果您认为该分支会对你的项目产生不确定的风险，请勿尝试使用。
