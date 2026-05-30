@@ -19,6 +19,7 @@ extern "C" {
 #include "LuaBinding/external/lua_xinput.hpp"
 #include "LuaBinding/external/lua_random.hpp"
 #include "LuaBinding/external/lua_dwrite.hpp"
+#include "LuaBinding/external/lua_sqlite.hpp"
 
 #include "core/Logger.hpp"
 #include "core/CommandLineArguments.hpp"
@@ -328,6 +329,7 @@ namespace luastg
 			luaopen_xinput(L);
 			luaopen_dwrite(L);
 			luaopen_random(L);
+			luaopen_sqlite(L);
 			luaopen_string_pack(L);
 		#ifdef LUASTG_LINK_LUASOCKET
 			{
