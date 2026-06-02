@@ -16,6 +16,18 @@ namespace luastg
 		float m_line_height;
 
 	private:
+		void finishGlyphs()
+		{
+			for (auto& v : m_map)
+			{
+				m_line_height = std::max(m_line_height, v.second.size.y);
+				v.second.texture_rect.a.x /= (float)m_texture->getSize().x;
+				v.second.texture_rect.b.x /= (float)m_texture->getSize().x;
+				v.second.texture_rect.a.y /= (float)m_texture->getSize().y;
+				v.second.texture_rect.b.y /= (float)m_texture->getSize().y;
+			}
+		}
+
 		bool readDefine(std::string_view path, std::string_view font_define, std::string_view& texture)
 		{
 			auto errorInvalidFormat = [&path]()
@@ -330,16 +342,32 @@ namespace luastg
 			}
 
 			// 进一步处理
-			for (auto& v : m_map)
+			finishGlyphs();
+		}
+
+		hgeFont(std::string_view path, core::IData* font_data, core::IData* texture_data, std::string_view texture_path, bool mipmap)
+			: m_line_height(0.0f)
+		{
+			if (!font_data || !texture_data)
 			{
-				// 计算最高行作为LineHeight
-				m_line_height = std::max(m_line_height, v.second.size.y);
-				// 修正纹理坐标
-				v.second.texture_rect.a.x /= (float)m_texture->getSize().x;
-				v.second.texture_rect.b.x /= (float)m_texture->getSize().x;
-				v.second.texture_rect.a.y /= (float)m_texture->getSize().y;
-				v.second.texture_rect.b.y /= (float)m_texture->getSize().y;
+				spdlog::error("[luastg] 加载 HGE 纹理字体失败，字体定义或纹理数据无效 '{}'", path);
+				throw std::runtime_error("hgeFont::hgeFont");
 			}
+
+			std::string_view font_define((char*)font_data->data(), font_data->size());
+			std::string_view texture;
+			if (!readDefine(path, font_define, texture))
+			{
+				throw std::runtime_error("hgeFont::hgeFont");
+			}
+
+			if (!LAPP.GetAppModel()->getDevice()->createTextureFromData(texture_data, mipmap, m_texture.put()))
+			{
+				spdlog::error("[luastg] 加载 HGE 纹理字体失败，无法加载纹理 '{}'", texture_path);
+				throw std::runtime_error("hgeFont::hgeFont");
+			}
+
+			finishGlyphs();
 		}
 		~hgeFont()
 		{
@@ -502,6 +530,32 @@ namespace luastg
 			}
 			loadDefine(doc);
 		}
+		f2dFont(std::string_view path, core::IData* font_data, std::string_view texture_path, core::IData* texture_data, bool mipmap)
+			: m_line_height(0.0f)
+			, m_ascender(0.0f)
+			, m_descender(0.0f)
+		{
+			if (!font_data || !texture_data)
+			{
+				spdlog::error("[luastg] 加载 fancy2d 纹理字体失败，字体定义或纹理数据无效 '{}'", path);
+				throw std::runtime_error("f2dFont::f2dFont");
+			}
+
+			if (!LAPP.GetAppModel()->getDevice()->createTextureFromData(texture_data, mipmap, m_texture.put()))
+			{
+				spdlog::error("[luastg] 加载 fancy2d 纹理字体失败，无法加载纹理 '{}'", texture_path);
+				throw std::runtime_error("f2dFont::f2dFont");
+			}
+
+			pugi::xml_document doc;
+			pugi::xml_parse_result result = doc.load_buffer(font_data->data(), font_data->size());
+			if (!result)
+			{
+				spdlog::error("[luastg] 加载 fancy2d 纹理字体失败，无法解析字体定义文件 '{}' ({})", path, result.description());
+				throw std::runtime_error("f2dFont::f2dFont");
+			}
+			loadDefine(doc);
+		}
 		~f2dFont()
 		{
 		}
@@ -514,12 +568,26 @@ namespace luastg
 	{
 		m_glyphmgr.attach(new hgeFont(hge_path, mipmap));
 	}
+	ResourceFontImpl::ResourceFontImpl(const char* name, std::string_view hge_path, core::IData* hge_data, core::IData* texture_data, std::string_view texture_path, bool mipmap)
+		: ResourceBaseImpl(ResourceType::SpriteFont, name)
+		, m_BlendMode(BlendMode::MulAlpha)
+		, m_BlendColor(core::Color4B(0xFFFFFFFFu))
+	{
+		m_glyphmgr.attach(new hgeFont(hge_path, hge_data, texture_data, texture_path, mipmap));
+	}
 	ResourceFontImpl::ResourceFontImpl(const char* name, std::string_view f2d_path, std::string_view tex_path, bool mipmap)
 		: ResourceBaseImpl(ResourceType::SpriteFont, name)
 		, m_BlendMode(BlendMode::MulAlpha)
 		, m_BlendColor(core::Color4B(0xFFFFFFFFu))
 	{
 		m_glyphmgr.attach(new f2dFont(f2d_path, tex_path, mipmap));
+	}
+	ResourceFontImpl::ResourceFontImpl(const char* name, std::string_view f2d_path, core::IData* f2d_data, std::string_view tex_path, core::IData* texture_data, bool mipmap)
+		: ResourceBaseImpl(ResourceType::SpriteFont, name)
+		, m_BlendMode(BlendMode::MulAlpha)
+		, m_BlendColor(core::Color4B(0xFFFFFFFFu))
+	{
+		m_glyphmgr.attach(new f2dFont(f2d_path, f2d_data, tex_path, texture_data, mipmap));
 	}
 	ResourceFontImpl::ResourceFontImpl(const char* name, core::Graphics::IGlyphManager* p_mgr)
 		: ResourceBaseImpl(ResourceType::SpriteFont, name)

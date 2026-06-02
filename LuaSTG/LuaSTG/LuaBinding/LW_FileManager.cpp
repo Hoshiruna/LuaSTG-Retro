@@ -1,4 +1,5 @@
 #include "LuaBinding/LuaWrapper.hpp"
+#include "LuaBinding/AsyncResourceJob.hpp"
 #include "lua/plus.hpp"
 #include "core/FileSystem.hpp"
 #include "utility/path.hpp"
@@ -320,6 +321,12 @@ void luastg::binding::FileManager::Register(lua_State* L)noexcept {
 			ctx.push_value(core::FileSystemManager::hasFile(path));
 			return 1;
 		}
+		static int ReadFileAsync(lua_State* L) {
+			lua::stack_t const ctx(L);
+			auto const path = ctx.get_value<std::string_view>(1);
+			AsyncResourceJobBinding::createAndPush(L, LRES.SubmitAsyncFileRead(path));
+			return 1;
+		}
 
 		static int FindFiles(lua_State* L) {
 			// path ???
@@ -450,6 +457,7 @@ void luastg::binding::FileManager::Register(lua_State* L)noexcept {
 		{ "EnumFilesEx", &Wrapper::EnumFilesEx }, // 要移除
 		{ "FileExist", &Wrapper::FileExist },
 		{ "FileExistEx", &Wrapper::FileExistEx }, // 要移除
+		{ "ReadFileAsync", &Wrapper::ReadFileAsync },
 
 		{ "AddSearchPath", &Wrapper::AddSearchPath },
 		{ "RemoveSearchPath", &Wrapper::RemoveSearchPath },

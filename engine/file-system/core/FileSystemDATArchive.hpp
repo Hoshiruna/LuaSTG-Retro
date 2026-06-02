@@ -59,6 +59,8 @@ public:
 
 	bool open(std::string_view const& path, size_t readOffset = 0);
 
+	static bool isDATArchive(std::string_view const& path,
+	                         size_t readOffset = 0);
 	static bool createFromFile(std::string_view const& path,
 	                           IFileSystemArchive** archive);
 	static bool createFromFile(std::string_view const& path, size_t readOffset,

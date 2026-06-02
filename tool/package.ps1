@@ -1,10 +1,14 @@
 param(
     [ValidateSet("vs2022", "vs2026-v143", "vs2026")]
-    [string]$Toolchain = "vs2026-v143"
+    [string]$Toolchain = "vs2026-v143",
+
+    [ValidateSet("zip", "dat")]
+    [string]$ArchiveFormat = "zip"
 )
 
 $ProjectRoot = [System.IO.Path]::GetFullPath([System.IO.Path]::Join($PSScriptRoot, ".."))
 $ReleasesRoot = [System.IO.Path]::Join($ProjectRoot, "build", "releases")
+$BuildRootAMD64 = [System.IO.Path]::Join($ProjectRoot, "build", "amd64")
 $BinaryRootX86 = [System.IO.Path]::Join($ProjectRoot, "build", "x86", "bin")
 $BinaryRootAMD64 = [System.IO.Path]::Join($ProjectRoot, "build", "amd64", "bin")
 $ExampleRoot = [System.IO.Path]::Join($ProjectRoot, "data", "example")
@@ -18,6 +22,7 @@ Write-Output "Binary Root (amd64): $BinaryRootAMD64"
 Write-Output "Example Root       : $ExampleRoot"
 Write-Output "Package Name       : $PackageName"
 Write-Output "Executable Name    : $ExecutableName"
+Write-Output "Archive Format     : $ArchiveFormat"
 
 # build
 
@@ -31,6 +36,13 @@ $Presets = switch ($Toolchain) {
 
 cmake --workflow --preset $Presets.AMD64
 cmake --workflow --preset $Presets.X86
+
+if ($ArchiveFormat -eq "dat") {
+    cmake --build $BuildRootAMD64 --config Release --target dat-archive-builder
+    if ($LASTEXITCODE -ne 0) {
+        throw "Failed to build dat-archive-builder"
+    }
+}
 
 # read version info
 
@@ -146,5 +158,20 @@ if ([System.IO.File]::Exists($ReadmePath)) {
 
 # archive
 
-$ArchivePath = [System.IO.Path]::Join($ReleasesRoot, "$PackageName-v$VersionFull.zip")
-Compress-Archive -Path $ReleaseRoot -DestinationPath $ArchivePath -CompressionLevel Optimal -Force
+switch ($ArchiveFormat) {
+    "zip" {
+        $ArchivePath = [System.IO.Path]::Join($ReleasesRoot, "$PackageName-v$VersionFull.zip")
+        Compress-Archive -Path $ReleaseRoot -DestinationPath $ArchivePath -CompressionLevel Optimal -Force
+    }
+    "dat" {
+        $ArchivePath = [System.IO.Path]::Join($ReleasesRoot, "$PackageName-v$VersionFull.dat")
+        $DatArchiveBuilder = [System.IO.Path]::Join($BuildRootAMD64, "tool", "dat-archive-builder", "Release", "dat-archive-builder.exe")
+        if (-not [System.IO.File]::Exists($DatArchiveBuilder)) {
+            throw "Cannot find dat-archive-builder.exe: $DatArchiveBuilder"
+        }
+        & $DatArchiveBuilder --input $ReleaseRoot --output $ArchivePath
+        if ($LASTEXITCODE -ne 0) {
+            throw "Failed to create DAT archive"
+        }
+    }
+}

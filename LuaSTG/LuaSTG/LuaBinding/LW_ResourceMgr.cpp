@@ -1,6 +1,14 @@
 #include "LuaBinding/LuaWrapper.hpp"
+#include "LuaBinding/AsyncResourceJob.hpp"
+#include "GameResource/AsyncResourceLoader.hpp"
 #include "lua/plus.hpp"
 #include "AppFrame.h"
+
+#include <algorithm>
+#include <string>
+#include <string_view>
+#include <utility>
+#include <vector>
 
 void luastg::binding::ResourceManager::Register(lua_State* L) noexcept
 {
@@ -40,6 +48,19 @@ void luastg::binding::ResourceManager::Register(lua_State* L) noexcept
 			}
 			return 1;
 		}
+		static AsyncResourceRequest CreateAsyncRequest(AsyncResourceRequestType type, const char* name)
+		{
+			AsyncResourceRequest request;
+			request.type = type;
+			request.pool_type = LRES.GetActivedPoolType();
+			request.name = name;
+			return request;
+		}
+		static int PushAsyncJob(lua_State* L, AsyncResourceRequest request)
+		{
+			AsyncResourceJobBinding::createAndPush(L, LRES.SubmitAsyncResource(std::move(request)));
+			return 1;
+		}
 		static int LoadTexture(lua_State* L) noexcept
 		{
 			const char* name = luaL_checkstring(L, 1);
@@ -51,6 +72,13 @@ void luastg::binding::ResourceManager::Register(lua_State* L) noexcept
 			if (!pActivedPool->LoadTexture(name, path, lua_toboolean(L, 3) == 0 ? false : true))
 				return luaL_error(L, "can't load texture from file '%s'.", path);
 			return 0;
+		}
+		static int LoadTextureAsync(lua_State* L) noexcept
+		{
+			auto request = CreateAsyncRequest(AsyncResourceRequestType::Texture, luaL_checkstring(L, 1));
+			request.path = luaL_checkstring(L, 2);
+			request.mipmap = lua_toboolean(L, 3) != 0;
+			return PushAsyncJob(L, std::move(request));
 		}
 		static int LoadVideo(lua_State* L) noexcept
 		{
@@ -64,6 +92,13 @@ void luastg::binding::ResourceManager::Register(lua_State* L) noexcept
 			if (!pActivedPool->LoadVideo(name, path, loop))
 				return luaL_error(L, "can't load video from file '%s'.", path);
 			return 0;
+		}
+		static int LoadVideoAsync(lua_State* L) noexcept
+		{
+			auto request = CreateAsyncRequest(AsyncResourceRequestType::Video, luaL_checkstring(L, 1));
+			request.path = luaL_checkstring(L, 2);
+			request.loop = lua_gettop(L) >= 3 ? lua_toboolean(L, 3) != 0 : false;
+			return PushAsyncJob(L, std::move(request));
 		}
 		static int LoadSprite(lua_State* L) noexcept
 		{
@@ -89,6 +124,19 @@ void luastg::binding::ResourceManager::Register(lua_State* L) noexcept
 				return luaL_error(L, "load image failed (name='%s', tex='%s').", name, texname);
 			}
 			return 0;
+		}
+		static int LoadSpriteAsync(lua_State* L) noexcept
+		{
+			auto request = CreateAsyncRequest(AsyncResourceRequestType::Sprite, luaL_checkstring(L, 1));
+			request.texture_name = luaL_checkstring(L, 2);
+			request.x = luaL_checknumber(L, 3);
+			request.y = luaL_checknumber(L, 4);
+			request.w = luaL_checknumber(L, 5);
+			request.h = luaL_checknumber(L, 6);
+			request.a = luaL_optnumber(L, 7, 0.);
+			request.b = luaL_optnumber(L, 8, 0.);
+			request.rect = lua_toboolean(L, 9) != 0;
+			return PushAsyncJob(L, std::move(request));
 		}
 		static int LoadAnimation(lua_State* L) noexcept
 		{
@@ -144,6 +192,39 @@ void luastg::binding::ResourceManager::Register(lua_State* L) noexcept
 			
 			return 0;
 		}
+		static int LoadAnimationAsync(lua_State* L) noexcept
+		{
+			auto request = CreateAsyncRequest(AsyncResourceRequestType::Animation, luaL_checkstring(L, 1));
+			if (lua_istable(L, 2)) {
+				request.animation_uses_sprite_list = true;
+				int const count = static_cast<int>(lua_objlen(L, 2));
+				request.sprite_names.reserve(count);
+				for (int i = 1; i <= count; i += 1) {
+					lua_pushinteger(L, i);
+					lua_gettable(L, 2);
+					request.sprite_names.emplace_back(luaL_checkstring(L, -1));
+					lua_pop(L, 1);
+				}
+				request.interval = static_cast<int>(luaL_checkinteger(L, 3));
+				request.a = luaL_optnumber(L, 4, 0.0f);
+				request.b = luaL_optnumber(L, 5, 0.0f);
+				request.rect = lua_toboolean(L, 6) != 0;
+			}
+			else {
+				request.texture_name = luaL_checkstring(L, 2);
+				request.x = luaL_checknumber(L, 3);
+				request.y = luaL_checknumber(L, 4);
+				request.w = luaL_checknumber(L, 5);
+				request.h = luaL_checknumber(L, 6);
+				request.columns = static_cast<int>(luaL_checkinteger(L, 7));
+				request.rows = static_cast<int>(luaL_checkinteger(L, 8));
+				request.interval = static_cast<int>(luaL_checkinteger(L, 9));
+				request.a = luaL_optnumber(L, 10, 0.0f);
+				request.b = luaL_optnumber(L, 11, 0.0f);
+				request.rect = lua_toboolean(L, 12) != 0;
+			}
+			return PushAsyncJob(L, std::move(request));
+		}
 		static int LoadPS(lua_State* L) noexcept
 		{
 			ResourcePool* pActivedPool = LRES.GetActivedPool();
@@ -186,6 +267,24 @@ void luastg::binding::ResourceManager::Register(lua_State* L) noexcept
 				return 0;
 			}
 		}
+		static int LoadPSAsync(lua_State* L) noexcept
+		{
+			auto request = CreateAsyncRequest(AsyncResourceRequestType::Particle, luaL_checkstring(L, 1));
+			request.image_name = luaL_checkstring(L, 3);
+			request.a = luaL_optnumber(L, 4, 0.0f);
+			request.b = luaL_optnumber(L, 5, 0.0f);
+			request.rect = lua_toboolean(L, 6) != 0;
+			if (lua_type(L, 2) == LUA_TTABLE) {
+				request.has_particle_info = true;
+				if (!TranslateTableToParticleInfo(L, 2, request.particle_info)) {
+					return luaL_error(L, "load particle failed (name='%s', define=?, img='%s').", request.name.c_str(), request.image_name.c_str());
+				}
+			}
+			else {
+				request.path = luaL_checkstring(L, 2);
+			}
+			return PushAsyncJob(L, std::move(request));
+		}
 		static int LoadSound(lua_State* L) noexcept
 		{
 			const char* name = luaL_checkstring(L, 1);
@@ -198,6 +297,12 @@ void luastg::binding::ResourceManager::Register(lua_State* L) noexcept
 			if (!pActivedPool->LoadSoundEffect(name, path))
 				return luaL_error(L, "load sound failed (name=%s, path=%s)", name, path);
 			return 0;
+		}
+		static int LoadSoundAsync(lua_State* L) noexcept
+		{
+			auto request = CreateAsyncRequest(AsyncResourceRequestType::Sound, luaL_checkstring(L, 1));
+			request.path = luaL_checkstring(L, 2);
+			return PushAsyncJob(L, std::move(request));
 		}
 		static int LoadMusic(lua_State* L) noexcept
 		{
@@ -223,6 +328,17 @@ void luastg::binding::ResourceManager::Register(lua_State* L) noexcept
 				return luaL_error(L, "load music failed (name=%s, path=%s, loop=%f~%f)", name, path, loop_start, loop_end);
 			}
 			return 0;
+		}
+		static int LoadMusicAsync(lua_State* L) noexcept
+		{
+			auto request = CreateAsyncRequest(AsyncResourceRequestType::Music, luaL_checkstring(L, 1));
+			request.path = luaL_checkstring(L, 2);
+			double const loop_end = luaL_checknumber(L, 3);
+			double const loop_duration = luaL_checknumber(L, 4);
+			request.loop_end = loop_end;
+			request.loop_start = std::max(0., loop_end - loop_duration);
+			request.once_decode = (lua_gettop(L) >= 5) ? lua_toboolean(L, 5) != 0 : false;
+			return PushAsyncJob(L, std::move(request));
 		}
 		static int LoadFont(lua_State* L) noexcept
 		{
@@ -261,6 +377,25 @@ void luastg::binding::ResourceManager::Register(lua_State* L) noexcept
 				return luaL_error(L, "can't load font from file '%s'.", path);
 			return 0;
 		}
+		static int LoadFontAsync(lua_State* L) noexcept
+		{
+			auto request = CreateAsyncRequest(AsyncResourceRequestType::SpriteFont, luaL_checkstring(L, 1));
+			request.path = luaL_checkstring(L, 2);
+			request.mipmap = true;
+			if (lua_gettop(L) >= 3) {
+				if (lua_isboolean(L, 3)) {
+					request.mipmap = lua_toboolean(L, 3) != 0;
+				}
+				else {
+					request.has_texture_path = true;
+					request.texture_path = luaL_checkstring(L, 3);
+					if (lua_gettop(L) >= 4) {
+						request.mipmap = lua_toboolean(L, 4) != 0;
+					}
+				}
+			}
+			return PushAsyncJob(L, std::move(request));
+		}
 		static int LoadTTF(lua_State* L) noexcept
 		{
 			ResourcePool* pActivedPool = LRES.GetActivedPool();
@@ -272,6 +407,14 @@ void luastg::binding::ResourceManager::Register(lua_State* L) noexcept
 			bool result = pActivedPool->LoadTTFFont(name, path, (float)luaL_checknumber(L, 3), (float)luaL_checknumber(L, 4));
 			lua_pushboolean(L, result);
 			return 1;
+		}
+		static int LoadTTFAsync(lua_State* L) noexcept
+		{
+			auto request = CreateAsyncRequest(AsyncResourceRequestType::TrueTypeFont, luaL_checkstring(L, 1));
+			request.path = luaL_checkstring(L, 2);
+			request.font_width = (float)luaL_checknumber(L, 3);
+			request.font_height = (float)luaL_checknumber(L, 4);
+			return PushAsyncJob(L, std::move(request));
 		}
 		static int LoadTrueTypeFont(lua_State* L) noexcept
 		{
@@ -346,6 +489,59 @@ void luastg::binding::ResourceManager::Register(lua_State* L) noexcept
 			
 			return 1;
 		}
+		static int LoadTrueTypeFontAsync(lua_State* L) noexcept
+		{
+			lua::stack_t S(L);
+			auto request = CreateAsyncRequest(AsyncResourceRequestType::TrueTypeFont, luaL_checkstring(L, 1));
+			if (!lua_istable(L, 2)) {
+				return luaL_error(L, "invalid parameter #2, required table");
+			}
+			int const cnt = (int)lua_objlen(L, 2);
+			request.fonts.resize(cnt);
+			request.font_sources.resize(cnt);
+			for (int i = 1; i <= cnt; i += 1) {
+				auto& font = request.fonts[i - 1];
+				font.source = "";
+				font.font_face = 0;
+				font.font_size = core::Vector2F(0.0f, 0.0f);
+				font.is_force_to_file = false;
+				font.is_buffer = false;
+
+				lua_pushinteger(L, i);
+				lua_gettable(L, 2);
+				if (!lua_istable(L, -1)) {
+					return luaL_error(L, "invalid value #%d in parameter #2, required table", i);
+				}
+
+				lua_getfield(L, -1, "source");
+				if (lua_type(L, -1) == LUA_TSTRING) {
+					request.font_sources[i - 1] = std::string(S.get_value<std::string_view>(-1));
+					font.source = request.font_sources[i - 1];
+				}
+				lua_pop(L, 1);
+
+				lua_getfield(L, -1, "font_face");
+				if (lua_type(L, -1) == LUA_TNUMBER) {
+					font.font_face = (uint32_t)luaL_checkinteger(L, -1);
+				}
+				lua_pop(L, 1);
+
+				lua_getfield(L, -1, "width");
+				if (lua_type(L, -1) == LUA_TNUMBER) {
+					font.font_size.x = (float)luaL_checknumber(L, -1);
+				}
+				lua_pop(L, 1);
+
+				lua_getfield(L, -1, "height");
+				if (lua_type(L, -1) == LUA_TNUMBER) {
+					font.font_size.y = (float)luaL_checknumber(L, -1);
+				}
+				lua_pop(L, 1);
+
+				lua_pop(L, 1);
+			}
+			return PushAsyncJob(L, std::move(request));
+		}
 		static int LoadFX(lua_State* L) noexcept
 		{
 			const char* name = luaL_checkstring(L, 1);
@@ -359,6 +555,12 @@ void luastg::binding::ResourceManager::Register(lua_State* L) noexcept
 				return luaL_error(L, "load fx failed (name=%s, path=%s)", name, path);
 
 			return 0;
+		}
+		static int LoadFXAsync(lua_State* L) noexcept
+		{
+			auto request = CreateAsyncRequest(AsyncResourceRequestType::FX, luaL_checkstring(L, 1));
+			request.path = luaL_checkstring(L, 2);
+			return PushAsyncJob(L, std::move(request));
 		}
 		static int LoadModel(lua_State* L) noexcept
 		{
@@ -375,6 +577,12 @@ void luastg::binding::ResourceManager::Register(lua_State* L) noexcept
 				return luaL_error(L, "load model failed (name='%s', model='%s').", name, model_path);
 			}
 			return 0;
+		}
+		static int LoadModelAsync(lua_State* L) noexcept
+		{
+			auto request = CreateAsyncRequest(AsyncResourceRequestType::Model, luaL_checkstring(L, 1));
+			request.path = luaL_checkstring(L, 2);
+			return PushAsyncJob(L, std::move(request));
 		}
 		static int CreateRenderTarget(lua_State* L) noexcept
 		{
@@ -786,17 +994,29 @@ void luastg::binding::ResourceManager::Register(lua_State* L) noexcept
 		{ "SetResourceStatus", &Wrapper::SetResourceStatus },
 		{ "GetResourceStatus", &Wrapper::GetResourceStatus },
 		{ "LoadTexture", &Wrapper::LoadTexture },
+		{ "LoadTextureAsync", &Wrapper::LoadTextureAsync },
 		{ "LoadVideo", &Wrapper::LoadVideo },
+		{ "LoadVideoAsync", &Wrapper::LoadVideoAsync },
 		{ "LoadImage", &Wrapper::LoadSprite },
+		{ "LoadImageAsync", &Wrapper::LoadSpriteAsync },
 		{ "LoadAnimation", &Wrapper::LoadAnimation },
+		{ "LoadAnimationAsync", &Wrapper::LoadAnimationAsync },
 		{ "LoadPS", &Wrapper::LoadPS },
+		{ "LoadPSAsync", &Wrapper::LoadPSAsync },
 		{ "LoadSound", &Wrapper::LoadSound },
+		{ "LoadSoundAsync", &Wrapper::LoadSoundAsync },
 		{ "LoadMusic", &Wrapper::LoadMusic },
+		{ "LoadMusicAsync", &Wrapper::LoadMusicAsync },
 		{ "LoadFont", &Wrapper::LoadFont },
+		{ "LoadFontAsync", &Wrapper::LoadFontAsync },
 		{ "LoadTTF", &Wrapper::LoadTTF },
+		{ "LoadTTFAsync", &Wrapper::LoadTTFAsync },
 		{ "LoadTrueTypeFont", &Wrapper::LoadTrueTypeFont },
+		{ "LoadTrueTypeFontAsync", &Wrapper::LoadTrueTypeFontAsync },
 		{ "LoadFX", &Wrapper::LoadFX },
+		{ "LoadFXAsync", &Wrapper::LoadFXAsync },
 		{ "LoadModel", &Wrapper::LoadModel },
+		{ "LoadModelAsync", &Wrapper::LoadModelAsync },
 		{ "CreateRenderTarget", &Wrapper::CreateRenderTarget },
 		{ "IsRenderTarget", &Wrapper::IsRenderTarget },
 		{ "SetTexturePreMulAlphaState", &Wrapper::SetTexturePreMulAlphaState },

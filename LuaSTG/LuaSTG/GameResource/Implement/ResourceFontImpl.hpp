@@ -3,6 +3,13 @@
 #include "GameResource/ResourceFont.hpp"
 #include "GameResource/Implement/ResourceBaseImpl.hpp"
 
+#include <string_view>
+
+namespace core
+{
+	struct IData;
+}
+
 namespace luastg
 {
 	class ResourceFontImpl : public ResourceBaseImpl<IResourceFont>
@@ -21,7 +28,9 @@ namespace luastg
 
 	public:
 		ResourceFontImpl(const char* name, std::string_view hge_path, bool mipmap);
+		ResourceFontImpl(const char* name, std::string_view hge_path, core::IData* hge_data, core::IData* texture_data, std::string_view texture_path, bool mipmap);
 		ResourceFontImpl(const char* name, std::string_view f2d_path, std::string_view tex_path, bool mipmap);
+		ResourceFontImpl(const char* name, std::string_view f2d_path, core::IData* f2d_data, std::string_view tex_path, core::IData* texture_data, bool mipmap);
 		ResourceFontImpl(const char* name, core::Graphics::IGlyphManager* p_mgr);
 	};
 }

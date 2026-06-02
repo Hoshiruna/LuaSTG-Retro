@@ -24,6 +24,20 @@ namespace luastg {
 		if (!core::IVideoDecoder::create(path, m_decoder.put())) {
 			throw std::runtime_error("create video decoder failed");
 		}
+		initialize();
+	}
+
+	ResourceVideoImpl::ResourceVideoImpl(char const* const name, core::IVideoDecoder* const decoder, bool const loop)
+		: ResourceBaseImpl(ResourceType::Texture, name)
+		, m_decoder(decoder)
+		, m_loop(loop) {
+		if (!m_decoder) {
+			throw std::runtime_error("create video decoder failed");
+		}
+		initialize();
+	}
+
+	void ResourceVideoImpl::initialize() {
 		auto const width = m_decoder->getWidth();
 		auto const height = m_decoder->getHeight();
 		if (width == 0 || height == 0) {

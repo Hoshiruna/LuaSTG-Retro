@@ -47,6 +47,7 @@ namespace core::Graphics::Direct3D11 {
 		[[nodiscard]] ID3D11ShaderResourceView* GetView() const noexcept { return m_view.Get(); }
 
 		bool initialize(Device* device, StringView path, bool mipmap);
+		bool initialize(Device* device, IData* data, bool mipmap);
 		bool initialize(Device* device, Vector2U size, bool is_render_target);
 		bool createResource();
 
@@ -54,6 +55,7 @@ namespace core::Graphics::Direct3D11 {
 		SmartReference<Device> m_device;
 		SmartReference<ISamplerState> m_sampler;
 		SmartReference<IData> m_data;
+		SmartReference<IData> m_source_data;
 		std::string m_source_path;
 		Microsoft::WRL::ComPtr<ID3D11Texture2D> m_texture;
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_view;

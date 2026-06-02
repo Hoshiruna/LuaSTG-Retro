@@ -7,7 +7,9 @@
 #include <zlib-ng.h>
 
 #include <algorithm>
+#include <array>
 #include <cassert>
+#include <cctype>
 #include <cstring>
 #include <filesystem>
 #include <limits>
@@ -16,12 +18,118 @@ namespace core {
 
 namespace {
 
+static_assert(sizeof(DATArchiveHeader) == DATArchiveEncryption::HEADER_MAGIC_LENGTH + sizeof(uint32_t) * 3);
+
+static std::filesystem::path toFileSystemPath(std::string_view const& path) {
+	return std::filesystem::path(getUtf8StringView(path));
+}
+
 static void normalizeSlashes(std::string& path) {
 	for (auto& c : path)
 		if (c == '\\') c = '/';
 }
 
+static bool isDrivePath(std::string_view const& path) {
+	return path.size() >= 2
+		&& path[1] == ':'
+		&& std::isalpha(static_cast<unsigned char>(path[0]));
+}
+
+static bool hasParentTraversal(std::string_view const& path) {
+	size_t begin = 0;
+	for (;;) {
+		size_t const end = path.find('/', begin);
+		std::string_view const segment = end == std::string_view::npos
+			? path.substr(begin)
+			: path.substr(begin, end - begin);
+		if (segment == "..") {
+			return true;
+		}
+		if (end == std::string_view::npos) {
+			return false;
+		}
+		begin = end + 1;
+	}
+}
+
+static bool normalizeArchiveFilePath(std::string& path) {
+	normalizeSlashes(path);
+	return !path.empty()
+		&& path.front() != '/'
+		&& path.back() != '/'
+		&& !isDrivePath(path)
+		&& path.find('\0') == std::string::npos
+		&& !hasParentTraversal(path);
+}
+
+static void appendU8(std::vector<uint8_t>& buf, uint8_t value) {
+	buf.push_back(value);
+}
+
+static void appendU32LE(std::vector<uint8_t>& buf, uint32_t value) {
+	buf.push_back(static_cast<uint8_t>( value        & 0xFF));
+	buf.push_back(static_cast<uint8_t>((value >>  8) & 0xFF));
+	buf.push_back(static_cast<uint8_t>((value >> 16) & 0xFF));
+	buf.push_back(static_cast<uint8_t>((value >> 24) & 0xFF));
+}
+
+static void writeU32LE(uint8_t*& cursor, uint32_t value) {
+	cursor[0] = static_cast<uint8_t>( value        & 0xFF);
+	cursor[1] = static_cast<uint8_t>((value >>  8) & 0xFF);
+	cursor[2] = static_cast<uint8_t>((value >> 16) & 0xFF);
+	cursor[3] = static_cast<uint8_t>((value >> 24) & 0xFF);
+	cursor += sizeof(uint32_t);
+}
+
+static bool readU8(uint8_t const*& cursor, uint8_t const* end, uint8_t& value) {
+	if (cursor >= end) {
+		return false;
+	}
+	value = *cursor;
+	cursor += sizeof(uint8_t);
+	return true;
+}
+
+static bool readU32LE(uint8_t const*& cursor, uint8_t const* end, uint32_t& value) {
+	if (cursor + static_cast<ptrdiff_t>(sizeof(uint32_t)) > end) {
+		return false;
+	}
+	value = static_cast<uint32_t>(cursor[0])
+		| (static_cast<uint32_t>(cursor[1]) << 8)
+		| (static_cast<uint32_t>(cursor[2]) << 16)
+		| (static_cast<uint32_t>(cursor[3]) << 24);
+	cursor += sizeof(uint32_t);
+	return true;
+}
+
+static std::array<uint8_t, sizeof(DATArchiveHeader)> writeHeader(DATArchiveHeader const& header) {
+	std::array<uint8_t, sizeof(DATArchiveHeader)> buf{};
+	uint8_t* cursor = buf.data();
+	std::memcpy(cursor, header.magic, DATArchiveEncryption::HEADER_MAGIC_LENGTH);
+	cursor += DATArchiveEncryption::HEADER_MAGIC_LENGTH;
+	writeU32LE(cursor, header.entryCount);
+	writeU32LE(cursor, header.headerOffset);
+	writeU32LE(cursor, header.headerSize);
+	return buf;
+}
+
+static bool readHeader(uint8_t const* data, size_t size, DATArchiveHeader& header) {
+	uint8_t const* cursor = data;
+	uint8_t const* end = data + size;
+	if (cursor + static_cast<ptrdiff_t>(DATArchiveEncryption::HEADER_MAGIC_LENGTH) > end) {
+		return false;
+	}
+	std::memcpy(header.magic, cursor, DATArchiveEncryption::HEADER_MAGIC_LENGTH);
+	cursor += DATArchiveEncryption::HEADER_MAGIC_LENGTH;
+	return readU32LE(cursor, end, header.entryCount)
+		&& readU32LE(cursor, end, header.headerOffset)
+		&& readU32LE(cursor, end, header.headerSize)
+		&& cursor == end;
+}
+
 static bool zlibDeflate(uint8_t const* src, size_t srcLen, std::vector<uint8_t>& out) {
+	uint8_t const empty = 0;
+	if (srcLen == 0) src = &empty;
 	out.resize(zng_compressBound(srcLen));
 	size_t destLen = out.size();
 	int ret = zng_compress2(out.data(), &destLen, src, srcLen, Z_DEFAULT_COMPRESSION);
@@ -56,70 +164,40 @@ static bool zlibInflate(uint8_t const* src, size_t srcLen, std::vector<uint8_t>&
 }
 
 static bool writeEntryRecord(std::vector<uint8_t>& buf, DATArchiveEntry const& entry) {
-	std::wstring wpath = utf8::to_wstring(entry.path);
-	if (wpath.size() > std::numeric_limits<uint32_t>::max()) return false;
+	if (entry.path.size() > std::numeric_limits<uint32_t>::max()) return false;
 
-	size_t const oldSize = buf.size();
-	size_t const recordSize = sizeof(uint32_t)
-		+ wpath.size() * sizeof(wchar_t)
-		+ sizeof(uint8_t)
-		+ sizeof(uint32_t) * 4
-		+ sizeof(uint8_t) * 2;
-	buf.resize(oldSize + recordSize);
-
-	uint8_t* cursor = buf.data() + oldSize;
-#define WRITE_BYTES(SRC, SIZE) \
-	std::memcpy(cursor, (SRC), (SIZE)); \
-	cursor += (SIZE)
-
-	uint32_t charCount = static_cast<uint32_t>(wpath.size());
-	WRITE_BYTES(&charCount,        sizeof(charCount));
-	WRITE_BYTES(wpath.data(),      charCount * sizeof(wchar_t));
-
-	uint8_t ct = static_cast<uint8_t>(entry.compressionType);
-	WRITE_BYTES(&ct,               sizeof(ct));
-	WRITE_BYTES(&entry.sizeFull,   sizeof(entry.sizeFull));
-	WRITE_BYTES(&entry.sizeStored, sizeof(entry.sizeStored));
-	WRITE_BYTES(&entry.offsetPos,  sizeof(entry.offsetPos));
-	WRITE_BYTES(&entry.keyBase,    sizeof(entry.keyBase));
-	WRITE_BYTES(&entry.keyStep,    sizeof(entry.keyStep));
-	WRITE_BYTES(&entry.crc32Value, sizeof(entry.crc32Value));
-#undef WRITE_BYTES
+	appendU32LE(buf, static_cast<uint32_t>(entry.path.size()));
+	buf.insert(buf.end(), entry.path.begin(), entry.path.end());
+	appendU8(buf, static_cast<uint8_t>(entry.compressionType));
+	appendU32LE(buf, entry.sizeFull);
+	appendU32LE(buf, entry.sizeStored);
+	appendU32LE(buf, entry.offsetPos);
+	appendU8(buf, entry.keyBase);
+	appendU8(buf, entry.keyStep);
+	appendU32LE(buf, entry.crc32Value);
 
 	return true;
 }
 
 static bool readEntryRecord(uint8_t const*& cursor, uint8_t const* end, DATArchiveEntry& entry) {
-#define READ_BYTES(DEST, SIZE) \
-	do { \
-		if (cursor + static_cast<ptrdiff_t>(SIZE) > end) return false; \
-		std::memcpy((DEST), cursor, (SIZE)); \
-		cursor += (SIZE); \
-	} while (false)
+	uint32_t pathSize = 0;
+	if (!readU32LE(cursor, end, pathSize)) return false;
+	if (pathSize == 0 || static_cast<size_t>(pathSize) > static_cast<size_t>(end - cursor)) return false;
 
-	uint32_t charCount = 0;
-	READ_BYTES(&charCount, sizeof(charCount));
-	if (static_cast<size_t>(charCount) * sizeof(wchar_t) > static_cast<size_t>(end - cursor)) return false;
-
-	std::wstring wpath(charCount, L'\0');
-	READ_BYTES(wpath.data(), charCount * sizeof(wchar_t));
-
-	entry.path = utf8::to_string(wpath);
-	normalizeSlashes(entry.path);
+	entry.path.assign(reinterpret_cast<char const*>(cursor), pathSize);
+	cursor += pathSize;
+	if (!normalizeArchiveFilePath(entry.path)) return false;
 
 	uint8_t ct = 0;
-	READ_BYTES(&ct, sizeof(ct));
+	if (!readU8(cursor, end, ct)) return false;
 	entry.compressionType = static_cast<DATArchiveEntry::CompressionType>(ct);
 
-	READ_BYTES(&entry.sizeFull,   sizeof(entry.sizeFull));
-	READ_BYTES(&entry.sizeStored, sizeof(entry.sizeStored));
-	READ_BYTES(&entry.offsetPos,  sizeof(entry.offsetPos));
-	READ_BYTES(&entry.keyBase,    sizeof(entry.keyBase));
-	READ_BYTES(&entry.keyStep,    sizeof(entry.keyStep));
-	READ_BYTES(&entry.crc32Value, sizeof(entry.crc32Value));
-#undef READ_BYTES
-
-	return true;
+	return readU32LE(cursor, end, entry.sizeFull)
+		&& readU32LE(cursor, end, entry.sizeStored)
+		&& readU32LE(cursor, end, entry.offsetPos)
+		&& readU8(cursor, end, entry.keyBase)
+		&& readU8(cursor, end, entry.keyStep)
+		&& readU32LE(cursor, end, entry.crc32Value);
 }
 
 static void collectParentDirectories(std::string_view const& filePath,
@@ -168,8 +246,7 @@ bool FileSystemDATArchive::open(std::string_view const& path, size_t readOffset)
 	m_keyBase = 0;
 	m_keyStep = 0;
 
-	std::string pathStr(path);
-	m_file.open(pathStr, std::ios::binary);
+	m_file.open(toFileSystemPath(path), std::ios::binary);
 	if (!m_file.is_open()) {
 		Logger::error("FileSystemDATArchive: cannot open '{}'", path);
 		return false;
@@ -207,9 +284,10 @@ bool FileSystemDATArchive::open(std::string_view const& path, size_t readOffset)
 		uint8_t buf[sizeof(DATArchiveHeader)];
 		std::memcpy(buf, headerBuf, sizeof(buf));
 		DATArchiveEncryption::shiftBlock(buf, sizeof(buf), base, keyStep);
-		std::memcpy(&header, buf, sizeof(header));
 
-		if (std::memcmp(header.magic, DATArchiveEncryption::HEADER_MAGIC, 8) == 0) {
+		if (readHeader(buf, sizeof(buf), header)
+			&& std::memcmp(header.magic, DATArchiveEncryption::HEADER_MAGIC,
+			               DATArchiveEncryption::HEADER_MAGIC_LENGTH) == 0) {
 			m_keyBase = base;
 			m_keyStep = keyStep;
 		}
@@ -255,12 +333,10 @@ bool FileSystemDATArchive::open(std::string_view const& path, size_t readOffset)
 
 	for (uint32_t i = 0; i < header.entryCount; ++i) {
 		uint32_t recordSize = 0;
-		if (cursor + static_cast<ptrdiff_t>(sizeof(uint32_t)) > end) {
+		if (!readU32LE(cursor, end, recordSize)) {
 			Logger::error("FileSystemDATArchive: truncated metadata at entry {} in '{}'", i, path);
 			return false;
 		}
-		std::memcpy(&recordSize, cursor, sizeof(uint32_t));
-		cursor += sizeof(uint32_t);
 		if (recordSize == 0 || cursor + static_cast<ptrdiff_t>(recordSize) > end) {
 			Logger::error("FileSystemDATArchive: invalid record size at entry {} in '{}'", i, path);
 			return false;
@@ -274,6 +350,7 @@ bool FileSystemDATArchive::open(std::string_view const& path, size_t readOffset)
 		}
 		if (entry.path.empty()
 			|| entry.compressionType > DATArchiveEntry::CT_ZLIB
+			|| !normalizeArchiveFilePath(entry.path)
 			|| !isRangeInside(m_readOffset, entry.offsetPos, entry.sizeStored, archiveSize)
 			|| (entry.compressionType == DATArchiveEntry::CT_NONE && entry.sizeFull != entry.sizeStored)) {
 			Logger::error("FileSystemDATArchive: invalid entry '{}' in '{}'", entry.path, path);
@@ -429,6 +506,41 @@ bool FileSystemDATArchive::createEnumerator(IFileSystemEnumerator** const enumer
 	return true;
 }
 
+bool FileSystemDATArchive::isDATArchive(std::string_view const& path, size_t readOffset) {
+	std::ifstream file(toFileSystemPath(path), std::ios::binary);
+	if (!file.is_open()) {
+		return false;
+	}
+
+	file.seekg(0, std::ios::end);
+	auto const archiveEnd = file.tellg();
+	if (archiveEnd < 0) {
+		return false;
+	}
+	auto const archiveSize = static_cast<size_t>(archiveEnd);
+	if (readOffset > archiveSize || archiveSize - readOffset < sizeof(DATArchiveHeader)) {
+		return false;
+	}
+
+	alignas(DATArchiveHeader) uint8_t headerBuf[sizeof(DATArchiveHeader)]{};
+	file.seekg(static_cast<std::streamoff>(readOffset), std::ios::beg);
+	file.read(reinterpret_cast<char*>(headerBuf), sizeof(headerBuf));
+	if (!file) {
+		return false;
+	}
+
+	uint8_t keyBase, keyStep;
+	DATArchiveEncryption::getKeyHashHeader(
+		std::string_view(DATArchiveEncryption::ENCRYPTION_KEY, DATArchiveEncryption::ENCRYPTION_KEY_LEN),
+		keyBase, keyStep);
+	DATArchiveEncryption::shiftBlock(headerBuf, sizeof(headerBuf), keyBase, keyStep);
+
+	DATArchiveHeader header{};
+	return readHeader(headerBuf, sizeof(headerBuf), header)
+		&& std::memcmp(header.magic, DATArchiveEncryption::HEADER_MAGIC,
+		               DATArchiveEncryption::HEADER_MAGIC_LENGTH) == 0;
+}
+
 bool FileSystemDATArchive::createFromFile(std::string_view const& path,
                                           IFileSystemArchive** const archive) {
 	return createFromFile(path, 0, archive);
@@ -523,12 +635,10 @@ bool DATArchiveCreator::create(std::string_view const& baseDir,
 		std::string_view(DATArchiveEncryption::ENCRYPTION_KEY, DATArchiveEncryption::ENCRYPTION_KEY_LEN),
 		headerKeyBase, headerKeyStep);
 
-	std::string base(baseDir);
-	normalizeSlashes(base);
-	if (!base.empty() && base.back() != '/') base.push_back('/');
+	std::filesystem::path const basePath(toFileSystemPath(baseDir));
 
 	std::string tmpPath = std::string(outputPath) + ".tmp";
-	std::fstream tmpFile(tmpPath, std::ios::binary | std::ios::in | std::ios::out | std::ios::trunc);
+	std::fstream tmpFile(toFileSystemPath(tmpPath), std::ios::binary | std::ios::in | std::ios::out | std::ios::trunc);
 	if (!tmpFile.is_open()) {
 		Logger::error("DATArchiveCreator: cannot create temp file '{}'", tmpPath);
 		return false;
@@ -545,23 +655,32 @@ bool DATArchiveCreator::create(std::string_view const& baseDir,
 		DATArchiveHeader header{};
 		std::memcpy(header.magic, DATArchiveEncryption::HEADER_MAGIC, sizeof(header.magic));
 		header.entryCount = static_cast<uint32_t>(m_files.size());
-		tmpFile.write(reinterpret_cast<char const*>(&header), sizeof(header));
+		auto headerBuf = writeHeader(header);
+		tmpFile.write(reinterpret_cast<char const*>(headerBuf.data()), headerBuf.size());
 
 		std::vector<DATArchiveEntry> entries;
 		entries.reserve(m_files.size());
 
-		for (auto const& name : m_files) {
-			std::string fullPath = base + name;
+		for (auto const& originalName : m_files) {
+			std::string name = originalName;
+			if (!normalizeArchiveFilePath(name)) {
+				Logger::error("DATArchiveCreator: invalid archive path '{}'", originalName);
+				goto finish;
+			}
+
+			std::filesystem::path const fullPath = basePath / toFileSystemPath(name);
+			auto const fullPathU8 = fullPath.lexically_normal().generic_u8string();
+			std::string_view const fullPathName = getStringView(fullPathU8);
 			std::ifstream file(fullPath, std::ios::binary);
 			if (!file.is_open()) {
-				Logger::error("DATArchiveCreator: cannot open '{}'", fullPath);
+				Logger::error("DATArchiveCreator: cannot open '{}'", fullPathName);
 				goto finish;
 			}
 
 			file.seekg(0, std::ios::end);
 			uint32_t fileSize = 0;
 			if (!streamPosToU32(file.tellg(), fileSize)) {
-				Logger::error("DATArchiveCreator: '{}' is too large for DAT archive", fullPath);
+				Logger::error("DATArchiveCreator: '{}' is too large for DAT archive", fullPathName);
 				goto finish;
 			}
 			file.seekg(0, std::ios::beg);
@@ -570,7 +689,7 @@ bool DATArchiveCreator::create(std::string_view const& baseDir,
 			if (fileSize > 0) {
 				file.read(reinterpret_cast<char*>(content.data()), fileSize);
 				if (!file) {
-					Logger::error("DATArchiveCreator: failed to read '{}'", fullPath);
+					Logger::error("DATArchiveCreator: failed to read '{}'", fullPathName);
 					goto finish;
 				}
 			}
@@ -595,7 +714,7 @@ bool DATArchiveCreator::create(std::string_view const& baseDir,
 				std::vector<uint8_t> compressed;
 				if (zlibDeflate(content.data(), fileSize, compressed)) {
 					if (compressed.size() > std::numeric_limits<uint32_t>::max()) {
-						Logger::error("DATArchiveCreator: compressed data is too large for '{}'", fullPath);
+						Logger::error("DATArchiveCreator: compressed data is too large for '{}'", fullPathName);
 						goto finish;
 					}
 					entry.sizeStored = static_cast<uint32_t>(compressed.size());
@@ -630,9 +749,7 @@ bool DATArchiveCreator::create(std::string_view const& baseDir,
 				goto finish;
 			}
 			uint32_t const recSize = static_cast<uint32_t>(recordBuf.size());
-			metaBuf.insert(metaBuf.end(),
-			               reinterpret_cast<uint8_t const*>(&recSize),
-			               reinterpret_cast<uint8_t const*>(&recSize) + sizeof(recSize));
+			appendU32LE(metaBuf, recSize);
 			metaBuf.insert(metaBuf.end(), recordBuf.begin(), recordBuf.end());
 		}
 
@@ -649,9 +766,9 @@ bool DATArchiveCreator::create(std::string_view const& baseDir,
 		tmpFile.write(reinterpret_cast<char const*>(compMeta.data()), compMeta.size());
 		header.headerSize = static_cast<uint32_t>(compMeta.size());
 
-		tmpFile.seekp(static_cast<std::streamoff>(offsetof(DATArchiveHeader, headerOffset)));
-		tmpFile.write(reinterpret_cast<char const*>(&header.headerOffset), sizeof(uint32_t));
-		tmpFile.write(reinterpret_cast<char const*>(&header.headerSize),   sizeof(uint32_t));
+		headerBuf = writeHeader(header);
+		tmpFile.seekp(0, std::ios::beg);
+		tmpFile.write(reinterpret_cast<char const*>(headerBuf.data()), headerBuf.size());
 		tmpFile.flush();
 
 		encrypting = true;
@@ -660,7 +777,7 @@ bool DATArchiveCreator::create(std::string_view const& baseDir,
 
 finish:
 	tmpFile.close();
-	std::filesystem::remove(tmpPath);
+	std::filesystem::remove(toFileSystemPath(tmpPath));
 
 	if (!ok) {
 		if (encrypting) {
@@ -682,7 +799,7 @@ bool DATArchiveCreator::encryptArchive(std::fstream&                src,
 	src.clear();
 	src.seekg(0);
 
-	std::ofstream dest(std::string(outputPath), std::ios::binary | std::ios::trunc);
+	std::ofstream dest(toFileSystemPath(outputPath), std::ios::binary | std::ios::trunc);
 	if (!dest.is_open()) return false;
 
 	constexpr size_t CHUNK = 16384;

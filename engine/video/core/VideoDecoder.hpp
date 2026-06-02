@@ -27,6 +27,7 @@ namespace core {
 		[[nodiscard]] virtual bool seek(double seconds) = 0;
 		[[nodiscard]] virtual VideoDecodeResult readFrame(VideoFrame& frame) = 0;
 
+		[[nodiscard]] static bool create(IData* data, IVideoDecoder** output_decoder);
 		[[nodiscard]] static bool create(std::string_view path, IVideoDecoder** output_decoder);
 	};
 

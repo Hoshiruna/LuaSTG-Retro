@@ -1,20 +1,71 @@
 #include "GameResource/ResourceManager.h"
+#include "GameResource/AsyncResourceLoader.hpp"
+
+#include <memory>
+#include <utility>
 
 namespace luastg
 {
 	ResourceMgr::ResourceMgr()
 		: m_GlobalResourcePool(this, ResourcePoolType::Global)
 		, m_StageResourcePool(this, ResourcePoolType::Stage)
+		, m_AsyncLoader(std::make_unique<AsyncResourceLoader>())
 	{
 	}
+
+	ResourceMgr::~ResourceMgr() = default;
 
 	// 资源池管理
 
 	void ResourceMgr::ClearAllResource() noexcept {
+		if (m_AsyncLoader) {
+			m_AsyncLoader->stop();
+		}
 		m_GlobalResourcePool.Clear();
 		m_StageResourcePool.Clear();
 		m_ActivedPool = ResourcePoolType::Global;
 		m_GlobalImageScaleFactor = 1.0f;
+	}
+
+	size_t ResourceMgr::GetResourcePoolGeneration(ResourcePoolType const t) const noexcept {
+		switch (t) {
+		case ResourcePoolType::Global:
+			return m_GlobalResourcePool.GetGeneration();
+		case ResourcePoolType::Stage:
+			return m_StageResourcePool.GetGeneration();
+		default:
+			return 0;
+		}
+	}
+
+	void ResourceMgr::UpdateAsyncResourceLoading(size_t const max_count) {
+		if (m_AsyncLoader) {
+			m_AsyncLoader->update(*this, max_count);
+		}
+	}
+
+	void ResourceMgr::CancelAsyncResourceLoading() noexcept {
+		if (m_AsyncLoader) {
+			m_AsyncLoader->cancelAll();
+		}
+	}
+
+	void ResourceMgr::CancelAsyncResourceLoading(ResourcePoolType const pool_type) noexcept {
+		if (m_AsyncLoader) {
+			m_AsyncLoader->cancel(pool_type);
+		}
+	}
+
+	std::shared_ptr<AsyncResourceJob> ResourceMgr::SubmitAsyncFileRead(std::string_view const path) {
+		return m_AsyncLoader->submitFileRead(path);
+	}
+
+	std::shared_ptr<AsyncResourceJob> ResourceMgr::SubmitAsyncResource(AsyncResourceRequest request) {
+		request.pool_generation = GetResourcePoolGeneration(request.pool_type);
+		if (request.pool_type == ResourcePoolType::None) {
+			return m_AsyncLoader->submitFailedResource(std::move(request), "can't load resource at this time.");
+		}
+		return m_AsyncLoader->submitResource(std::move(request));
 	}
 
 	ResourcePoolType ResourceMgr::GetActivedPoolType() noexcept {

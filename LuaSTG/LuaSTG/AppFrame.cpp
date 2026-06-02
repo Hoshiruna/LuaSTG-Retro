@@ -424,6 +424,7 @@ bool AppFrame::onUpdate()
 
 	if (result) {
 		tracy_zone_scoped_with_name("OnUpdate-LuaCallback");
+		m_ResourceMgr.UpdateAsyncResourceLoading();
 		// Executing frame function
 		imgui::cancelSetCursor();
 		m_GameObjectPool->DebugNextFrame();

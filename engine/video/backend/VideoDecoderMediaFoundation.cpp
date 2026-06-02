@@ -267,6 +267,62 @@ namespace core {
 		return true;
 	}
 
+	bool VideoDecoderMediaFoundation::open(IData* const data) {
+		m_source_data = nullptr;
+		m_reader.Reset();
+		m_width = 0;
+		m_height = 0;
+		m_stride = 0;
+		m_duration = 0.0;
+
+		if (data == nullptr) {
+			return false;
+		}
+		if (FAILED(ensureMediaFoundationStarted())) {
+			Logger::error("[core] Media Foundation startup failed");
+			return false;
+		}
+
+		Microsoft::WRL::ComPtr<IMFAttributes> attributes;
+		if (!createSourceReaderAttributes(attributes.GetAddressOf())) {
+			return false;
+		}
+		if (!openFromData(data, attributes.Get())) {
+			return false;
+		}
+
+		m_reader->SetStreamSelection(source_reader_all_streams, FALSE);
+		HRESULT hr = m_reader->SetStreamSelection(source_reader_first_video_stream, TRUE);
+		if (FAILED(hr)) {
+			Logger::error("[core] failed to select first video stream (HRESULT=0x{:08X})", static_cast<uint32_t>(hr));
+			return false;
+		}
+
+		Microsoft::WRL::ComPtr<IMFMediaType> media_type;
+		hr = MFCreateMediaType(media_type.GetAddressOf());
+		if (FAILED(hr)) {
+			return false;
+		}
+		media_type->SetGUID(MF_MT_MAJOR_TYPE, MFMediaType_Video);
+		media_type->SetGUID(MF_MT_SUBTYPE, MFVideoFormat_RGB32);
+		hr = m_reader->SetCurrentMediaType(source_reader_first_video_stream, nullptr, media_type.Get());
+		if (FAILED(hr)) {
+			Logger::error("[core] failed to request RGB32 video output (HRESULT=0x{:08X})", static_cast<uint32_t>(hr));
+			return false;
+		}
+		if (!updateMediaType()) {
+			return false;
+		}
+
+		PROPVARIANT duration;
+		PropVariantInit(&duration);
+		if (SUCCEEDED(m_reader->GetPresentationAttribute(source_reader_media_source, MF_PD_DURATION, &duration)) && duration.vt == VT_UI8) {
+			m_duration = hns_to_seconds(static_cast<LONGLONG>(duration.uhVal.QuadPart));
+		}
+		PropVariantClear(&duration);
+		return true;
+	}
+
 	bool VideoDecoderMediaFoundation::openFromPhysicalFile(std::string_view const path, IMFAttributes* const attributes) {
 		std::filesystem::path file_path(utf8::to_wstring(path));
 		std::error_code ec;
@@ -286,7 +342,11 @@ namespace core {
 			Logger::error("[core] failed to read video file '{}'", path);
 			return false;
 		}
+		return openFromData(m_source_data.get(), attributes);
+	}
 
+	bool VideoDecoderMediaFoundation::openFromData(IData* const data, IMFAttributes* const attributes) {
+		m_source_data = data;
 		Microsoft::WRL::ComPtr<IStream> stream;
 		stream.Attach(new (std::nothrow) DataStream(m_source_data.get()));
 		if (!stream) {

@@ -1,4 +1,5 @@
 #include "core/FileSystemArchive.hpp"
+#include "core/FileSystemDATArchive.hpp"
 #include "core/SmartReference.hpp"
 #include "core/FileSystemCommon.hpp"
 #include <cassert>
@@ -166,6 +167,10 @@ namespace core {
 }
 namespace core {
 	bool IFileSystemArchive::createFromFile(std::string_view const& path, IFileSystemArchive** const archive) {
+		if (FileSystemDATArchive::isDATArchive(path)) {
+			return FileSystemDATArchive::createFromFile(path, archive);
+		}
+
 		SmartReference<FileSystemArchive> object;
 		object.attach(new FileSystemArchive());
 		if (!object->open(path)) {

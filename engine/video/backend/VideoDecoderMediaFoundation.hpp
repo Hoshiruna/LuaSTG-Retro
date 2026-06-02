@@ -17,10 +17,12 @@ namespace core {
 		VideoDecodeResult readFrame(VideoFrame& frame) override;
 
 		bool open(std::string_view path);
+		bool open(IData* data);
 
 	private:
 		bool openFromPhysicalFile(std::string_view path, IMFAttributes* attributes);
 		bool openFromMemory(std::string_view path, IMFAttributes* attributes);
+		bool openFromData(IData* data, IMFAttributes* attributes);
 		bool updateMediaType();
 
 	private:

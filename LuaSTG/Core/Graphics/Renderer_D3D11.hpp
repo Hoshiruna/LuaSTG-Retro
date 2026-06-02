@@ -233,6 +233,7 @@ namespace core::Graphics
 		bool drawRequest(uint16_t nvert, uint16_t nidx, DrawVertex** ppvert, DrawIndex** ppidx, uint16_t* idxoffset);
 
 		bool createPostEffectShader(StringView path, IPostEffectShader** pp_effect);
+		bool createPostEffectShaderFromSource(StringView source, IPostEffectShader** pp_effect);
 		bool drawPostEffect(
 			IPostEffectShader* p_effect,
 			BlendState blend,

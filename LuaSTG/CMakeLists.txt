@@ -62,6 +62,8 @@ set(LUASTG_ENGINE_SOURCES
     LuaSTG/GameResource/ResourceDebug.cpp
     LuaSTG/GameResource/ResourceManager.cpp
     LuaSTG/GameResource/ResourceManager.h
+    LuaSTG/GameResource/AsyncResourceLoader.cpp
+    LuaSTG/GameResource/AsyncResourceLoader.hpp
     LuaSTG/GameResource/ResourcePassword.hpp
     LuaSTG/GameResource/ResourcePool.cpp
 
@@ -94,6 +96,8 @@ set(LUASTG_ENGINE_SOURCES
     LuaSTG/LuaBinding/LuaWrapper.cpp
     LuaSTG/LuaBinding/LuaWrapper.hpp
     LuaSTG/LuaBinding/LuaWrapperMisc.hpp
+    LuaSTG/LuaBinding/AsyncResourceJob.cpp
+    LuaSTG/LuaBinding/AsyncResourceJob.hpp
     LuaSTG/LuaBinding/LW_Archive.cpp
     LuaSTG/LuaBinding/LW_Audio.cpp
     LuaSTG/LuaBinding/LW_DiscordRPC.cpp

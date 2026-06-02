@@ -1281,6 +1281,19 @@ namespace core::Graphics
 			return false;
 		}
 	}
+	bool Renderer_D3D11::createPostEffectShaderFromSource(StringView source, IPostEffectShader** pp_effect)
+	{
+		try
+		{
+			*pp_effect = new PostEffectShader_D3D11(m_device.get(), source, false);
+			return true;
+		}
+		catch (...)
+		{
+			*pp_effect = nullptr;
+			return false;
+		}
+	}
 	bool Renderer_D3D11::drawPostEffect(
 		IPostEffectShader* p_effect,
 		BlendState blend,

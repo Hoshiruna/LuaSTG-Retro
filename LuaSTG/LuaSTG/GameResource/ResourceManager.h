@@ -12,9 +12,21 @@
 #include "GameResource/ResourceModel.hpp"
 #include "lua.hpp"
 #include "xxhash.h"
+#include <memory>
+#include <string_view>
+
+namespace core
+{
+    struct IData;
+    struct IAudioDecoder;
+    struct IVideoDecoder;
+}
 
 namespace luastg
 {
+    class AsyncResourceLoader;
+    class AsyncResourceJob;
+    struct AsyncResourceRequest;
     class ResourceMgr;
     
     // 资源池类型
@@ -98,7 +110,9 @@ namespace luastg
         
         // 纹理
         bool LoadTexture(const char* name, const char* path, bool mipmaps = true) noexcept;
+        bool LoadTexture(const char* name, core::IData* data, const char* path, bool mipmaps = true) noexcept;
         bool LoadVideo(const char* name, const char* path, bool loop = false) noexcept;
+        bool LoadVideo(const char* name, core::IVideoDecoder* decoder, bool loop = false) noexcept;
         bool CreateTexture(const char* name, int width, int height) noexcept;
         // 渲染目标
         bool CreateRenderTarget(const char* name, int width = 0, int height = 0, bool depth_buffer = false) noexcept;
@@ -116,8 +130,10 @@ namespace luastg
             double a, double b, bool rect = false) noexcept;
         // 音乐
         bool LoadMusic(const char* name, const char* path, double start, double end, bool once_decode) noexcept;
+        bool LoadMusic(const char* name, core::IAudioDecoder* decoder, const char* path, double start, double end, bool once_decode) noexcept;
         // 音效
         bool LoadSoundEffect(const char* name, const char* path) noexcept;
+        bool LoadSoundEffect(const char* name, core::IAudioDecoder* decoder, const char* path) noexcept;
         // 粒子特效(HGE)
         bool LoadParticle(const char* name, const hgeParticleSystemInfo& info, const char* img_name,
                           double a, double b, bool rect = false, bool _nolog = false) noexcept;
@@ -125,13 +141,17 @@ namespace luastg
                           double a, double b, bool rect = false) noexcept;
         // 装载纹理字体(HGE)
         bool LoadSpriteFont(const char* name, const char* path, bool mipmaps = true) noexcept;
+        bool LoadSpriteFont(const char* name, core::IData* font_data, const char* path, core::IData* texture_data, const char* texture_path, bool mipmaps = true) noexcept;
         // 装载纹理字体(fancy2d)
         bool LoadSpriteFont(const char* name, const char* path, const char* tex_path, bool mipmaps = true) noexcept;
+        bool LoadSpriteFont(const char* name, core::IData* font_data, const char* path, const char* tex_path, core::IData* texture_data, bool mipmaps = true) noexcept;
         // 加载矢量字体
         bool LoadTTFFont(const char* name, const char* path, float width, float height) noexcept;
+        bool LoadTTFFont(const char* name, core::IData* data, float width, float height) noexcept;
         bool LoadTrueTypeFont(const char* name, core::Graphics::TrueTypeFontInfo* fonts, size_t count) noexcept;
         // 特效
         bool LoadFX(const char* name, const char* path) noexcept;
+        bool LoadFXFromSource(const char* name, std::string_view source, const char* path) noexcept;
         // 模型
         bool LoadModel(const char* name, const char* path) noexcept;
         
@@ -149,8 +169,11 @@ namespace luastg
     public:
         ResourcePool(ResourceMgr* mgr, ResourcePoolType t);
         void UpdateVideo(double delta_seconds);
+        size_t GetGeneration() const noexcept { return m_generation; }
         ResourcePool& operator=(const ResourcePool&) = delete;
         ResourcePool(const ResourcePool&) = delete;
+    private:
+        size_t m_generation{ 0 };
     };
     
     // 资源管理器
@@ -166,6 +189,12 @@ namespace luastg
         ResourcePool* GetActivedPool() noexcept;
         ResourcePool* GetResourcePool(ResourcePoolType t) noexcept;
         void ClearAllResource() noexcept;
+        size_t GetResourcePoolGeneration(ResourcePoolType t) const noexcept;
+        void UpdateAsyncResourceLoading(size_t max_count = 8);
+        void CancelAsyncResourceLoading() noexcept;
+        void CancelAsyncResourceLoading(ResourcePoolType pool_type) noexcept;
+        std::shared_ptr<AsyncResourceJob> SubmitAsyncFileRead(std::string_view path);
+        std::shared_ptr<AsyncResourceJob> SubmitAsyncResource(AsyncResourceRequest request);
 
         core::SmartReference<IResourceTexture> FindTexture(const char* name) noexcept;
         core::SmartReference<IResourceVideo> FindVideo(const char* name) noexcept;
@@ -186,6 +215,7 @@ namespace luastg
     private:
         static bool g_ResourceLoadingLog;
         float m_GlobalImageScaleFactor = 1.0f;
+        std::unique_ptr<AsyncResourceLoader> m_AsyncLoader;
     public:
         static void SetResourceLoadingLog(bool b);
         static bool GetResourceLoadingLog();
@@ -194,5 +224,6 @@ namespace luastg
         void ShowResourceManagerDebugWindow(bool* p_open = nullptr);
     public:
         ResourceMgr();
+        ~ResourceMgr();
     };
 }

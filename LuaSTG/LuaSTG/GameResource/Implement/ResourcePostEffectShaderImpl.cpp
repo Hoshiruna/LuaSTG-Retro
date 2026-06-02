@@ -8,4 +8,17 @@ namespace luastg
 	{
 		LAPP.GetAppModel()->getRenderer()->createPostEffectShader(path, m_shader.put());
 	}
+
+	ResourcePostEffectShaderImpl::ResourcePostEffectShaderImpl(const char* name, std::string_view source, bool from_source)
+		: ResourceBaseImpl(ResourceType::FX, name)
+	{
+		if (from_source)
+		{
+			LAPP.GetAppModel()->getRenderer()->createPostEffectShaderFromSource(source, m_shader.put());
+		}
+		else
+		{
+			LAPP.GetAppModel()->getRenderer()->createPostEffectShader(source, m_shader.put());
+		}
+	}
 }

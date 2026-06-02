@@ -9,7 +9,9 @@
 #include "GameResource/Implement/ResourceFontImpl.hpp"
 #include "GameResource/Implement/ResourcePostEffectShaderImpl.hpp"
 #include "GameResource/Implement/ResourceModelImpl.hpp"
+#include "core/AudioDecoder.hpp"
 #include "core/FileSystem.hpp"
+#include "core/VideoDecoder.hpp"
 #include "AppFrame.h"
 #include "lua/plus.hpp"
 
@@ -19,6 +21,11 @@ namespace luastg
 
     void ResourcePool::Clear() noexcept
     {
+        if (m_pMgr)
+        {
+            m_pMgr->CancelAsyncResourceLoading(m_iType);
+        }
+        ++m_generation;
         m_TexturePool.clear();
         m_SpritePool.clear();
         m_AnimationPool.clear();
@@ -228,6 +235,44 @@ namespace luastg
         return true;
     }
 
+    bool ResourcePool::LoadTexture(const char* name, core::IData* data, const char* path, bool mipmaps) noexcept
+    {
+        if (m_TexturePool.find(std::string_view(name)) != m_TexturePool.end())
+        {
+            if (ResourceMgr::GetResourceLoadingLog())
+            {
+                spdlog::warn("[luastg] LoadTexture: 纹理 '{}' 已存在，加载操作已取消", name);
+            }
+            return true;
+        }
+
+        core::SmartReference<core::Graphics::ITexture2D> p_texture;
+        if (!LAPP.GetAppModel()->getDevice()->createTextureFromData(data, mipmaps, p_texture.put()))
+        {
+            spdlog::error("[luastg] 从 '{}' 创建纹理 '{}' 失败", path, name);
+            return false;
+        }
+
+        try
+        {
+            core::SmartReference<IResourceTexture> tRes;
+            tRes.attach(new ResourceTextureImpl(name, p_texture.get()));
+            m_TexturePool.emplace(name, tRes);
+        }
+        catch (std::exception const& e)
+        {
+            spdlog::error("[luastg] LoadTexture: 创建纹理 '{}' 失败 ({})", name, e.what());
+            return false;
+        }
+
+        if (ResourceMgr::GetResourceLoadingLog())
+        {
+            spdlog::info("[luastg] LoadTexture: 已从 '{}' 加载纹理 '{}' ({})", path, name, getResourcePoolTypeName());
+        }
+
+        return true;
+    }
+
     bool ResourcePool::LoadVideo(const char* name, const char* path, bool loop) noexcept
     {
         if (m_TexturePool.find(std::string_view(name)) != m_TexturePool.end())
@@ -254,6 +299,37 @@ namespace luastg
         if (ResourceMgr::GetResourceLoadingLog())
         {
             spdlog::info("[luastg] LoadVideo: 已从 '{}' 加载视频纹理 '{}' ({})", path, name, getResourcePoolTypeName());
+        }
+
+        return true;
+    }
+
+    bool ResourcePool::LoadVideo(const char* name, core::IVideoDecoder* decoder, bool loop) noexcept
+    {
+        if (m_TexturePool.find(std::string_view(name)) != m_TexturePool.end())
+        {
+            if (ResourceMgr::GetResourceLoadingLog())
+            {
+                spdlog::warn("[luastg] LoadVideo: 视频纹理 '{}' 已存在，加载操作已取消", name);
+            }
+            return true;
+        }
+
+        try
+        {
+            core::SmartReference<IResourceTexture> tRes;
+            tRes.attach(new ResourceVideoImpl(name, decoder, loop));
+            m_TexturePool.emplace(name, tRes);
+        }
+        catch (std::exception const& e)
+        {
+            spdlog::error("[luastg] LoadVideo: 加载视频纹理 '{}' 失败 ({})", name, e.what());
+            return false;
+        }
+
+        if (ResourceMgr::GetResourceLoadingLog())
+        {
+            spdlog::info("[luastg] LoadVideo: 已加载视频纹理 '{}' ({})", name, getResourcePoolTypeName());
         }
 
         return true;
@@ -565,6 +641,78 @@ namespace luastg
         return true;
     }
 
+    bool ResourcePool::LoadMusic(const char* name, core::IAudioDecoder* decoder, const char* path, double start, double end, bool once_decode) noexcept
+    {
+        if (m_MusicPool.find(std::string_view(name)) != m_MusicPool.end())
+        {
+            if (ResourceMgr::GetResourceLoadingLog())
+            {
+                spdlog::warn("[luastg] LoadMusic: 音乐 '{}' 已存在，创建操作已取消", name);
+            }
+            return true;
+        }
+
+        if (!decoder)
+        {
+            spdlog::error("[luastg] LoadMusic: 无法解码文件 '{}'，要求文件格式为 WAV/OGG/FLAC", path);
+            return false;
+        }
+
+        auto to_sample = [decoder](double t) -> uint32_t
+        {
+            return (uint32_t)(t * (double)decoder->getSampleRate());
+        };
+
+        if (0 == to_sample(start) && to_sample(start) == to_sample(end))
+        {
+            end = (double)decoder->getFrameCount() / (double)decoder->getSampleRate();
+            spdlog::info("[luastg] LoadMusic: 循环节范围设置为整首背景音乐 (start = {}, end = {})", start, end);
+        }
+        if (to_sample(start) >= to_sample(end))
+        {
+            spdlog::error("[luastg] LoadMusic: 循环节范围格式错误，结束位置不能等于或先于开始位置 (start = {}, end = {})", start, end);
+            return false;
+        }
+
+        core::SmartReference<core::IAudioPlayer> p_player;
+        if (!once_decode)
+        {
+            if (!LAPP.getAudioEngine()->createStreamAudioPlayer(decoder, core::AudioMixingChannel::music, p_player.put()))
+            {
+                spdlog::error("[luastg] LoadMusic: 无法创建音频播放器");
+                return false;
+            }
+        }
+        else
+        {
+            if (!LAPP.getAudioEngine()->createAudioPlayer(decoder, core::AudioMixingChannel::music, p_player.put()))
+            {
+                spdlog::error("[luastg] LoadMusic: 无法创建音频播放器");
+                return false;
+            }
+        }
+        p_player->setLoop(true, start, end - start);
+
+        try
+        {
+            core::SmartReference<IResourceMusic> tRes;
+            tRes.attach(new ResourceMusicImpl(name, decoder, p_player.get()));
+            m_MusicPool.emplace(name, tRes);
+        }
+        catch (std::exception const& e)
+        {
+            spdlog::error("[luastg] LoadMusic: 加载音乐 '{}' 失败 ({})", name, e.what());
+            return false;
+        }
+
+        if (ResourceMgr::GetResourceLoadingLog())
+        {
+            spdlog::info("[luastg] LoadMusic: 已从 '{}' 加载音乐 '{}'{} ({})", path, name, once_decode ? " 并一次性解码" : "", getResourcePoolTypeName());
+        }
+
+        return true;
+    }
+
     // 加载音效
 
     bool ResourcePool::LoadSoundEffect(const char* name, const char* path) noexcept
@@ -613,6 +761,50 @@ namespace luastg
             spdlog::info("[luastg] LoadSoundEffect: 已从 '{}' 加载音效 '{}' ({})", path, name, getResourcePoolTypeName());
         }
     
+        return true;
+    }
+
+    bool ResourcePool::LoadSoundEffect(const char* name, core::IAudioDecoder* decoder, const char* path) noexcept
+    {
+        if (m_SoundSpritePool.find(std::string_view(name)) != m_SoundSpritePool.end())
+        {
+            if (ResourceMgr::GetResourceLoadingLog())
+            {
+                spdlog::warn("[luastg] LoadSoundEffect: 音效 '{}' 已存在，创建操作已取消", name);
+            }
+            return true;
+        }
+
+        if (!decoder)
+        {
+            spdlog::error("[luastg] LoadSoundEffect: 无法解码文件 '{}'，要求文件格式为 WAV/OGG/FLAC", path);
+            return false;
+        }
+
+        core::SmartReference<core::IAudioPlayer> p_player;
+        if (!LAPP.getAudioEngine()->createAudioPlayer(decoder, core::AudioMixingChannel::sound_effect, p_player.put()))
+        {
+            spdlog::error("[luastg] LoadSoundEffect: 无法创建音频播放器");
+            return false;
+        }
+
+        try
+        {
+            core::SmartReference<IResourceSoundEffect> tRes;
+            tRes.attach(new ResourceSoundEffectImpl(name, p_player.get()));
+            m_SoundSpritePool.emplace(name, tRes);
+        }
+        catch (std::exception const& e)
+        {
+            spdlog::error("[luastg] LoadSoundEffect: 加载音效 '{}' 失败 ({})", name, e.what());
+            return false;
+        }
+
+        if (ResourceMgr::GetResourceLoadingLog())
+        {
+            spdlog::info("[luastg] LoadSoundEffect: 已从 '{}' 加载音效 '{}' ({})", path, name, getResourcePoolTypeName());
+        }
+
         return true;
     }
 
@@ -729,6 +921,37 @@ namespace luastg
         return true;
     }
 
+    bool ResourcePool::LoadSpriteFont(const char* name, core::IData* font_data, const char* path, core::IData* texture_data, const char* texture_path, bool mipmaps) noexcept
+    {
+        if (m_SpriteFontPool.find(std::string_view(name)) != m_SpriteFontPool.end())
+        {
+            if (ResourceMgr::GetResourceLoadingLog())
+            {
+                spdlog::warn("[luastg] LoadSpriteFont: 纹理字体 '{}' 已存在，加载操作已取消", name);
+            }
+            return true;
+        }
+
+        try
+        {
+            core::SmartReference<IResourceFont> tRes;
+            tRes.attach(new ResourceFontImpl(name, path, font_data, texture_data, texture_path, mipmaps));
+            m_SpriteFontPool.emplace(name, tRes);
+        }
+        catch (std::exception const& e)
+        {
+            spdlog::error("[luastg] LoadSpriteFont: 无法加载 HGE 纹理字体 '{}' ({})", name, e.what());
+            return false;
+        }
+
+        if (ResourceMgr::GetResourceLoadingLog())
+        {
+            spdlog::info("[luastg] LoadSpriteFont: 已从 '{}' 加载 HGE 纹理字体 '{}' ({})", path, name, getResourcePoolTypeName());
+        }
+
+        return true;
+    }
+
     // 加载纹理字体（fancy2d）
 
     bool ResourcePool::LoadSpriteFont(const char* name, const char* path, const char* tex_path, bool mipmaps) noexcept
@@ -760,6 +983,37 @@ namespace luastg
             spdlog::info("[luastg] LoadSpriteFont: 已从 '{}' 和 '{}' 加载 fancy2d 纹理字体 '{}' ({})", path, tex_path, name, getResourcePoolTypeName());
         }
     
+        return true;
+    }
+
+    bool ResourcePool::LoadSpriteFont(const char* name, core::IData* font_data, const char* path, const char* tex_path, core::IData* texture_data, bool mipmaps) noexcept
+    {
+        if (m_SpriteFontPool.find(std::string_view(name)) != m_SpriteFontPool.end())
+        {
+            if (ResourceMgr::GetResourceLoadingLog())
+            {
+                spdlog::warn("[luastg] LoadSpriteFont: 纹理字体 '{}' 已存在，加载操作已取消", name);
+            }
+            return true;
+        }
+
+        try
+        {
+            core::SmartReference<IResourceFont> tRes;
+            tRes.attach(new ResourceFontImpl(name, path, font_data, tex_path, texture_data, mipmaps));
+            m_SpriteFontPool.emplace(name, tRes);
+        }
+        catch (std::exception const& e)
+        {
+            spdlog::error("[luastg] LoadSpriteFont: 无法加载 fancy2d 纹理字体 '{}' ({})", name, e.what());
+            return false;
+        }
+
+        if (ResourceMgr::GetResourceLoadingLog())
+        {
+            spdlog::info("[luastg] LoadSpriteFont: 已从 '{}' 和 '{}' 加载 fancy2d 纹理字体 '{}' ({})", path, tex_path, name, getResourcePoolTypeName());
+        }
+
         return true;
     }
 
@@ -808,6 +1062,57 @@ namespace luastg
             spdlog::info("[luastg] LoadTTFFont: 已从 '{}' 加载矢量字体 '{}' ({})", path, name, getResourcePoolTypeName());
         }
     
+        return true;
+    }
+
+    bool ResourcePool::LoadTTFFont(const char* name, core::IData* data, float width, float height) noexcept
+    {
+        if (m_TTFFontPool.find(std::string_view(name)) != m_TTFFontPool.end())
+        {
+            if (ResourceMgr::GetResourceLoadingLog())
+            {
+                spdlog::warn("[luastg] LoadTTFFont: 矢量字体 '{}' 已存在，加载操作已取消", name);
+            }
+            return true;
+        }
+
+        if (!data)
+        {
+            spdlog::error("[luastg] LoadTTFFont: 加载矢量字体 '{}' 失败", name);
+            return false;
+        }
+
+        core::SmartReference<core::Graphics::IGlyphManager> p_glyphmgr;
+        core::Graphics::TrueTypeFontInfo create_info = {
+            .source = core::StringView(static_cast<char const*>(data->data()), data->size()),
+            .font_face = 0,
+            .font_size = core::Vector2F(width, height),
+            .is_force_to_file = false,
+            .is_buffer = true,
+        };
+        if (!core::Graphics::IGlyphManager::create(LAPP.GetAppModel()->getDevice(), &create_info, 1, p_glyphmgr.put()))
+        {
+            spdlog::error("[luastg] LoadTTFFont: 加载矢量字体 '{}' 失败", name);
+            return false;
+        }
+
+        try
+        {
+            core::SmartReference<IResourceFont> tRes;
+            tRes.attach(new ResourceFontImpl(name, p_glyphmgr.get()));
+            m_TTFFontPool.emplace(name, tRes);
+        }
+        catch (std::exception const& e)
+        {
+            spdlog::error("[luastg] LoadTTFFont: 无法加载矢量字体 '{}' ({})", name, e.what());
+            return false;
+        }
+
+        if (ResourceMgr::GetResourceLoadingLog())
+        {
+            spdlog::info("[luastg] LoadTTFFont: 已从内存加载矢量字体 '{}' ({})", name, getResourcePoolTypeName());
+        }
+
         return true;
     }
 
@@ -885,6 +1190,42 @@ namespace luastg
             spdlog::info("[luastg] LoadFX: 已从 '{}' 加载后处理特效 '{}' ({})", path, name, getResourcePoolTypeName());
         }
     
+        return true;
+    }
+
+    bool ResourcePool::LoadFXFromSource(const char* name, std::string_view source, const char* path) noexcept
+    {
+        if (m_FXPool.find(std::string_view(name)) != m_FXPool.end())
+        {
+            if (ResourceMgr::GetResourceLoadingLog())
+            {
+                spdlog::warn("[luastg] LoadFX: 后处理特效 '{}' 已存在，加载操作已取消", name);
+            }
+            return true;
+        }
+
+        try
+        {
+            core::SmartReference<IResourcePostEffectShader> tRes;
+            tRes.attach(new ResourcePostEffectShaderImpl(name, source, true));
+            if (!tRes->GetPostEffectShader())
+            {
+                spdlog::error("[luastg] LoadFX: 从 '{}' 加载后处理特效 '{}' 失败", path, name);
+                return false;
+            }
+            m_FXPool.emplace(name, tRes);
+        }
+        catch (std::exception const& e)
+        {
+            spdlog::error("[luastg] LoadFX: 无法加载后处理特效 '{}' ({})", name, e.what());
+            return false;
+        }
+
+        if (ResourceMgr::GetResourceLoadingLog())
+        {
+            spdlog::info("[luastg] LoadFX: 已从 '{}' 加载后处理特效 '{}' ({})", path, name, getResourcePoolTypeName());
+        }
+
         return true;
     }
 

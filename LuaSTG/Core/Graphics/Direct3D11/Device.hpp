@@ -143,9 +143,9 @@ namespace core::Graphics::Direct3D11 {
 		bool createIndexBuffer(uint32_t size_in_bytes, IBuffer** output) override;
 		bool createConstantBuffer(uint32_t size_in_bytes, IBuffer** output) override;
 
-		bool createTextureFromFile(StringView path, bool mipmap, ITexture2D** pp_texture);
-		//bool createTextureFromMemory(void const* data, size_t size, bool mipmap, ITexture2D** pp_texture);
-		bool createTexture(Vector2U size, ITexture2D** pp_texture);
+		bool createTextureFromFile(StringView path, bool mipmap, ITexture2D** pp_texture) override;
+		bool createTextureFromData(IData* data, bool mipmap, ITexture2D** pp_texture) override;
+		bool createTexture(Vector2U size, ITexture2D** pp_texture) override;
 
 		bool createRenderTarget(Vector2U size, IRenderTarget** pp_rt);
 		bool createDepthStencilBuffer(Vector2U size, IDepthStencilBuffer** pp_ds);

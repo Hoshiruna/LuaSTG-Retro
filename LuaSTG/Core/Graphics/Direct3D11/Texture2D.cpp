@@ -87,6 +87,19 @@ namespace core::Graphics::Direct3D11 {
 		m_device->addEventListener(this);
 		return true;
 	}
+	bool Texture2D::initialize(Device* const device, IData* const data, bool const mipmap) {
+		assert(device);
+		assert(data);
+		m_device = device;
+		m_source_data = data;
+		m_mipmap = mipmap;
+		if (!createResource()) {
+			return false;
+		}
+		m_initialized = true;
+		m_device->addEventListener(this);
+		return true;
+	}
 	bool Texture2D::initialize(Device* const device, Vector2U const size, bool const is_render_target) {
 		assert(device);
 		assert(size.x > 0 && size.y > 0);
@@ -157,11 +170,16 @@ namespace core::Graphics::Direct3D11 {
 			}
 			M_D3D_SET_DEBUG_NAME(m_view.Get(), "Texture2D_D3D11::d3d11_srv");
 		}
-		else if (!m_source_path.empty()) {
+		else if (m_source_data || !m_source_path.empty()) {
 			SmartReference<IData> src;
-			if (!FileSystemManager::readFile(m_source_path, src.put())) {
-				spdlog::error("[core] 无法加载文件 '{}'", m_source_path);
-				return false;
+			if (m_source_data) {
+				src = m_source_data;
+			}
+			else {
+				if (!FileSystemManager::readFile(m_source_path, src.put())) {
+					spdlog::error("[core] 无法加载文件 '{}'", m_source_path);
+					return false;
+				}
 			}
 
 			// 加载图片
@@ -276,7 +294,19 @@ namespace core::Graphics::Direct3D11 {
 		*pp_texture = buffer.detach();
 		return true;
 	}
-	//bool createTextureFromMemory(void const* data, size_t size, bool mipmap, ITexture2D** pp_texture);
+	bool Device::createTextureFromData(IData* const data, bool const mipmap, ITexture2D** const pp_texture) {
+		*pp_texture = nullptr;
+		if (!data) {
+			return false;
+		}
+		SmartReference<Texture2D> buffer;
+		buffer.attach(new Texture2D);
+		if (!buffer->initialize(this, data, mipmap)) {
+			return false;
+		}
+		*pp_texture = buffer.detach();
+		return true;
+	}
 	bool Device::createTexture(Vector2U const size, ITexture2D** const pp_texture) {
 		*pp_texture = nullptr;
 		SmartReference<Texture2D> buffer;

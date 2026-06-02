@@ -30,9 +30,11 @@ namespace luastg {
 		bool HasDepthStencilBuffer() override { return false; }
 
 		ResourceVideoImpl(char const* name, char const* path, bool loop);
+		ResourceVideoImpl(char const* name, core::IVideoDecoder* decoder, bool loop);
 		~ResourceVideoImpl() override;
 
 	private:
+		void initialize();
 		bool uploadFrame(core::VideoFrame const& frame);
 		bool uploadFrameAtCurrentTime();
 		void requestWorkerSeek(double seconds, bool decode_one_frame);
