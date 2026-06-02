@@ -123,7 +123,6 @@ set(LUASTG_ENGINE_SOURCES
     LuaSTG/LuaBinding/external/lua_dwrite.cpp
     LuaSTG/LuaBinding/external/lua_random.hpp
     LuaSTG/LuaBinding/external/lua_random.cpp
-    LuaSTG/LuaBinding/external/lua_sqlite.hpp
     LuaSTG/LuaBinding/external/lua_xinput.hpp
     LuaSTG/LuaBinding/external/lua_xinput.cpp
     LuaSTG/LuaBinding/external/HttpClient.hpp
@@ -226,7 +225,7 @@ target_link_libraries(LuaSTG PRIVATE
     implot
     lua_cjson
     lua_filesystem
-    lua_sqlite
+    lua_luasql_sqlite3
     #lua_xlsx_csv
     lua_imgui
     imgui_impl_win32ex

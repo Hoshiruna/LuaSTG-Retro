@@ -7,6 +7,7 @@ extern "C" {
 #include "lua_cjson.h"
 #include "lfs.h"
 	extern int luaopen_string_pack(lua_State* L);
+	extern int luaopen_luasql_sqlite3(lua_State* L);
 }
 #ifdef LUASTG_LINK_LUASOCKET
 extern "C" {
@@ -19,7 +20,6 @@ extern "C" {
 #include "LuaBinding/external/lua_xinput.hpp"
 #include "LuaBinding/external/lua_random.hpp"
 #include "LuaBinding/external/lua_dwrite.hpp"
-#include "LuaBinding/external/lua_sqlite.hpp"
 
 #include "core/Logger.hpp"
 #include "core/CommandLineArguments.hpp"
@@ -321,6 +321,11 @@ namespace luastg
 			spdlog::info("[luajit] Registering standard libraries and built-in packages");
 			luaL_openlibs(L);  // Built-in libraries (lua build in lib)
 			lua_register_custom_loader(L); // Enhanced package library (require)
+			lua_getglobal(L, "package");
+			lua_getfield(L, -1, "preload");
+			lua_pushcfunction(L, luaopen_luasql_sqlite3);
+			lua_setfield(L, -2, "luasql.sqlite3");
+			lua_pop(L, 2);
 			luaopen_cjson(L);
 			luaopen_lfs(L);
 			//lua_xlsx_open(L);
@@ -329,7 +334,6 @@ namespace luastg
 			luaopen_xinput(L);
 			luaopen_dwrite(L);
 			luaopen_random(L);
-			luaopen_sqlite(L);
 			luaopen_string_pack(L);
 		#ifdef LUASTG_LINK_LUASOCKET
 			{
