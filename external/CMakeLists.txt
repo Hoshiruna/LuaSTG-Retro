@@ -62,50 +62,9 @@ target_link_libraries(lua_cjson PUBLIC
 
 set_target_properties(lua_cjson PROPERTIES FOLDER lualib)
 
-# ==================== lua sqlite ====================
+# ==================== LuaSQL ====================
 
-add_library(lua_sqlite3 STATIC)
-luastg_target_common_options(lua_sqlite3)
-target_compile_definitions(lua_sqlite3
-PRIVATE
-    SQLITE_OMIT_LOAD_EXTENSION
-    SQLITE_THREADSAFE=1
-)
-target_include_directories(lua_sqlite3 PUBLIC
-    lua-sqlite3
-)
-target_sources(lua_sqlite3 PRIVATE
-    lua-sqlite3/sqlite3.c
-    lua-sqlite3/sqlite3.h
-    lua-sqlite3/sqlite3ext.h
-)
-if(MSVC)
-    target_compile_options(lua_sqlite3 PRIVATE
-        /wd4018 # signed/unsigned mismatch
-        /wd4055 # data pointer to function pointer
-        /wd4100 # unreferenced formal parameter
-        /wd4127 # conditional expression is constant
-        /wd4132 # const object should be initialized
-        /wd4146 # unary minus applied to unsigned type
-        /wd4244 # conversion, possible loss of data
-        /wd4701 # potentially uninitialized local variable
-        /wd4702 # unreachable code
-        /wd4706 # assignment within conditional expression
-    )
-endif()
-set_target_properties(lua_sqlite3 PROPERTIES FOLDER external)
-
-add_library(lua_sqlite STATIC)
-luastg_target_common_options(lua_sqlite)
-target_sources(lua_sqlite PRIVATE
-    ../LuaSTG/LuaSTG/LuaBinding/external/lua_sqlite.hpp
-    ../LuaSTG/LuaSTG/LuaBinding/external/lua_sqlite.cpp
-)
-target_link_libraries(lua_sqlite PUBLIC
-    lua51_static
-    lua_sqlite3
-)
-set_target_properties(lua_sqlite PROPERTIES FOLDER lualib)
+add_subdirectory(luasql)
 
 # ==================== lua csv ====================
 
