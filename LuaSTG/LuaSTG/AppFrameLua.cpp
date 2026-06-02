@@ -5,10 +5,17 @@
 #include "LuaBinding/LuaWrapper.hpp"
 extern "C" {
 #include "lua_cjson.h"
+<<<<<<< HEAD
 #include "lfs.h"
 	extern int luaopen_string_pack(lua_State* L);
 	extern int luaopen_luasql_sqlite3(lua_State* L);
 }
+=======
+#include "lfs.h"
+	extern int luaopen_string_pack(lua_State* L);
+	extern int luaopen_luasql_sqlite3(lua_State* L);
+}
+>>>>>>> c0a1187dfc23bb78fed3d6d861ad65714896ff4f
 #ifdef LUASTG_LINK_LUASOCKET
 extern "C" {
 	extern int luaopen_mime_core(lua_State* L);
@@ -17,9 +24,15 @@ extern "C" {
 #endif
 //#include "lua_xlsx_csv.h"
 #include "lua_steam.h"
+<<<<<<< HEAD
 #include "LuaBinding/external/lua_xinput.hpp"
 #include "LuaBinding/external/lua_random.hpp"
 #include "LuaBinding/external/lua_dwrite.hpp"
+=======
+#include "LuaBinding/external/lua_xinput.hpp"
+#include "LuaBinding/external/lua_random.hpp"
+#include "LuaBinding/external/lua_dwrite.hpp"
+>>>>>>> c0a1187dfc23bb78fed3d6d861ad65714896ff4f
 
 #include "core/Logger.hpp"
 #include "core/CommandLineArguments.hpp"
@@ -35,6 +48,22 @@ extern "C" {
 using std::string_view_literals::operator ""sv;
 
 namespace {
+	void preloadLuaModule(lua_State* const vm, char const* const name, lua_CFunction const open)
+	{
+		lua_getglobal(vm, "package");
+		if (lua_istable(vm, -1))
+		{
+			lua_getfield(vm, -1, "preload");
+			if (lua_istable(vm, -1))
+			{
+				lua_pushcfunction(vm, open);
+				lua_setfield(vm, -2, name);
+			}
+			lua_pop(vm, 1);
+		}
+		lua_pop(vm, 1);
+	}
+
 	void registerCommandLineArguments(lua_State* const vm) {
 		[[maybe_unused]] lua::stack_balancer_t const sb(vm);
 		lua::stack_t const ctx(vm);
@@ -318,6 +347,7 @@ namespace luastg
 		}
 		lua_gc(L, LUA_GCSTOP, 0);  // Disabling GC during initialization
 		{
+<<<<<<< HEAD
 			spdlog::info("[luajit] Registering standard libraries and built-in packages");
 			luaL_openlibs(L);  // Built-in libraries (lua build in lib)
 			lua_register_custom_loader(L); // Enhanced package library (require)
@@ -327,14 +357,28 @@ namespace luastg
 			lua_setfield(L, -2, "luasql.sqlite3");
 			lua_pop(L, 2);
 			luaopen_cjson(L);
+=======
+			spdlog::info("[luajit] Registering standard libraries and built-in packages");
+			luaL_openlibs(L);  // Built-in libraries (lua build in lib)
+			preloadLuaModule(L, "luasql.sqlite3", luaopen_luasql_sqlite3);
+			lua_register_custom_loader(L); // Enhanced package library (require)
+			luaopen_cjson(L);
+>>>>>>> c0a1187dfc23bb78fed3d6d861ad65714896ff4f
 			luaopen_lfs(L);
 			//lua_xlsx_open(L);
 			//lua_csv_open(L);
 			lua_steam_open(L);
+<<<<<<< HEAD
 			luaopen_xinput(L);
 			luaopen_dwrite(L);
 			luaopen_random(L);
 			luaopen_string_pack(L);
+=======
+			luaopen_xinput(L);
+			luaopen_dwrite(L);
+			luaopen_random(L);
+			luaopen_string_pack(L);
+>>>>>>> c0a1187dfc23bb78fed3d6d861ad65714896ff4f
 		#ifdef LUASTG_LINK_LUASOCKET
 			{
 				lua_getfield(L, LUA_REGISTRYINDEX, "_LOADED"); // ... _LOADED

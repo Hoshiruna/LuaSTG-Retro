@@ -60,10 +60,17 @@ target_link_libraries(lua_cjson PUBLIC
     lua51_static
 )
 
+<<<<<<< HEAD
 set_target_properties(lua_cjson PROPERTIES FOLDER lualib)
 
 # ==================== LuaSQL ====================
 
+=======
+set_target_properties(lua_cjson PROPERTIES FOLDER lualib)
+
+# ==================== LuaSQL ====================
+
+>>>>>>> c0a1187dfc23bb78fed3d6d861ad65714896ff4f
 add_subdirectory(luasql)
 
 # ==================== lua csv ====================

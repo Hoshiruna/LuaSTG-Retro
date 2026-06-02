@@ -10,12 +10,15 @@ CPMAddPackage(
 
 set(LUASTG_SQLITE3_SOURCE_DIR "${CMAKE_CURRENT_LIST_DIR}/../luasql-sqlite3")
 
+<<<<<<< HEAD
 set_source_files_properties(
     ${luasql_SOURCE_DIR}/src/luasql.c
     PROPERTIES
         COMPILE_DEFINITIONS luaL_setfuncs=luasql_luaL_setfuncs
 )
 
+=======
+>>>>>>> c0a1187dfc23bb78fed3d6d861ad65714896ff4f
 add_library(lua_luasql_sqlite3 STATIC)
 luastg_target_common_options(lua_luasql_sqlite3)
 target_compile_definitions(lua_luasql_sqlite3 PRIVATE
