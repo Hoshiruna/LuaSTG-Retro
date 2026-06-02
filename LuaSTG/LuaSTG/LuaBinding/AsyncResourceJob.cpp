@@ -41,7 +41,7 @@ namespace luastg::binding {
 				S.push_value("cancelled"sv);
 				return 1;
 			}
-			S.push_value((*self->job)->getStateName());
+			S.push_value(std::string_view((*self->job)->getStateName()));
 			return 1;
 		}
 
