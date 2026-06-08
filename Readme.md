@@ -8,7 +8,9 @@
 
 ## Introduction
 
-Luastg-Retro was developed as a fork of [LuaSTG Sub](https://github.com/Legacy-LuaSTG-Engine/LuaSTG-Sub) to cater to the interests of certain retro fans (it updates based on the main branch of LuaSTG Sub).
+LuaSTG Retro is based on [LuaSTG Sub](https://github.com/Legacy-LuaSTG-Engine/LuaSTG-Sub) and is designed to meet the needs and preferences of retro fans.
+
+This branch is not a successor or continuation of LuaSTG Sub; aside from some performance updates, it does not introduce many modern features.
 
 ## Download
 
@@ -21,7 +23,7 @@ You can download from [Releases Page](). Usually displayed on the right or botto
 
 ## Features
 
-* Add the PMD music decoding solution within the license
+* Add the PMD music decoding solution within the license (TODO)
 * Modify the game packaging method (Incomplete)
 * Modify image scaling mode (Incomplete)
 
@@ -62,7 +64,9 @@ However, some new features in this branch still rely on AI for development. If y
 
 ## 介绍  
 
-LuaSTG Retro 是作为 [LuaSTG Sub](https://github.com/Legacy-LuaSTG-Engine/LuaSTG-Sub) 的分支而进行开发的，旨在满足一些怀旧玩家的需求和喜好（它基于主分支LuaSTG Sub来更新）。
+LuaSTG Retro 基于 [LuaSTG Sub](https://github.com/Legacy-LuaSTG-Engine/LuaSTG-Sub) 开发，旨在满足一些怀旧爱好者的需求和喜好。
+
+该分支并非是 LuaSTG Sub 的继承或延续，除了一些性能更新外，并不会引入太多现代化的功能。
 
 其他分支收录在 [Legacy LuaSTG Engine 组织首页](https://github.com/Legacy-LuaSTG-Engine)。  
 
@@ -71,9 +75,9 @@ LuaSTG Retro 是作为 [LuaSTG Sub](https://github.com/Legacy-LuaSTG-Engine/LuaS
 你可以从 [Releases 页面]() 下载，一般显示在右侧或者底部（手机版页面）。  
 
 ## 功能
-* 添加在版权许可内的的 PMD 音乐解码方案
-* 修改引擎打包方式 (未完成)
-* 修改引擎图像缩放模式 (未完成)
+* 添加在版权许可内的的 PMD 音乐解码方案 (计划中)
+* 修改引擎打包方式 (未完善)
+* 修改引擎图像缩放模式 (未完善)
 
 ## 主要迁移内容  
 

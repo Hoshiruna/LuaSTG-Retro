@@ -1,0 +1,16 @@
+# Third-party code and submodules
+external/**
+imgui/imgui/**
+imgui/implot/**
+doc/**
+
+# Generated source
+LuaSTG/Shader/generated/**
+LuaSTG/LuaSTG/LuaBinding/generated/**
+engine/embedded-file-system/generated/**
+
+# Local build output
+build/**
+out/**
+cmake-build-*/**
+.vs/**

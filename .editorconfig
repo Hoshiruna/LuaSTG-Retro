@@ -1,4 +1,23 @@
 root = true
 
-[*.{h,c,hpp,cpp}]
+[*]
 charset = utf-8
+end_of_line = crlf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.{h,hpp,c,cpp,cc,cxx,inl,ixx}]
+indent_style = space
+indent_size = 4
+tab_width = 4
+
+[CMakeLists.txt]
+indent_style = space
+indent_size = 4
+
+[*.cmake]
+indent_style = space
+indent_size = 4
+
+[*.md]
+trim_trailing_whitespace = false
