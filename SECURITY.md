@@ -12,6 +12,6 @@ We only make security updates to the latest 2 major versions.
 
 ## Reporting a Vulnerability
 
-* GitHub Security: https://github.com/Legacy-LuaSTG-Engine/LuaSTG-Retro/security/advisories
+* GitHub Security: https://github.com/Hoshiruna/LuaSTG-Retro/security/advisories
 * E-mail: hoshiruna05@gmail.com
 

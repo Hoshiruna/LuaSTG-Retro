@@ -12,9 +12,11 @@ LuaSTG Retro is based on [LuaSTG Sub](https://github.com/Legacy-LuaSTG-Engine/Lu
 
 This branch is not a successor or continuation of LuaSTG Sub; aside from some performance updates, it does not introduce many modern features.
 
+Other forks are available on the [Legacy LuaSTG Engine Organization](https://github.com/Legacy-LuaSTG-Engine).
+
 ## Download
 
-You can download from [Releases Page](). Usually displayed on the right or bottom (mobile GitHub page).  
+You can download from [Releases Page](https://github.com/Hoshiruna/LuaSTG-Retro/releases). Usually displayed on the right or bottom (mobile GitHub page).  
 
 ## Major Migration Content
 
@@ -72,7 +74,7 @@ LuaSTG Retro 基于 [LuaSTG Sub](https://github.com/Legacy-LuaSTG-Engine/LuaSTG-
 
 ## 下载  
 
-你可以从 [Releases 页面]() 下载，一般显示在右侧或者底部（手机版页面）。  
+你可以从 [Releases 页面](https://github.com/Hoshiruna/LuaSTG-Retro/releases) 下载，一般显示在右侧或者底部（手机版页面）。  
 
 ## 功能
 * 添加在版权许可内的的 PMD 音乐解码方案 (计划中)
