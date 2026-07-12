@@ -316,7 +316,7 @@ namespace luastg::binding {
 				// 碰撞体
 
 			case LuaSTG::GameObjectMember::GROUP:
-				lua_pushinteger(vm, self->group); // interesting
+				ctx.push_value(self->group);
 				return 1;
 			case LuaSTG::GameObjectMember::BOUND:
 				ctx.push_value<bool>(self->bound);
@@ -397,7 +397,7 @@ namespace luastg::binding {
 				}
 				break;
 			case LuaSTG::GameObjectMember::ANI:
-				lua_pushinteger(vm, self->ani_timer); // interesting
+				ctx.push_value(self->ani_timer);
 				return 1;
 			case LuaSTG::GameObjectMember::HIDE:
 				ctx.push_value<bool>(self->hide);
@@ -423,7 +423,7 @@ namespace luastg::binding {
 				// 更新控制
 
 			case LuaSTG::GameObjectMember::TIMER:
-				lua_pushinteger(vm, self->timer); // interesting
+				ctx.push_value(self->timer);
 				return 1;
 			#ifdef	LUASTG_ENABLE_GAME_OBJECT_PROPERTY_PAUSE
 			case LuaSTG::GameObjectMember::PAUSE:

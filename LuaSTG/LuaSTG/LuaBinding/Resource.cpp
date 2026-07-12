@@ -403,7 +403,7 @@ namespace luastg::binding
 			lua::stack_t S(L);
 			auto* self = cast(L, 1);
 			auto const sprite_name = S.get_value<std::string_view>(2);
-			core::SmartReference<luastg::IResourceTexture> texture = ResourceTexture::cast(L, 3)->data;
+			core::SmartReference<luastg::IResourceTexture> texture(ResourceTexture::cast(L, 3)->data);
 			auto const x = S.get_value<float>(4, 0.0f);
 			auto const y = S.get_value<float>(5, 0.0f);
 			auto const texture_size = texture->GetTexture()->getSize();

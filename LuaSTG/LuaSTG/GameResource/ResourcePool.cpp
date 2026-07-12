@@ -486,7 +486,7 @@ namespace luastg
             return false;
         }
         auto const texname = texture->GetResName();
-        core::SmartReference<IResourceTexture> pTex = texture;
+        core::SmartReference<IResourceTexture> pTex(texture);
     
         try {
             core::SmartReference<IResourceAnimation> tRes;
@@ -1350,5 +1350,4 @@ namespace luastg
         }
     }
 }
-
 
