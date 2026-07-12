@@ -1,14 +1,12 @@
 local test = require("test")
+local resources = require("resource_pool")
 
 ---@class test.Module.Mesh : test.Base
 local M = {}
 
 function M:onCreate()
-    local old_pool = lstg.GetResourceStatus()
-    lstg.SetResourceStatus("global")
-    lstg.LoadTexture("tex:linear", "res/block.png", false)
+    resources.loadTexture("tex:linear", "res/block.png", false)
     lstg.SetTextureSamplerState("tex:linear", "linear+wrap")
-    lstg.SetResourceStatus(old_pool)
 
     self.timer = -1
     self.mesh = lstg.MeshData(6, 12)
@@ -41,7 +39,7 @@ function M:onCreate()
 end
 
 function M:onDestroy()
-    lstg.RemoveResource("global", 1, "tex:linear")
+    resources.removeResource("test", 1, "tex:linear")
 end
 
 function M:onUpdate()

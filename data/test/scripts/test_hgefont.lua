@@ -1,19 +1,15 @@
 local test = require("test")
+local resources = require("resource_pool")
 
 ---@class test.Module.HGEFont : test.Base
 local M = {}
 
 function M:onCreate()
-    local old_pool = lstg.GetResourceStatus()
-    lstg.SetResourceStatus("global")
-    
-    lstg.LoadFont("hgefont:hgefont", "res/hgefont.fnt", false)
-
-    lstg.SetResourceStatus(old_pool)
+    resources.loadSpriteFont("hgefont:hgefont", "res/hgefont.fnt", false)
 end
 
 function M:onDestroy()
-    lstg.RemoveResource("global", 7, "hgefont:hgefont")
+    resources.removeResource("test", 7, "hgefont:hgefont")
 end
 
 function M:onUpdate()

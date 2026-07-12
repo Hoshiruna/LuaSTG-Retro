@@ -234,7 +234,6 @@ target_link_libraries(LuaSTG PRIVATE
     TracyAPI
     pcg_cpp
     pugixml
-    xxhash
     Core.Collection
     Core.Configuration
     Core.Clipboard

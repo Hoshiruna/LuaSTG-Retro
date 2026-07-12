@@ -56,6 +56,7 @@ namespace luastg::binding
 		Render::Register(L);
 		Renderer::Register(L);
 		GameObjectManager::Register(L);
+		luaopen_LuaSTG_Sub(L);
 		ResourceManager::Register(L);
 		Audio::Register(L);
 		DiscordRPC::Register(L);
@@ -64,7 +65,6 @@ namespace luastg::binding
 		Archive::Register(L); //压缩包
 		lua_settop(L, 0);
 		AsyncResourceJobBinding::registerClass(L);
-		luaopen_LuaSTG_Sub(L);
 
 		// external
 

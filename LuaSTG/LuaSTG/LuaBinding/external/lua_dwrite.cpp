@@ -14,6 +14,7 @@
 #include "AppFrame.h"
 #include "utf8.hpp"
 #include "LuaBinding/LuaWrapper.hpp"
+#include "LuaBinding/Resource.hpp"
 #include "lua/plus.hpp"
 
 #define WIN32_LEAN_AND_MEAN
@@ -2550,7 +2551,6 @@ namespace DirectWrite
 
 		Factory* core = Factory::Get(L);
 		auto* text_layout = TextLayout::Cast(L, 1);
-		auto const pool_type = S.get_value<std::string_view>(2);
 		auto const texture_name = S.get_value<std::string_view>(3);
 		auto const outline_width = S.get_value<float>(4, 0.0f);
 		core::Color4B font_color = core::Color4B(255, 255, 255, 255);
@@ -2562,13 +2562,7 @@ namespace DirectWrite
 
 		// pre check
 
-		luastg::ResourcePool* pool{};
-		if (pool_type == "global")
-			pool = LRES.GetResourcePool(luastg::ResourcePoolType::Global);
-		else if (pool_type == "stage")
-			pool = LRES.GetResourcePool(luastg::ResourcePoolType::Stage);
-		else
-			return luaL_error(L, "invalid resource pool type");
+		auto* pool = luastg::binding::checkResourcePool(L, 2);
 		if (pool->GetTexture(texture_name.data()))
 			return luaL_error(L, "texture '%s' already exists", texture_name.data());
 
@@ -2701,7 +2695,8 @@ namespace DirectWrite
 		}
 		p_texture->setPixelData(p_pixel_data.get());
 
-		return 0;
+		luastg::binding::pushResourceTexture(L, p_texres.get());
+		return 1;
 	}
 	static int api_SaveTextLayoutToFile(lua_State* L)
 	{

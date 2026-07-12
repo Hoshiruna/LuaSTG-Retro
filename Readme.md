@@ -12,7 +12,7 @@ LuaSTG Retro is based on [LuaSTG Sub](https://github.com/Legacy-LuaSTG-Engine/Lu
 
 This branch is not a successor or continuation of LuaSTG Sub; aside from some performance updates, it does not introduce many modern features.
 
-Other forks are available on the [Legacy LuaSTG Engine Organization](https://github.com/Legacy-LuaSTG-Engine).
+Other branches are available on the [Legacy LuaSTG Engine Organization](https://github.com/Legacy-LuaSTG-Engine).
 
 ## Download
 

@@ -7,6 +7,7 @@ local lstg = require("lstg")
 local Keyboard = lstg.Input.Keyboard
 local task = require("task")
 local TaskManager = require("task.Manager")
+local resource_pool
 local global_tasks = TaskManager.create()
 
 --------------------------------------------------------------------------------
@@ -188,16 +189,18 @@ end
 function GameInit()
     lstg.ChangeVideoMode(window.width, window.height, true, false)
     applyCamera()
-    lstg.LoadTexture("white", "assets/texture/white.png", false)
-    lstg.LoadImage("white", "white", 0, 0, 16, 16)
-    lstg.LoadImage("black-rect", "white", 0, 0, 16, 16)
+    resource_pool = lstg.ResourceManager.createPool("example")
+    lstg.ResourceManager.setLookupOrder({ resource_pool })
+    local white = resource_pool:loadTexture("white", "assets/texture/white.png", false)
+    resource_pool:createSprite("white", white, 0, 0, 16, 16)
+    resource_pool:createSprite("black-rect", white, 0, 0, 16, 16)
     lstg.SetImageState("black-rect", "", lstg.Color(255, 0, 0, 0))
-    lstg.LoadImage("player-rect", "white", 0, 0, 16, 16)
+    resource_pool:createSprite("player-rect", white, 0, 0, 16, 16)
     lstg.SetImageState("player-rect", "", lstg.Color(255, 64, 64, 255))
-    lstg.LoadImage("bullet-rect", "white", 0, 0, 16, 16)
+    resource_pool:createSprite("bullet-rect", white, 0, 0, 16, 16)
     lstg.SetImageState("bullet-rect", "", lstg.Color(96, 0, 0, 0))
-    if not lstg.LoadTTF("Sans", "C:/Windows/Fonts/msyh.ttc", 48, 48) then
-        lstg.LoadTTF("Sans", "C:/Windows/Fonts/msyh.ttf", 48, 48) -- Windows 7
+    if not resource_pool:loadTTF("Sans", "C:/Windows/Fonts/msyh.ttc", 48, 48) then
+        resource_pool:loadTTF("Sans", "C:/Windows/Fonts/msyh.ttf", 48, 48) -- Windows 7
     end
     buildGameObjectScene()
 end

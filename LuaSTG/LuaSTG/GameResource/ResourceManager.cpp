@@ -1,15 +1,15 @@
 #include "GameResource/ResourceManager.h"
 #include "GameResource/AsyncResourceLoader.hpp"
 
+#include <algorithm>
 #include <memory>
+#include <unordered_set>
 #include <utility>
 
 namespace luastg
 {
 	ResourceMgr::ResourceMgr()
-		: m_GlobalResourcePool(this, ResourcePoolType::Global)
-		, m_StageResourcePool(this, ResourcePoolType::Stage)
-		, m_AsyncLoader(std::make_unique<AsyncResourceLoader>())
+		: m_AsyncLoader(std::make_unique<AsyncResourceLoader>())
 	{
 	}
 
@@ -21,21 +21,15 @@ namespace luastg
 		if (m_AsyncLoader) {
 			m_AsyncLoader->stop();
 		}
-		m_GlobalResourcePool.Clear();
-		m_StageResourcePool.Clear();
-		m_ActivedPool = ResourcePoolType::Global;
+		m_lookupOrder.clear();
+		m_resourcePoolNames.clear();
+		m_resourcePools.clear();
 		m_GlobalImageScaleFactor = 1.0f;
 	}
 
-	size_t ResourceMgr::GetResourcePoolGeneration(ResourcePoolType const t) const noexcept {
-		switch (t) {
-		case ResourcePoolType::Global:
-			return m_GlobalResourcePool.GetGeneration();
-		case ResourcePoolType::Stage:
-			return m_StageResourcePool.GetGeneration();
-		default:
-			return 0;
-		}
+	size_t ResourceMgr::GetResourcePoolGeneration(ResourcePoolId const id) const noexcept {
+		auto const* pool = GetResourcePool(id);
+		return pool ? pool->GetGeneration() : 0;
 	}
 
 	void ResourceMgr::UpdateAsyncResourceLoading(size_t const max_count) {
@@ -50,9 +44,9 @@ namespace luastg
 		}
 	}
 
-	void ResourceMgr::CancelAsyncResourceLoading(ResourcePoolType const pool_type) noexcept {
+	void ResourceMgr::CancelAsyncResourceLoading(ResourcePoolId const pool_id) noexcept {
 		if (m_AsyncLoader) {
-			m_AsyncLoader->cancel(pool_type);
+			m_AsyncLoader->cancel(pool_id);
 		}
 	}
 
@@ -61,115 +55,165 @@ namespace luastg
 	}
 
 	std::shared_ptr<AsyncResourceJob> ResourceMgr::SubmitAsyncResource(AsyncResourceRequest request) {
-		request.pool_generation = GetResourcePoolGeneration(request.pool_type);
-		if (request.pool_type == ResourcePoolType::None) {
+		request.pool_generation = GetResourcePoolGeneration(request.pool_id);
+		if (!GetResourcePool(request.pool_id)) {
 			return m_AsyncLoader->submitFailedResource(std::move(request), "can't load resource at this time.");
 		}
 		return m_AsyncLoader->submitResource(std::move(request));
 	}
 
-	ResourcePoolType ResourceMgr::GetActivedPoolType() noexcept {
-		return m_ActivedPool;
+	ResourcePoolId ResourceMgr::CreateResourcePool(std::string_view const name) noexcept {
+		if (name.empty() || m_nextPoolId == InvalidResourcePoolId) {
+			return InvalidResourcePoolId;
+		}
+		try {
+			std::string const pool_name(name);
+			if (m_resourcePoolNames.find(pool_name) != m_resourcePoolNames.end()) {
+				return InvalidResourcePoolId;
+			}
+			ResourcePoolId const id = m_nextPoolId++;
+			auto pool = std::make_unique<ResourcePool>(this, id, pool_name);
+			m_resourcePools.emplace(id, std::move(pool));
+			try {
+				m_resourcePoolNames.emplace(pool_name, id);
+			}
+			catch (...) {
+				m_resourcePools.erase(id);
+				throw;
+			}
+			return id;
+		}
+		catch (std::exception const& e) {
+			spdlog::error("[luastg] failed to create resource pool '{}': {}", name, e.what());
+			return InvalidResourcePoolId;
+		}
 	}
 
-	void ResourceMgr::SetActivedPoolType(ResourcePoolType t) noexcept {
-		m_ActivedPool = t;
+	bool ResourceMgr::DestroyResourcePool(ResourcePoolId const id) noexcept {
+		auto const it = m_resourcePools.find(id);
+		if (it == m_resourcePools.end()) {
+			return false;
+		}
+		CancelAsyncResourceLoading(id);
+		m_lookupOrder.erase(std::remove(m_lookupOrder.begin(), m_lookupOrder.end(), id), m_lookupOrder.end());
+		m_resourcePoolNames.erase(it->second->GetNameString());
+		m_resourcePools.erase(it);
+		return true;
 	}
 
-	ResourcePool* ResourceMgr::GetActivedPool() noexcept {
-		return GetResourcePool(m_ActivedPool);
+	ResourcePool* ResourceMgr::GetResourcePool(ResourcePoolId const id) noexcept {
+		auto const it = m_resourcePools.find(id);
+		return it != m_resourcePools.end() ? it->second.get() : nullptr;
 	}
 
-	ResourcePool* ResourceMgr::GetResourcePool(ResourcePoolType t) noexcept {
-		switch (t) {
-			case ResourcePoolType::Global:
-				return &m_GlobalResourcePool;
-			case ResourcePoolType::Stage:
-				return &m_StageResourcePool;
-			default:
-				return nullptr;
+	ResourcePool const* ResourceMgr::GetResourcePool(ResourcePoolId const id) const noexcept {
+		auto const it = m_resourcePools.find(id);
+		return it != m_resourcePools.end() ? it->second.get() : nullptr;
+	}
+
+	ResourcePool* ResourceMgr::GetResourcePool(std::string_view const name) {
+		auto const it = m_resourcePoolNames.find(std::string(name));
+		return it != m_resourcePoolNames.end() ? GetResourcePool(it->second) : nullptr;
+	}
+
+	ResourcePool const* ResourceMgr::GetResourcePool(std::string_view const name) const {
+		auto const it = m_resourcePoolNames.find(std::string(name));
+		return it != m_resourcePoolNames.end() ? GetResourcePool(it->second) : nullptr;
+	}
+
+	std::vector<ResourcePool*> ResourceMgr::GetResourcePools() {
+		std::vector<ResourcePool*> result;
+		result.reserve(m_resourcePools.size());
+		for (auto& item : m_resourcePools) {
+			result.push_back(item.second.get());
+		}
+		std::sort(result.begin(), result.end(), [](ResourcePool const* left, ResourcePool const* right) {
+			return left->GetId() < right->GetId();
+		});
+		return result;
+	}
+
+	bool ResourceMgr::SetLookupOrder(std::vector<ResourcePoolId> const& order) noexcept {
+		try {
+			std::unordered_set<ResourcePoolId> seen;
+			for (ResourcePoolId const id : order) {
+				if (!GetResourcePool(id) || !seen.emplace(id).second) {
+					return false;
+				}
+			}
+			auto replacement = order;
+			m_lookupOrder.swap(replacement);
+			return true;
+		}
+		catch (...) {
+			return false;
 		}
 	}
 
 	// 自动查找资源池资源
 
-	core::SmartReference<IResourceTexture> ResourceMgr::FindTexture(const char* name) noexcept {
+	template<typename T>
+	core::SmartReference<T> findResource(
+		std::unordered_map<ResourcePoolId, std::unique_ptr<ResourcePool>>& pools,
+		std::vector<ResourcePoolId> const& order,
+		std::string_view const name,
+		core::SmartReference<T> (ResourcePool::*getter)(std::string_view)) noexcept
+	{
+		for (ResourcePoolId const id : order) {
+			auto const pool = pools.find(id);
+			if (pool == pools.end()) {
+				continue;
+			}
+			if (auto resource = (pool->second.get()->*getter)(name)) {
+				return resource;
+			}
+		}
+		return {};
+	}
 
-		core::SmartReference<IResourceTexture> tRet;
-		if (!(tRet = m_StageResourcePool.GetTexture(name)))
-			tRet = m_GlobalResourcePool.GetTexture(name);
-		return tRet;
+	core::SmartReference<IResourceTexture> ResourceMgr::FindTexture(const char* name) noexcept {
+		return findResource(m_resourcePools, m_lookupOrder, name, &ResourcePool::GetTexture);
 	}
 
 	core::SmartReference<IResourceVideo> ResourceMgr::FindVideo(const char* name) noexcept {
-		core::SmartReference<IResourceVideo> tRet;
-		if (!(tRet = m_StageResourcePool.GetVideo(name)))
-			tRet = m_GlobalResourcePool.GetVideo(name);
-		return tRet;
+		return findResource(m_resourcePools, m_lookupOrder, name, &ResourcePool::GetVideo);
 	}
 
 	core::SmartReference<IResourceSprite> ResourceMgr::FindSprite(const char* name) noexcept {
-		core::SmartReference<IResourceSprite> tRet;
-		if (!(tRet = m_StageResourcePool.GetSprite(name)))
-			tRet = m_GlobalResourcePool.GetSprite(name);
-		return tRet;
+		return findResource(m_resourcePools, m_lookupOrder, name, &ResourcePool::GetSprite);
 	}
 
 	core::SmartReference<IResourceAnimation> ResourceMgr::FindAnimation(const char* name) noexcept {
-		core::SmartReference<IResourceAnimation> tRet;
-		if (!(tRet = m_StageResourcePool.GetAnimation(name)))
-			tRet = m_GlobalResourcePool.GetAnimation(name);
-		return tRet;
+		return findResource(m_resourcePools, m_lookupOrder, name, &ResourcePool::GetAnimation);
 	}
 
 	core::SmartReference<IResourceMusic> ResourceMgr::FindMusic(const char* name) noexcept {
-		core::SmartReference<IResourceMusic> tRet;
-		if (!(tRet = m_StageResourcePool.GetMusic(name)))
-			tRet = m_GlobalResourcePool.GetMusic(name);
-		return tRet;
+		return findResource(m_resourcePools, m_lookupOrder, name, &ResourcePool::GetMusic);
 	}
 
 	core::SmartReference<IResourceSoundEffect> ResourceMgr::FindSound(const char* name) noexcept {
-		core::SmartReference<IResourceSoundEffect> tRet;
-		if (!(tRet = m_StageResourcePool.GetSound(name)))
-			tRet = m_GlobalResourcePool.GetSound(name);
-		return tRet;
+		return findResource(m_resourcePools, m_lookupOrder, name, &ResourcePool::GetSound);
 	}
 
 	core::SmartReference<IResourceParticle> ResourceMgr::FindParticle(const char* name) noexcept {
-		core::SmartReference<IResourceParticle> tRet;
-		if (!(tRet = m_StageResourcePool.GetParticle(name)))
-			tRet = m_GlobalResourcePool.GetParticle(name);
-		return tRet;
+		return findResource(m_resourcePools, m_lookupOrder, name, &ResourcePool::GetParticle);
 	}
 
 	core::SmartReference<IResourceFont> ResourceMgr::FindSpriteFont(const char* name) noexcept {
-		core::SmartReference<IResourceFont> tRet;
-		if (!(tRet = m_StageResourcePool.GetSpriteFont(name)))
-			tRet = m_GlobalResourcePool.GetSpriteFont(name);
-		return tRet;
+		return findResource(m_resourcePools, m_lookupOrder, name, &ResourcePool::GetSpriteFont);
 	}
 
 	core::SmartReference<IResourceFont> ResourceMgr::FindTTFFont(const char* name) noexcept {
-		core::SmartReference<IResourceFont> tRet;
-		if (!(tRet = m_StageResourcePool.GetTTFFont(name)))
-			tRet = m_GlobalResourcePool.GetTTFFont(name);
-		return tRet;
+		return findResource(m_resourcePools, m_lookupOrder, name, &ResourcePool::GetTTFFont);
 	}
 
 	core::SmartReference<IResourcePostEffectShader> ResourceMgr::FindFX(const char* name) noexcept {
-		core::SmartReference<IResourcePostEffectShader> tRet;
-		if (!(tRet = m_StageResourcePool.GetFX(name)))
-			tRet = m_GlobalResourcePool.GetFX(name);
-		return tRet;
+		return findResource(m_resourcePools, m_lookupOrder, name, &ResourcePool::GetFX);
 	}
 
 	core::SmartReference<IResourceModel> ResourceMgr::FindModel(const char* name) noexcept
 	{
-		core::SmartReference<IResourceModel> tRet;
-		if (!(tRet = m_StageResourcePool.GetModel(name)))
-			tRet = m_GlobalResourcePool.GetModel(name);
-		return tRet;
+		return findResource(m_resourcePools, m_lookupOrder, name, &ResourcePool::GetModel);
 	}
 
 	// 其他资源操作
@@ -192,20 +236,18 @@ namespace luastg
 
 	void ResourceMgr::UpdateSound()
 	{
-		for (auto& snd : m_GlobalResourcePool.m_SoundSpritePool)
-		{
-			snd.second->FlushCommand();
-		}
-		for (auto& snd : m_StageResourcePool.m_SoundSpritePool)
-		{
-			snd.second->FlushCommand();
+		for (auto& pool : m_resourcePools) {
+			for (auto& sound : pool.second->m_SoundSpritePool) {
+				sound.second->FlushCommand();
+			}
 		}
 	}
 
 	void ResourceMgr::UpdateVideo(double const delta_seconds)
 	{
-		m_GlobalResourcePool.UpdateVideo(delta_seconds);
-		m_StageResourcePool.UpdateVideo(delta_seconds);
+		for (auto& pool : m_resourcePools) {
+			pool.second->UpdateVideo(delta_seconds);
+		}
 	}
 
 	// 其他

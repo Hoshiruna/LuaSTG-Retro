@@ -33,19 +33,15 @@ local function get_touhou_world_cursor()
 end
 
 local test = require("test")
+local resources = require("resource_pool")
 
 ---@class test.Module.Particle : test.Base
 local M = {}
 
 function M:onCreate()
-    local old_pool = lstg.GetResourceStatus()
-    lstg.SetResourceStatus("global")
-
-    lstg.LoadTexture("tex:particles", "res/particles.png")
-    lstg.LoadImage("img:particle1", "tex:particles", 0, 0, 32, 32)
-    lstg.LoadPS("ps:1", "res/ghost_fire_1.psi", "img:particle1")
-
-    lstg.SetResourceStatus(old_pool)
+    resources.loadTexture("tex:particles", "res/particles.png")
+    resources.createSprite("img:particle1", "tex:particles", 0, 0, 32, 32)
+    resources.loadParticle("ps:1", "res/ghost_fire_1.psi", "img:particle1")
 
     self.ps = lstg.ParticleSystemData("ps:1")
     self.ps:SetOldBehavior(false)
@@ -53,9 +49,9 @@ function M:onCreate()
 end
 
 function M:onDestroy()
-    lstg.RemoveResource("global", 6, "ps:1")
-    lstg.RemoveResource("global", 2, "img:particle1")
-    lstg.RemoveResource("global", 1, "tex:particles")
+    resources.removeResource("test", 6, "ps:1")
+    resources.removeResource("test", 2, "img:particle1")
+    resources.removeResource("test", 1, "tex:particles")
 end
 
 function M:onUpdate()

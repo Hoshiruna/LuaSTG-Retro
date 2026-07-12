@@ -1,4 +1,5 @@
 local test = require("test")
+local resources = require("resource_pool")
 
 ---@class test.Module.Video : test.Base
 local M = {}
@@ -14,16 +15,13 @@ function M:onCreate()
         return
     end
 
-    local old_pool = lstg.GetResourceStatus()
-    lstg.SetResourceStatus("global")
-
-    lstg.LoadVideo(video_name, video_path, false)
+    resources.loadVideo(video_name, video_path, false)
     local w, h = lstg.GetTextureSize(video_name)
     assert(w > 0 and h > 0)
     assert(lstg.GetVideoDuration(video_name) >= 0)
     assert(lstg.GetVideoState(video_name) == "stopped")
 
-    lstg.LoadImage(image_name, video_name, 0, 0, w, h)
+    resources.createSprite(image_name, video_name, 0, 0, w, h)
     lstg.PlayVideo(video_name)
     assert(lstg.GetVideoState(video_name) == "playing")
     lstg.PauseVideo(video_name)
@@ -33,15 +31,14 @@ function M:onCreate()
     lstg.SeekVideo(video_name, 0)
     assert(lstg.GetVideoTime(video_name) == 0)
 
-    lstg.SetResourceStatus(old_pool)
 end
 
 function M:onDestroy()
     if self.skipped then
         return
     end
-    lstg.RemoveResource("global", 2, image_name)
-    lstg.RemoveResource("global", 1, video_name)
+    resources.removeResource("test", 2, image_name)
+    resources.removeResource("test", 1, video_name)
 end
 
 function M:onUpdate()

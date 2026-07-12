@@ -1,4 +1,5 @@
 local test = require("test")
+local resources = require("resource_pool")
 
 ---@class test.Module.ObjectiveResource : test.Base
 local M = {}
@@ -6,9 +7,9 @@ local M = {}
 function M:onCreate()
     self.timer = 0
 
-    local resource_collection = lstg.ResourceManager.getResourceCollection("global")
+    local resource_collection = resources.pool
 
-    self.texture = resource_collection:createTextureFromFile("test:tex:1", "res/block.png")
+    self.texture = resource_collection:loadTexture("test:tex:1", "res/block.png")
     local texture_w, texture_h = self.texture:getWidth(), self.texture:getHeight()
     lstg.Print(string.format("texture size: %dx%d", texture_w, texture_h))
 
@@ -32,24 +33,24 @@ function M:onCreate()
         self.img4,
     }
 
-    self.ani1 = resource_collection:createSpriteSequence("test:ani:1", sequence, 8)
+    self.ani1 = resource_collection:createAnimation("test:ani:1", sequence, 8)
 
     lstg.Print(tostring(resource_collection:getTexture("test:tex:1")))
     lstg.Print(tostring(resource_collection:getSprite("test:img:1")))
-    lstg.Print(tostring(resource_collection:getSpriteSequence("test:ani:1")))
+    lstg.Print(tostring(resource_collection:getAnimation("test:ani:1")))
 end
 
 function M:onDestroy()
-    local resource_collection = lstg.ResourceManager.getResourceCollection("global")
+    local resource_collection = resources.pool
 
-    resource_collection:removeTexture(self.texture)
+    resource_collection:remove(self.texture)
 
-    resource_collection:removeSprite(self.img1)
-    resource_collection:removeSprite(self.img2)
-    resource_collection:removeSprite(self.img3)
-    resource_collection:removeSprite(self.img4)
+    resource_collection:remove(self.img1)
+    resource_collection:remove(self.img2)
+    resource_collection:remove(self.img3)
+    resource_collection:remove(self.img4)
 
-    resource_collection:removeSpriteSequence(self.ani1)
+    resource_collection:remove(self.ani1)
 end
 
 function M:onUpdate()
