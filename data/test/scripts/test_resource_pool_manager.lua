@@ -22,6 +22,10 @@ function M:onCreate()
 
     local a_texture = a:createRenderTarget("shared", 8, 8, false)
     local b_texture = b:createRenderTarget("shared", 16, 16, false)
+    local named_texture = lstg.CreateRenderTarget("resource-pool-test-a", "named", 4, 4, false)
+    assert(named_texture:getWidth() == 4 and named_texture:getHeight() == 4)
+    assert(a:contains(1, "named"))
+    assert(not pcall(lstg.CreateRenderTarget, "resource-pool-test-missing", "missing", 4, 4, false))
 
     manager.setLookupOrder({ a, b, resources.pool })
     local width, height = lstg.GetTextureSize("shared")

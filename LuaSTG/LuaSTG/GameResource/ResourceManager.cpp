@@ -57,20 +57,20 @@ namespace luastg
 	std::shared_ptr<AsyncResourceJob> ResourceMgr::SubmitAsyncResource(AsyncResourceRequest request) {
 		request.pool_generation = GetResourcePoolGeneration(request.pool_id);
 		if (!GetResourcePool(request.pool_id)) {
-			return m_AsyncLoader->submitFailedResource(std::move(request), "can't load resource at this time.");
+			return m_AsyncLoader->submitFailedResource(std::move(request), "Can't load resource at this time.");
 		}
 		return m_AsyncLoader->submitResource(std::move(request));
 	}
 
 	ResourcePoolId ResourceMgr::CreateResourcePool(std::string_view const name) noexcept {
 		if (name.empty() || m_nextPoolId == InvalidResourcePoolId) {
-			spdlog::warn("[luastg] rejected resource pool creation: name is empty or the pool ID space is exhausted");
+			spdlog::warn("[luastg] Rejected resource pool creation: name is empty or the pool ID space is exhausted");
 			return InvalidResourcePoolId;
 		}
 		try {
 			std::string const pool_name(name);
 			if (m_resourcePoolNames.find(pool_name) != m_resourcePoolNames.end()) {
-				spdlog::warn("[luastg] rejected resource pool creation: pool '{}' already exists", pool_name);
+				spdlog::warn("[luastg] Rejected resource pool creation: pool '{}' already exists", pool_name);
 				return InvalidResourcePoolId;
 			}
 			ResourcePoolId const id = m_nextPoolId++;
@@ -83,11 +83,11 @@ namespace luastg
 				m_resourcePools.erase(id);
 				throw;
 			}
-			spdlog::info("[luastg] created resource pool '{}' (ID {})", pool_name, id);
+			spdlog::info("[luastg] Created resource pool '{}' (ID {})", pool_name, id);
 			return id;
 		}
 		catch (std::exception const& e) {
-			spdlog::error("[luastg] failed to create resource pool '{}': {}", name, e.what());
+			spdlog::error("[luastg] Failed to create resource pool '{}': {}", name, e.what());
 			return InvalidResourcePoolId;
 		}
 	}
@@ -95,7 +95,7 @@ namespace luastg
 	bool ResourceMgr::DestroyResourcePool(ResourcePoolId const id) noexcept {
 		auto const it = m_resourcePools.find(id);
 		if (it == m_resourcePools.end()) {
-			spdlog::warn("[luastg] cannot destroy resource pool: ID {} is not live", id);
+			spdlog::warn("[luastg] Cannot destroy resource pool: ID {} is not live", id);
 			return false;
 		}
 		CancelAsyncResourceLoading(id);
@@ -103,7 +103,7 @@ namespace luastg
 		auto const pool_name = it->second->GetNameString();
 		m_resourcePoolNames.erase(pool_name);
 		m_resourcePools.erase(it);
-		spdlog::info("[luastg] destroyed resource pool '{}' (ID {})", pool_name, id);
+		spdlog::info("[luastg] Destroyed resource pool '{}' (ID {})", pool_name, id);
 		return true;
 	}
 
@@ -144,11 +144,11 @@ namespace luastg
 			std::unordered_set<ResourcePoolId> seen;
 			for (ResourcePoolId const id : order) {
 				if (!GetResourcePool(id)) {
-					spdlog::warn("[luastg] rejected resource pool lookup order: ID {} is not live", id);
+					spdlog::warn("[luastg] Rejected resource pool lookup order: ID {} is not live", id);
 					return false;
 				}
 				if (!seen.emplace(id).second) {
-					spdlog::warn("[luastg] rejected resource pool lookup order: pool '{}' (ID {}) appears more than once", GetResourcePool(id)->GetName(), id);
+					spdlog::warn("[luastg] Rejected resource pool lookup order: pool '{}' (ID {}) appears more than once", GetResourcePool(id)->GetName(), id);
 					return false;
 				}
 			}
@@ -166,7 +166,7 @@ namespace luastg
 				description.append(std::to_string(id));
 				description.push_back(')');
 			}
-			spdlog::info("[luastg] resource pool lookup order updated: [{}]", description);
+			spdlog::info("[luastg] Resource pool lookup order updated: [{}]", description);
 			return true;
 		}
 		catch (...) {

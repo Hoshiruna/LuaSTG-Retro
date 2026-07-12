@@ -17,7 +17,17 @@ void luastg::binding::ResourceManager::Register(lua_State* L) noexcept
 	{
 		static ResourcePool* BeginPoolCall(lua_State* L)
 		{
-			auto* pool = luastg::binding::checkResourcePool(L, 1);
+			ResourcePool* pool = nullptr;
+			if (lua_type(L, 1) == LUA_TSTRING) {
+				auto const pool_name = std::string_view(luaL_checkstring(L, 1));
+				pool = LRES.GetResourcePool(pool_name);
+				if (!pool) {
+					luaL_error(L, "specified resource pool '%s' was not found", pool_name.data());
+				}
+			}
+			else {
+				pool = luastg::binding::checkResourcePool(L, 1);
+			}
 			lua_remove(L, 1);
 			return pool;
 		}
@@ -907,6 +917,31 @@ void luastg::binding::ResourceManager::Register(lua_State* L) noexcept
 
 	luaL_Reg const lib[] = {
 		{ "SetResLoadInfo", &Wrapper::SetResLoadInfo },
+		{ "LoadTexture", &Wrapper::LoadTexture },
+		{ "LoadTextureAsync", &Wrapper::LoadTextureAsync },
+		{ "LoadVideo", &Wrapper::LoadVideo },
+		{ "LoadVideoAsync", &Wrapper::LoadVideoAsync },
+		{ "LoadImage", &Wrapper::LoadSprite },
+		{ "LoadImageAsync", &Wrapper::LoadSpriteAsync },
+		{ "LoadAnimation", &Wrapper::LoadAnimation },
+		{ "LoadAnimationAsync", &Wrapper::LoadAnimationAsync },
+		{ "LoadPS", &Wrapper::LoadPS },
+		{ "LoadPSAsync", &Wrapper::LoadPSAsync },
+		{ "LoadSound", &Wrapper::LoadSound },
+		{ "LoadSoundAsync", &Wrapper::LoadSoundAsync },
+		{ "LoadMusic", &Wrapper::LoadMusic },
+		{ "LoadMusicAsync", &Wrapper::LoadMusicAsync },
+		{ "LoadFont", &Wrapper::LoadFont },
+		{ "LoadFontAsync", &Wrapper::LoadFontAsync },
+		{ "LoadTTF", &Wrapper::LoadTTF },
+		{ "LoadTTFAsync", &Wrapper::LoadTTFAsync },
+		{ "LoadTrueTypeFont", &Wrapper::LoadTrueTypeFont },
+		{ "LoadTrueTypeFontAsync", &Wrapper::LoadTrueTypeFontAsync },
+		{ "LoadFX", &Wrapper::LoadFX },
+		{ "LoadFXAsync", &Wrapper::LoadFXAsync },
+		{ "LoadModel", &Wrapper::LoadModel },
+		{ "LoadModelAsync", &Wrapper::LoadModelAsync },
+		{ "CreateRenderTarget", &Wrapper::CreateRenderTarget },
 		{ "IsRenderTarget", &Wrapper::IsRenderTarget },
 		{ "SetTexturePreMulAlphaState", &Wrapper::SetTexturePreMulAlphaState },
 		{ "SetTextureSamplerState", &Wrapper::SetTextureSamplerState },
