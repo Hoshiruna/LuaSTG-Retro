@@ -64,11 +64,13 @@ namespace luastg
 
 	ResourcePoolId ResourceMgr::CreateResourcePool(std::string_view const name) noexcept {
 		if (name.empty() || m_nextPoolId == InvalidResourcePoolId) {
+			spdlog::warn("[luastg] rejected resource pool creation: name is empty or the pool ID space is exhausted");
 			return InvalidResourcePoolId;
 		}
 		try {
 			std::string const pool_name(name);
 			if (m_resourcePoolNames.find(pool_name) != m_resourcePoolNames.end()) {
+				spdlog::warn("[luastg] rejected resource pool creation: pool '{}' already exists", pool_name);
 				return InvalidResourcePoolId;
 			}
 			ResourcePoolId const id = m_nextPoolId++;
@@ -81,6 +83,7 @@ namespace luastg
 				m_resourcePools.erase(id);
 				throw;
 			}
+			spdlog::info("[luastg] created resource pool '{}' (ID {})", pool_name, id);
 			return id;
 		}
 		catch (std::exception const& e) {
@@ -92,12 +95,15 @@ namespace luastg
 	bool ResourceMgr::DestroyResourcePool(ResourcePoolId const id) noexcept {
 		auto const it = m_resourcePools.find(id);
 		if (it == m_resourcePools.end()) {
+			spdlog::warn("[luastg] cannot destroy resource pool: ID {} is not live", id);
 			return false;
 		}
 		CancelAsyncResourceLoading(id);
 		m_lookupOrder.erase(std::remove(m_lookupOrder.begin(), m_lookupOrder.end(), id), m_lookupOrder.end());
-		m_resourcePoolNames.erase(it->second->GetNameString());
+		auto const pool_name = it->second->GetNameString();
+		m_resourcePoolNames.erase(pool_name);
 		m_resourcePools.erase(it);
+		spdlog::info("[luastg] destroyed resource pool '{}' (ID {})", pool_name, id);
 		return true;
 	}
 
@@ -137,12 +143,30 @@ namespace luastg
 		try {
 			std::unordered_set<ResourcePoolId> seen;
 			for (ResourcePoolId const id : order) {
-				if (!GetResourcePool(id) || !seen.emplace(id).second) {
+				if (!GetResourcePool(id)) {
+					spdlog::warn("[luastg] rejected resource pool lookup order: ID {} is not live", id);
+					return false;
+				}
+				if (!seen.emplace(id).second) {
+					spdlog::warn("[luastg] rejected resource pool lookup order: pool '{}' (ID {}) appears more than once", GetResourcePool(id)->GetName(), id);
 					return false;
 				}
 			}
 			auto replacement = order;
 			m_lookupOrder.swap(replacement);
+			std::string description;
+			for (ResourcePoolId const id : m_lookupOrder) {
+				if (!description.empty()) {
+					description.append(", ");
+				}
+				auto const* pool = GetResourcePool(id);
+				description.push_back('\'');
+				description.append(pool->GetName());
+				description.append("' (ID ");
+				description.append(std::to_string(id));
+				description.push_back(')');
+			}
+			spdlog::info("[luastg] resource pool lookup order updated: [{}]", description);
 			return true;
 		}
 		catch (...) {
