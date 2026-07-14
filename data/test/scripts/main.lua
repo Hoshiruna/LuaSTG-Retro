@@ -39,6 +39,8 @@ end
 
 local imgui = require("imgui")
 local test = require("test")
+local hot_reload_preview = require("hot_reload_preview")
+local show_hot_reload_window = true
 
 local gpu_list = {}
 local select_gpu = ""
@@ -141,6 +143,8 @@ require("test.os")
 
 function GameInit()
     window:init()
+    imgui.backend.SetLuaHotReloadModuleEnabled("hot_reload_preview", true)
+    imgui.backend.SetLuaHotReloadEnabled(true)
     test.onCreate()
 end
 function GameExit()
@@ -155,6 +159,10 @@ function FrameFunc()
     --imgui.backend.ShowMemoryUsageWindow()
     imgui.backend.ShowFrameStatistics()
     imgui.backend.ShowResourceManagerDebugWindow()
+    if show_hot_reload_window then
+        show_hot_reload_window = imgui.backend.ShowLuaHotReloadWindow(show_hot_reload_window)
+    end
+    hot_reload_preview.draw(imgui.ImGui)
     showSelectGpuWindow()
     showSelectResolutionWindow()
     test.onUpdate()
