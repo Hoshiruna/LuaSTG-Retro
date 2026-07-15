@@ -11,6 +11,7 @@
 #include "core/SmartReference.hpp"
 
 #include <chrono>
+#include <cwchar>
 #include <cstdint>
 #include <filesystem>
 #include <algorithm>
@@ -38,15 +39,64 @@ namespace {
 
 	std::string normalizePhysicalPath(std::string_view const path) {
 		std::error_code ec;
-		auto normalized = std::filesystem::weakly_canonical(toPath(path), ec);
+		auto normalized = std::filesystem::absolute(toPath(path), ec);
 		if (ec) {
-			ec.clear();
-			normalized = std::filesystem::absolute(toPath(path), ec);
+			normalized = toPath(path);
 		}
-		if (ec) {
-			normalized = toPath(path).lexically_normal();
+		else {
+			auto const canonical = std::filesystem::weakly_canonical(normalized, ec);
+			if (!ec) {
+				normalized = canonical;
+			}
 		}
 		return toString(normalized.lexically_normal());
+	}
+
+	bool pathComponentEqual(std::filesystem::path const& left, std::filesystem::path const& right) {
+#ifdef _WIN32
+		return _wcsicmp(left.c_str(), right.c_str()) == 0;
+#else
+		return left == right;
+#endif
+	}
+
+	bool stripPathSuffix(
+		std::filesystem::path const& path,
+		std::filesystem::path const& suffix,
+		std::filesystem::path& root) {
+		auto path_it = path.end();
+		auto suffix_it = suffix.end();
+		size_t component_count = 0;
+		while (suffix_it != suffix.begin()) {
+			if (path_it == path.begin()) {
+				return false;
+			}
+			--path_it;
+			--suffix_it;
+			if (!pathComponentEqual(*path_it, *suffix_it)) {
+				return false;
+			}
+			++component_count;
+		}
+
+		root = path;
+		for (size_t i = 0; i < component_count; ++i) {
+			root = root.parent_path();
+		}
+		return true;
+	}
+
+	std::string inferModuleWatchRoot(std::string_view const module_name, std::string_view const physical_path) {
+		auto source_path = toPath(normalizePhysicalPath(physical_path));
+		auto relative_name = std::string(module_name);
+		std::ranges::replace(relative_name, '.', '/');
+
+		std::filesystem::path root;
+		if (stripPathSuffix(source_path, toPath(relative_name + ".lua"), root)
+			|| stripPathSuffix(source_path, toPath(relative_name) / "init.lua", root)) {
+			return normalizePhysicalPath(toString(root));
+		}
+		return normalizePhysicalPath(toString(source_path.parent_path()));
 	}
 
 	bool isLuaFile(std::string_view const path) {
@@ -584,27 +634,35 @@ namespace {
 		}
 
 	private:
+		void openWatchRoot(std::string_view const path) {
+			auto normalized_path = normalizePhysicalPath(path);
+			if (std::ranges::any_of(m_watch_roots, [&](WatchRoot const& root) { return root.path == normalized_path; })) {
+				return;
+			}
+
+			std::error_code error;
+			if (!std::filesystem::is_directory(toPath(normalized_path), error) || error) {
+				core::Logger::warn("[lua-hot-reload] ignored missing watch root '{}'"sv, normalized_path);
+				return;
+			}
+
+			auto& root = m_watch_roots.emplace_back();
+			root.path = std::move(normalized_path);
+			if (!core::IMessageQueueBasedFileSystemWatcher::create(root.path, root.watcher.put())) {
+				root.error = "failed to open watcher";
+				core::Logger::error("[lua-hot-reload] failed to watch '{}'"sv, root.path);
+			}
+		}
+
 		void openConfiguredWatchRoots() {
 			using Resource = core::ConfigurationLoader::FileSystem::ResourceFileSystem;
 			auto const& resources = core::ConfigurationLoader::getInstance().getFileSystem().getResources();
-			std::unordered_set<std::string> paths;
 
 			for (auto const& resource : resources) {
 				if (resource.getType() != Resource::Type::directory) {
 					continue;
 				}
-
-				auto path = normalizePhysicalPath(resource.getPath());
-				if (!paths.emplace(path).second) {
-					continue;
-				}
-
-				auto& root = m_watch_roots.emplace_back();
-				root.path = std::move(path);
-				if (!core::IMessageQueueBasedFileSystemWatcher::create(root.path, root.watcher.put())) {
-					root.error = "failed to open watcher";
-					core::Logger::error("[lua-hot-reload] failed to watch '{}'"sv, root.path);
-				}
+				openWatchRoot(resource.getPath());
 			}
 		}
 
@@ -615,6 +673,9 @@ namespace {
 			for (auto& [name, path] : modules) {
 				current_modules.emplace(name);
 				auto& status = m_modules[name];
+				if (m_enabled) {
+					openWatchRoot(inferModuleWatchRoot(name, path));
+				}
 				status.physical_path = std::move(path);
 			}
 			for (auto it = m_modules.begin(); it != m_modules.end();) {
@@ -649,12 +710,13 @@ namespace {
 					case core::FileAction::removed:
 					case core::FileAction::modified:
 					case core::FileAction::renamed_old_name:
-					case core::FileAction::renamed_new_name:
+					case core::FileAction::renamed_new_name: {
 						auto physical_path = normalizePhysicalPath(toString(toPath(root.path) / toPath(relative)));
 						auto& change = m_pending[physical_path];
 						change.physical_path = std::move(physical_path);
 						change.last_event = std::chrono::steady_clock::now();
 						break;
+					}
 					default:
 						break;
 					}
