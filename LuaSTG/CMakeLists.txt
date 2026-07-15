@@ -34,6 +34,8 @@ set(LUASTG_ENGINE_SOURCES
     
     LuaSTG/Debugger/ImGuiExtension.cpp
     LuaSTG/Debugger/ImGuiExtension.h
+    LuaSTG/Debugger/LuaHotReload.cpp
+    LuaSTG/Debugger/LuaHotReload.hpp
     LuaSTG/Debugger/Logger.cpp
     LuaSTG/Debugger/Logger.hpp
 

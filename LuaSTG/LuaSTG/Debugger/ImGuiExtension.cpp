@@ -1,4 +1,5 @@
 #include "ImGuiExtension.h"
+#include "LuaHotReload.hpp"
 
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
@@ -377,6 +378,7 @@ namespace {
 
 	int lib_NewFrame(lua_State* L) {
 		bool const allow_set_cursor = lua_toboolean(L, 1);
+		imgui::lua_hot_reload::update(L);
 		imgui::updateEngine(allow_set_cursor);
 		return 0;
 	}
@@ -716,6 +718,36 @@ namespace {
 			return 0;
 		}
 	}
+	int lib_SetLuaHotReloadEnabled(lua_State* L) {
+		imgui::lua_hot_reload::setEnabled(lua_toboolean(L, 1));
+		return 0;
+	}
+	int lib_IsLuaHotReloadEnabled(lua_State* L) {
+		lua_pushboolean(L, imgui::lua_hot_reload::isEnabled());
+		return 1;
+	}
+	int lib_SetLuaHotReloadModuleEnabled(lua_State* L) {
+		auto const module_name = luaL_checkstring(L, 1);
+		imgui::lua_hot_reload::setModuleEnabled(module_name, lua_toboolean(L, 2));
+		return 0;
+	}
+	int lib_ReloadLuaModule(lua_State* L) {
+		auto const module_name = luaL_checkstring(L, 1);
+		std::string error_message;
+		if (imgui::lua_hot_reload::reloadModule(L, module_name, &error_message)) {
+			lua_pushboolean(L, true);
+			return 1;
+		}
+		lua_pushboolean(L, false);
+		lua_pushlstring(L, error_message.data(), error_message.size());
+		return 2;
+	}
+	int lib_ShowLuaHotReloadWindow(lua_State* L) {
+		bool is_open = lua_gettop(L) >= 1 ? lua_toboolean(L, 1) : true;
+		imgui::lua_hot_reload::showWindow(L, &is_open);
+		lua_pushboolean(L, is_open);
+		return 1;
+	}
 
 	void imgui_binding_lua_register_backend(lua_State* L) {
 		const luaL_Reg lib_fun[] = {
@@ -727,6 +759,11 @@ namespace {
 			{"ShowFrameStatistics", &lib_ShowFrameStatistics},
 			{"ShowResourceManagerDebugWindow", &lib_ShowResourceManagerDebugWindow},
 			{"ShowParticleSystemEditor", &lib_ShowParticleSystemEditor},
+			{"SetLuaHotReloadEnabled", &lib_SetLuaHotReloadEnabled},
+			{"IsLuaHotReloadEnabled", &lib_IsLuaHotReloadEnabled},
+			{"SetLuaHotReloadModuleEnabled", &lib_SetLuaHotReloadModuleEnabled},
+			{"ReloadLuaModule", &lib_ReloadLuaModule},
+			{"ShowLuaHotReloadWindow", &lib_ShowLuaHotReloadWindow},
 			{NULL, NULL},
 		};
 		const auto lib_func = (sizeof(lib_fun) / sizeof(luaL_Reg)) - 1;
@@ -868,6 +905,7 @@ namespace {
 
 namespace imgui {
 	void bindEngine() {
+		lua_hot_reload::shutdown();
 		IMGUI_CHECKVERSION();
 		ImGui::CreateContext();
 		ImPlot::CreateContext();
@@ -896,6 +934,7 @@ namespace imgui {
 		g_imgui_initialized = true;
 	}
 	void unbindEngine() {
+		lua_hot_reload::shutdown();
 		if (LAPP.GetAppModel()) {
 			auto const device = LAPP.GetAppModel()->getDevice();
 			device->removeEventListener(&g_imgui_backend_event_listener);
