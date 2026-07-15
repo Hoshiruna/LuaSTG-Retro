@@ -1,28 +1,25 @@
 local test = require("test")
+local resources = require("resource_pool")
 
 local function load_texture(f)
-    lstg.LoadTexture("tex:" .. f, "res/" .. f, false)
+    resources.loadTexture("tex:" .. f, "res/" .. f, false)
     local w, h = lstg.GetTextureSize("tex:" .. f)
-    lstg.LoadImage("img:" .. f, "tex:" .. f, 0, 0, w, h)
+    resources.createSprite("img:" .. f, "tex:" .. f, 0, 0, w, h)
 end
 local function unload_texture(f)
-    lstg.RemoveResource("global", 2, "img:" .. f)
-    lstg.RemoveResource("global", 1, "tex:" .. f)
+    resources.removeResource("test", 2, "img:" .. f)
+    resources.removeResource("test", 1, "tex:" .. f)
 end
 
 ---@class test.Module.Texture : test.Base
 local M = {}
 
 function M:onCreate()
-    local old_pool = lstg.GetResourceStatus()
-    lstg.SetResourceStatus("global")
-
     load_texture("sRGB.png")
     load_texture("linear.png")
     load_texture("block.png")
     load_texture("block.qoi")
 
-    lstg.SetResourceStatus(old_pool)
 end
 
 function M:onDestroy()

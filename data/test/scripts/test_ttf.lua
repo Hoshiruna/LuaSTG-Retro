@@ -1,19 +1,17 @@
 local test = require("test")
+local resources = require("resource_pool")
 
 ---@class test.Module.TrueTypeFont : test.Base
 local M = {}
 
 function M:onCreate()
-    local old_pool = lstg.GetResourceStatus()
-    lstg.SetResourceStatus("global")
-    lstg.LoadTTF("ttf:test1", "res/model/syst_heavy.otf", 0, 26)
+    resources.loadTTF("ttf:test1", "res/model/syst_heavy.otf", 0, 26)
     lstg.CacheTTFString("ttf:test1", "你好朋友")
-    lstg.SetResourceStatus(old_pool)
     self.press_key = false
 end
 
 function M:onDestroy()
-    lstg.RemoveResource("global", 8, "ttf:test1")
+    resources.removeResource("test", 8, "ttf:test1")
 end
 
 function M:onUpdate()

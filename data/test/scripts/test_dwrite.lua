@@ -1,4 +1,5 @@
 local test = require("test")
+local resources = require("resource_pool")
 
 ---@class test.Module.DirectWrite : test.Base
 local M = {}
@@ -41,7 +42,7 @@ function M:onCreate()
     text_layout:SetFontFamilyName("思源宋体 CN", 57, 5)
     text_layout:SetFontFamilyName("思源宋体 CN", 63, 5)
     text_layout:SetTextAlignment(DirectWrite.TextAlignment.Justified)
-    DirectWrite.CreateTextureFromTextLayout(text_layout, "global", "text-texture", 2)
+    DirectWrite.CreateTextureFromTextLayout(text_layout, resources.pool, "text-texture", 2)
 
     local text_layout_2 = DirectWrite.CreateTextLayout(
         "城阙辅三秦，风烟望五津。\n与君离别意，同是宦游人。\n海内存知己，天涯若比邻。\n无为在歧路，儿女共沾巾。\nLet life be beautiful like summer flowers and death like autumn leaves.\nThe world has kissed my soul with its pain, asking for its return in songs.\nあなたが帰ってきたのは詩です。\n立ち去るのは言葉です。\n風塵を見ても、次を作ることはできません。",
@@ -53,25 +54,22 @@ function M:onCreate()
     text_layout_2:SetReadingDirection(2)
     --text_layout_2:SetStrikethrough(true, 0, 5)
     --text_layout_2:SetUnderline(true, 0, 5)
-    DirectWrite.CreateTextureFromTextLayout(text_layout_2, "global", "text-texture-2", 2)
+    DirectWrite.CreateTextureFromTextLayout(text_layout_2, resources.pool, "text-texture-2", 2)
     --DirectWrite.SaveTextLayoutToFile(text_layout_2, "res/text-texture-2.png")
 
-    local old_pool = lstg.GetResourceStatus()
-    lstg.SetResourceStatus("global")
-
     local w, h = lstg.GetTextureSize("text-texture")
-    lstg.LoadImage("text-image", "text-texture", 0, 0, w, h)
+    resources.createSprite("text-image", "text-texture", 0, 0, w, h)
     local w, h = lstg.GetTextureSize("text-texture-2")
-    lstg.LoadImage("text-image-2", "text-texture-2", 0, 0, w, h)
+    resources.createSprite("text-image-2", "text-texture-2", 0, 0, w, h)
 
     do
         local ccw, cch = 256, 64
         local dxy = 32
 
-        lstg.CreateRenderTarget("rt:text_target", ccw + 2 * dxy, cch + 2 * dxy, false)
+        resources.createRenderTarget("rt:text_target", ccw + 2 * dxy, cch + 2 * dxy, false)
         local w, h = lstg.GetTextureSize("rt:text_target")
 
-        lstg.LoadImage("rt-img:text_target", "rt:text_target", 0, 0, w, h)
+        resources.createSprite("rt-img:text_target", "rt:text_target", 0, 0, w, h)
 
         local text_format_2 = DirectWrite.CreateTextFormat(
             "汇文明朝体",
@@ -99,16 +97,15 @@ function M:onCreate()
         text_renderer:Render("rt:text_target", text_layout_3, dxy, dxy)
     end
 
-    lstg.SetResourceStatus(old_pool)
 end
 
 function M:onDestroy()
-    lstg.RemoveResource("global", 2, "text-image")
-    lstg.RemoveResource("global", 1, "text-texture")
-    lstg.RemoveResource("global", 2, "text-image-2")
-    lstg.RemoveResource("global", 1, "text-texture-2")
-    lstg.RemoveResource("global", 2, "rt-img:text_target")
-    lstg.RemoveResource("global", 1, "rt:text_target")
+    resources.removeResource("test", 2, "text-image")
+    resources.removeResource("test", 1, "text-texture")
+    resources.removeResource("test", 2, "text-image-2")
+    resources.removeResource("test", 1, "text-texture-2")
+    resources.removeResource("test", 2, "rt-img:text_target")
+    resources.removeResource("test", 1, "rt:text_target")
 end
 
 function M:onUpdate()

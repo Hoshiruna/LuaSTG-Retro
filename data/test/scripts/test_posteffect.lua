@@ -1,34 +1,31 @@
 local test = require("test")
+local resources = require("resource_pool")
 
 ---@class test.Module.PostEffect : test.Base
 local M = {}
 
 function M:onCreate()
-    local old_pool = lstg.GetResourceStatus()
-    lstg.SetResourceStatus("global")
-
-    lstg.LoadTexture("tex:block", "res/block.png")
+    resources.loadTexture("tex:block", "res/block.png")
     local w, h = lstg.GetTextureSize("tex:block")
-    lstg.LoadImage("img:block", "tex:block", 0, 0, w, h)
-    lstg.CreateRenderTarget("rt:target")
-    lstg.LoadFX("fx:rgb_select", "res/rgb_select.hlsl")
-    lstg.LoadFX("fx:rgb_select_new", "res/rgb_select_new.hlsl")
+    resources.createSprite("img:block", "tex:block", 0, 0, w, h)
+    resources.createRenderTarget("rt:target")
+    resources.loadFX("fx:rgb_select", "res/rgb_select.hlsl")
+    resources.loadFX("fx:rgb_select_new", "res/rgb_select_new.hlsl")
     self.shader = lstg.CreatePostEffectShader("res/shader_mask.hlsl")
 
-    lstg.CreateRenderTarget("rt:background_1")
-    lstg.CreateRenderTarget("rt:mask_1")
+    resources.createRenderTarget("rt:background_1")
+    resources.createRenderTarget("rt:mask_1")
     do
-        lstg.LoadTexture("tex:mask_1", "res/mask_1.png")
+        resources.loadTexture("tex:mask_1", "res/mask_1.png")
         local ww, hh = lstg.GetTextureSize("tex:mask_1")
-        lstg.LoadImage("img:mask_1", "tex:mask_1", 0, 0, ww, hh)
+        resources.createSprite("img:mask_1", "tex:mask_1", 0, 0, ww, hh)
     end
     do
-        lstg.LoadTexture("tex:image_1", "res/image_1.png")
+        resources.loadTexture("tex:image_1", "res/image_1.png")
         local ww, hh = lstg.GetTextureSize("tex:image_1")
-        lstg.LoadImage("img:image_1", "tex:image_1", 0, 0, ww, hh)
+        resources.createSprite("img:image_1", "tex:image_1", 0, 0, ww, hh)
     end
 
-    lstg.SetResourceStatus(old_pool)
 
     self.timer = -1
     self.r = 0.0
@@ -79,18 +76,18 @@ function M:onCreate()
 end
 
 function M:onDestroy()
-    lstg.RemoveResource("global", 2, "img:block")
-    lstg.RemoveResource("global", 1, "tex:block")
-    lstg.RemoveResource("global", 1, "rt:target")
-    lstg.RemoveResource("global", 9, "fx:rgb_select")
-    lstg.RemoveResource("global", 9, "fx:rgb_select_new")
+    resources.removeResource("test", 2, "img:block")
+    resources.removeResource("test", 1, "tex:block")
+    resources.removeResource("test", 1, "rt:target")
+    resources.removeResource("test", 9, "fx:rgb_select")
+    resources.removeResource("test", 9, "fx:rgb_select_new")
 
-    lstg.RemoveResource("global", 2, "img:mask_1")
-    lstg.RemoveResource("global", 1, "tex:mask_1")
-    lstg.RemoveResource("global", 2, "img:image_1")
-    lstg.RemoveResource("global", 1, "tex:image_1")
-    lstg.RemoveResource("global", 1, "rt:background_1")
-    lstg.RemoveResource("global", 1, "rt:mask_1")
+    resources.removeResource("test", 2, "img:mask_1")
+    resources.removeResource("test", 1, "tex:mask_1")
+    resources.removeResource("test", 2, "img:image_1")
+    resources.removeResource("test", 1, "tex:image_1")
+    resources.removeResource("test", 1, "rt:background_1")
+    resources.removeResource("test", 1, "rt:mask_1")
 end
 
 function M:onUpdate()

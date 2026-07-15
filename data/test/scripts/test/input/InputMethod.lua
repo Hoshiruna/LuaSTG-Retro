@@ -14,10 +14,6 @@ local TEST_NAME = "Input: Input Method"
 local M = {}
 
 function M:onCreate()
-    local old = lstg.GetResourceStatus()
-    lstg.SetResourceStatus("global")
-    -- load resources
-    lstg.SetResourceStatus(old)
     self.main_window = assert(Window.getMain(), "main window is required")
     self.input_method_ext = self.main_window:queryInterface("lstg.Window.InputMethodExtension")
     self.text_input_ext = self.main_window:queryInterface("lstg.Window.TextInputExtension")

@@ -1,4 +1,5 @@
 local test = require("test")
+local resources = require("resource_pool")
 local Clipboard = require("lstg.Clipboard")
 local Keyboard = lstg.Input.Keyboard
 
@@ -9,16 +10,13 @@ function M:onCreate()
     self.text = "..."
     self.timer = 0
 
-    local old = lstg.GetResourceStatus()
-    lstg.SetResourceStatus("global")
-    if not lstg.LoadTTF("sans", "C:\\Windows\\Fonts\\msyh.ttc", 32, 32) then
-        lstg.LoadTTF("sans", "C:\\Windows\\Fonts\\msyh.ttf", 32, 32)
+    if not resources.loadTTF("sans", "C:\\Windows\\Fonts\\msyh.ttc", 32, 32) then
+        resources.loadTTF("sans", "C:\\Windows\\Fonts\\msyh.ttf", 32, 32)
     end
-    lstg.SetResourceStatus(old)
 end
 
 function M:onDestroy()
-    lstg.RemoveResource("global", 8, "sans")
+    resources.removeResource("test", 8, "sans")
 end
 
 function M:onUpdate()

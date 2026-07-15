@@ -1,6 +1,7 @@
 ---@diagnostic disable: inject-field, param-type-mismatch
 
 local test = require("test")
+local resources = require("resource_pool")
 local task = require("task")
 local TaskManager = require("task.Manager")
 local lstg = require("lstg")
@@ -81,12 +82,9 @@ registerGameObjectClass(Runner)
 local M = {}
 
 function M:onCreate()
-    local last_pool = lstg.GetResourceStatus()
-    lstg.SetResourceStatus("global")
-    lstg.LoadTexture("block", "res/block.png", true)
-    lstg.LoadImage("block", "block", 0, 0, 256, 256)
-    lstg.LoadTTF("sans", "C:/Windows/Fonts/msyh.ttc", 0, 16)
-    lstg.SetResourceStatus(last_pool)
+    resources.loadTexture("block", "res/block.png", true)
+    resources.createSprite("block", "block", 0, 0, 256, 256)
+    resources.loadTTF("sans", "C:/Windows/Fonts/msyh.ttc", 0, 16)
 
     lstg.SetBound(0, window.width, 0, window.height)
     lstg.ResetPool()
@@ -110,9 +108,9 @@ end
 function M:onDestroy()
     lstg.ResetPool()
 
-    lstg.RemoveResource("global", 2, "block")
-    lstg.RemoveResource("global", 1, "block")
-    lstg.RemoveResource("global", 8, "sans")
+    resources.removeResource("test", 2, "block")
+    resources.removeResource("test", 1, "block")
+    resources.removeResource("test", 8, "sans")
 end
 
 function M:dispatchLateFrame()

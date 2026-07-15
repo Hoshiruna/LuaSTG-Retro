@@ -1,39 +1,36 @@
 local test = require("test")
+local resources = require("resource_pool")
 
 ---@class test.Module.PostEffect.Blend.ColorBurn : test.Base
 local M = {}
 
 local function load_image(name, path)
-    lstg.LoadTexture(name, path, false)
+    resources.loadTexture(name, path, false)
     local w, h = lstg.GetTextureSize(name)
-    lstg.LoadImage(name, name, 0, 0, w, h)
+    resources.createSprite(name, name, 0, 0, w, h)
 end
 
 local function unload_image(pool, name)
-    lstg.RemoveResource(pool, 2, name)
-    lstg.RemoveResource(pool, 1, name)
+    resources.removeResource(pool, 2, name)
+    resources.removeResource(pool, 1, name)
 end
 
 function M:onCreate()
     self.shader = lstg.CreatePostEffectShader("res/blend_color_burn.hlsl")
 
-    local last_pool = lstg.GetResourceStatus()
-    lstg.SetResourceStatus("global")
-
-    lstg.CreateRenderTarget("rt:bottom")
-    lstg.CreateRenderTarget("rt:top")
+    resources.createRenderTarget("rt:bottom")
+    resources.createRenderTarget("rt:top")
 
     load_image("image_2", "res/image_2.jpg")
     --load_image("image_3", "res/image_3.jpg")
 
-    lstg.SetResourceStatus(last_pool)
 
     self.timer = 0
 end
 
 function M:onDestroy()
-    lstg.RemoveResource("global", 1, "rt:bottom")
-    lstg.RemoveResource("global", 1, "rt:top")
+    resources.removeResource("test", 1, "rt:bottom")
+    resources.removeResource("test", 1, "rt:top")
 
     unload_image("global", "image_2")
     --unload_image("global", "image_3")
