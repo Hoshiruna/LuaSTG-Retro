@@ -136,24 +136,26 @@ namespace luastg
 		{
 			static int timer = 0;
 
-			static int current_pool = 0;
-			static char const* const pool_names[] = {
-				"Global",
-				"Stage",
-			};
-			ImGui::Combo("Resource Set", &current_pool, pool_names, 2);
-
-			ResourcePool* p_pool = nullptr;
-			switch (current_pool)
-			{
-			case 0:
-				p_pool = &m_GlobalResourcePool;
-				break;
-			case 1:
-				p_pool = &m_StageResourcePool;
-				break;
-			default:
-				break;
+			static ResourcePoolId current_pool = InvalidResourcePoolId;
+			auto pools = GetResourcePools();
+			ResourcePool* p_pool = GetResourcePool(current_pool);
+			if (!p_pool && !pools.empty()) {
+				current_pool = pools.front()->GetId();
+				p_pool = pools.front();
+			}
+			char const* preview = p_pool ? p_pool->GetName().data() : "<none>";
+			if (ImGui::BeginCombo("Resource Pool", preview)) {
+				for (auto* pool : pools) {
+					bool const selected = pool->GetId() == current_pool;
+					if (ImGui::Selectable(pool->GetName().data(), selected)) {
+						current_pool = pool->GetId();
+						p_pool = pool;
+					}
+					if (selected) {
+						ImGui::SetItemDefaultFocus();
+					}
+				}
+				ImGui::EndCombo();
 			}
 
 			auto draw_preview_scaling = [](float& scale) -> void

@@ -307,7 +307,7 @@ namespace luastg {
 	void AsyncResourceLoader::cancel(ResourcePoolType const pool_type) noexcept {
 		std::lock_guard const lock(m_mutex);
 		for (auto& job : m_jobs) {
-			if (job && job->getKind() == AsyncResourceJobKind::Resource && job->m_request.pool_type == pool_type) {
+			if (job && job->getKind() == AsyncResourceJobKind::Resource && job->m_request.pool_id == pool_id) {
 				(void)job->cancel();
 			}
 		}
@@ -519,12 +519,12 @@ namespace luastg {
 
 	bool AsyncResourceLoader::finalize(ResourceMgr& manager, AsyncResourceJob& job) {
 		auto& request = job.m_request;
-		auto* pool = manager.GetResourcePool(request.pool_type);
+		auto* pool = manager.GetResourcePool(request.pool_id);
 		if (!pool) {
 			job.fail("can't load resource at this time");
 			return false;
 		}
-		if (manager.GetResourcePoolGeneration(request.pool_type) != request.pool_generation) {
+		if (manager.GetResourcePoolGeneration(request.pool_id) != request.pool_generation) {
 			job.fail("resource pool was cleared");
 			return false;
 		}
@@ -552,7 +552,7 @@ namespace luastg {
 			break;
 
 		case AsyncResourceRequestType::Sprite:
-			if (!pool->CreateSprite(request.name.c_str(), request.texture_name.c_str(),
+			if (!pool->CreateSprite(request.name.c_str(), request.texture.get(),
 				request.x, request.y, request.w, request.h, request.a, request.b, request.rect)) {
 				job.fail("failed to create sprite");
 				return false;
@@ -561,22 +561,12 @@ namespace luastg {
 
 		case AsyncResourceRequestType::Animation:
 			if (request.animation_uses_sprite_list) {
-				std::vector<core::SmartReference<IResourceSprite>> sprites;
-				sprites.reserve(request.sprite_names.size());
-				for (auto const& sprite_name : request.sprite_names) {
-					auto sprite = manager.FindSprite(sprite_name.c_str());
-					if (!sprite) {
-						job.fail("sprite not found");
-						return false;
-					}
-					sprites.push_back(sprite);
-				}
-				if (!pool->CreateAnimation(request.name.c_str(), sprites, request.interval, request.a, request.b, request.rect)) {
+				if (!pool->CreateAnimation(request.name.c_str(), request.sprites, request.interval, request.a, request.b, request.rect)) {
 					job.fail("failed to create animation");
 					return false;
 				}
 			}
-			else if (!pool->CreateAnimation(request.name.c_str(), request.texture_name.c_str(),
+			else if (!pool->CreateAnimation(request.name.c_str(), request.texture.get(),
 				request.x, request.y, request.w, request.h, request.columns, request.rows, request.interval,
 				request.a, request.b, request.rect)) {
 				job.fail("failed to create animation");
@@ -586,13 +576,13 @@ namespace luastg {
 
 		case AsyncResourceRequestType::Particle:
 			if (request.has_particle_info) {
-				if (!pool->LoadParticle(request.name.c_str(), request.particle_info, request.image_name.c_str(),
+				if (!pool->LoadParticle(request.name.c_str(), request.particle_info, request.sprite.get(),
 					request.a, request.b, request.rect)) {
 					job.fail("failed to load particle");
 					return false;
 				}
 			}
-			else if (!pool->LoadParticle(request.name.c_str(), job.m_particle_info, request.image_name.c_str(),
+			else if (!pool->LoadParticle(request.name.c_str(), job.m_particle_info, request.sprite.get(),
 				request.a, request.b, request.rect)) {
 				job.fail("failed to load particle");
 				return false;

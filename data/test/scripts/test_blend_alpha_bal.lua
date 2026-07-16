@@ -1,41 +1,38 @@
 local test = require("test")
+local resources = require("resource_pool")
 
 ---@class test.Module.PostEffect.Blend.AlphaBal : test.Base
 local M = {}
 
 local function load_image(name, path)
-    lstg.LoadTexture(name, path, false)
+    resources.loadTexture(name, path, false)
     local w, h = lstg.GetTextureSize(name)
-    lstg.LoadImage(name, name, 0, 0, w, h)
+    resources.createSprite(name, name, 0, 0, w, h)
 end
 
 local function unload_image(pool, name)
-    lstg.RemoveResource(pool, 2, name)
-    lstg.RemoveResource(pool, 1, name)
+    resources.removeResource(pool, 2, name)
+    resources.removeResource(pool, 1, name)
 end
 
 function M:onCreate()
-    local last_pool = lstg.GetResourceStatus()
-    lstg.SetResourceStatus("global")
-
     load_image("image_2", "res/image_2.jpg")
-    lstg.CreateRenderTarget("rt:white", 256, 256, false)
-    lstg.CreateRenderTarget("rt:black", 256, 256, false)
-    lstg.LoadImage("sprite:white", "rt:white", 0, 0, 256, 256)
-    lstg.LoadImage("sprite:black", "rt:black", 0, 0, 256, 256)
+    resources.createRenderTarget("rt:white", 256, 256, false)
+    resources.createRenderTarget("rt:black", 256, 256, false)
+    resources.createSprite("sprite:white", "rt:white", 0, 0, 256, 256)
+    resources.createSprite("sprite:black", "rt:black", 0, 0, 256, 256)
     lstg.SetImageState("sprite:white", "alpha+bal", lstg.Color(255, 255, 255, 255))
     lstg.SetImageState("sprite:black", "alpha+bal", lstg.Color(255, 255, 255, 255))
 
-    lstg.SetResourceStatus(last_pool)
 
     self.timer = 0
 end
 
 function M:onDestroy()
-    lstg.RemoveResource("global", 2, "sprite:white")
-    lstg.RemoveResource("global", 2, "sprite:black")
-    lstg.RemoveResource("global", 1, "rt:white")
-    lstg.RemoveResource("global", 1, "rt:black")
+    resources.removeResource("test", 2, "sprite:white")
+    resources.removeResource("test", 2, "sprite:black")
+    resources.removeResource("test", 1, "rt:white")
+    resources.removeResource("test", 1, "rt:black")
     unload_image("global", "image_2")
 end
 

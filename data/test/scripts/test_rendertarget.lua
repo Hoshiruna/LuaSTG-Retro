@@ -1,20 +1,18 @@
 local test = require("test")
+local resources = require("resource_pool")
 
 ---@class test.Module.RenderTarget : test.Base
 local M = {}
 
 function M:onCreate()
-    local old_pool = lstg.GetResourceStatus()
-    lstg.SetResourceStatus("global")
-    lstg.CreateRenderTarget("rt:test1")
-    lstg.CreateRenderTarget("rt:test2")
-    lstg.SetResourceStatus(old_pool)
+    resources.createRenderTarget("rt:test1")
+    resources.createRenderTarget("rt:test2")
     self.press_key = false
 end
 
 function M:onDestroy()
-    lstg.RemoveResource("global", 1, "rt:test1")
-    lstg.RemoveResource("global", 1, "rt:test2")
+    resources.removeResource("test", 1, "rt:test1")
+    resources.removeResource("test", 1, "rt:test2")
 end
 
 function M:onUpdate()

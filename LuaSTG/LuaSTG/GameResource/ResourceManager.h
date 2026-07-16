@@ -11,9 +11,13 @@
 #include "GameResource/ResourcePostEffectShader.hpp"
 #include "GameResource/ResourceModel.hpp"
 #include "lua.hpp"
-#include "xxhash.h"
+#include <cstdint>
+#include <functional>
 #include <memory>
+#include <string>
 #include <string_view>
+#include <unordered_map>
+#include <vector>
 
 namespace core
 {
@@ -29,67 +33,27 @@ namespace luastg
     struct AsyncResourceRequest;
     class ResourceMgr;
     
-    // 资源池类型
-    enum class ResourcePoolType
-    {
-        None = 0,
-        Global,
-        Stage
-    };
+    using ResourcePoolId = uint64_t;
+    inline constexpr ResourcePoolId InvalidResourcePoolId = 0;
     
     // 资源池
     class ResourcePool
     {
         friend class ResourceMgr;
     public:
-        struct dictionary_key_t
+        struct dictionary_hash_t
         {
-        #if (SIZE_MAX == UINT32_MAX)
-            XXH32_hash_t const hash{};
-            XXH32_hash_t const check{};
-        #elif (SIZE_MAX == UINT64_MAX)
-            XXH64_hash_t const hash{};
-        #else
-            static_assert(false, "unsupported platform");
-        #endif
-
-            inline dictionary_key_t(std::string_view key) noexcept
-            #if (SIZE_MAX == UINT32_MAX)
-                : hash(XXH32(key.data(), key.size(), 0))
-                , check(XXH32(key.data(), key.size(), 0x65766F6C))
-            #elif (SIZE_MAX == UINT64_MAX)
-                : hash(XXH3_64bits(key.data(), key.size()))
-            #else
-                : __invalid_member()
-            #endif
-            {
-            }
-
-            inline bool operator==(dictionary_key_t const& right) const noexcept
-            {
-            #if (SIZE_MAX == UINT32_MAX)
-                return hash == right.hash && check == right.check;
-            #elif (SIZE_MAX == UINT64_MAX)
-                return hash == right.hash;
-            #else
-                static_assert(false, "unsupported platform");
-            #endif
-            }
-        };
-        struct dictionary_key_hash_t
-        {
-            inline size_t operator()(dictionary_key_t const& key) const noexcept
-            {
-                static_assert(sizeof(size_t) == sizeof(decltype(dictionary_key_t::hash)));
-                return key.hash;
-            }
+            using is_transparent = void;
+            size_t operator()(std::string_view value) const noexcept { return std::hash<std::string_view>{}(value); }
+            size_t operator()(std::string const& value) const noexcept { return operator()(std::string_view(value)); }
+            size_t operator()(char const* value) const noexcept { return operator()(std::string_view(value)); }
         };
         template<typename T>
-        using dictionary_t = std::pmr::unordered_map<dictionary_key_t, T, dictionary_key_hash_t>;
+        using dictionary_t = std::unordered_map<std::string, T, dictionary_hash_t, std::equal_to<>>;
     private:
         ResourceMgr* m_pMgr;
-        ResourcePoolType m_iType;
-        std::pmr::unsynchronized_pool_resource m_memory_resource;
+        ResourcePoolId m_id;
+        std::string m_name;
         dictionary_t<core::SmartReference<IResourceTexture>> m_TexturePool;
         dictionary_t<core::SmartReference<IResourceSprite>> m_SpritePool;
         dictionary_t<core::SmartReference<IResourceAnimation>> m_AnimationPool;
@@ -101,7 +65,7 @@ namespace luastg
         dictionary_t<core::SmartReference<IResourcePostEffectShader>> m_FXPool;
         dictionary_t<core::SmartReference<IResourceModel>> m_ModelPool;
     private:
-        const char* getResourcePoolTypeName();
+        const char* getResourcePoolName() const noexcept { return m_name.c_str(); }
     public:
         void Clear() noexcept;
         void RemoveResource(ResourceType t, const char* name) noexcept;
@@ -117,11 +81,11 @@ namespace luastg
         // 渲染目标
         bool CreateRenderTarget(const char* name, int width = 0, int height = 0, bool depth_buffer = false) noexcept;
         // 图片精灵
-        bool CreateSprite(const char* name, const char* texname,
+        bool CreateSprite(const char* name, IResourceTexture* texture,
                           double x, double y, double w, double h,
                           double a, double b, bool rect = false) noexcept;
         // 动画精灵
-        bool CreateAnimation(const char* name, const char* texname,
+        bool CreateAnimation(const char* name, IResourceTexture* texture,
                              double x, double y, double w, double h, int n, int m, int intv,
                              double a, double b, bool rect = false) noexcept;
         bool CreateAnimation(const char* name,
@@ -135,9 +99,9 @@ namespace luastg
         bool LoadSoundEffect(const char* name, const char* path) noexcept;
         bool LoadSoundEffect(const char* name, core::IAudioDecoder* decoder, const char* path) noexcept;
         // 粒子特效(HGE)
-        bool LoadParticle(const char* name, const hgeParticleSystemInfo& info, const char* img_name,
+        bool LoadParticle(const char* name, const hgeParticleSystemInfo& info, IResourceSprite* sprite,
                           double a, double b, bool rect = false, bool _nolog = false) noexcept;
-        bool LoadParticle(const char* name, const char* path, const char* img_name,
+        bool LoadParticle(const char* name, const char* path, IResourceSprite* sprite,
                           double a, double b, bool rect = false) noexcept;
         // 装载纹理字体(HGE)
         bool LoadSpriteFont(const char* name, const char* path, bool mipmaps = true) noexcept;
@@ -167,8 +131,11 @@ namespace luastg
         core::SmartReference<IResourcePostEffectShader> GetFX(std::string_view name) noexcept;
         core::SmartReference<IResourceModel> GetModel(std::string_view name) noexcept;
     public:
-        ResourcePool(ResourceMgr* mgr, ResourcePoolType t);
+        ResourcePool(ResourceMgr* mgr, ResourcePoolId id, std::string name);
         void UpdateVideo(double delta_seconds);
+        ResourcePoolId GetId() const noexcept { return m_id; }
+        std::string_view GetName() const noexcept { return m_name; }
+        std::string const& GetNameString() const noexcept { return m_name; }
         size_t GetGeneration() const noexcept { return m_generation; }
         ResourcePool& operator=(const ResourcePool&) = delete;
         ResourcePool(const ResourcePool&) = delete;
@@ -180,19 +147,25 @@ namespace luastg
     class ResourceMgr
     {
     private:
-        ResourcePoolType m_ActivedPool = ResourcePoolType::Global;
-        ResourcePool m_GlobalResourcePool;
-        ResourcePool m_StageResourcePool;
+        ResourcePoolId m_nextPoolId = 1;
+        std::unordered_map<ResourcePoolId, std::unique_ptr<ResourcePool>> m_resourcePools;
+        std::unordered_map<std::string, ResourcePoolId> m_resourcePoolNames;
+        std::vector<ResourcePoolId> m_lookupOrder;
     public:
-        ResourcePoolType GetActivedPoolType() noexcept;
-        void SetActivedPoolType(ResourcePoolType t) noexcept;
-        ResourcePool* GetActivedPool() noexcept;
-        ResourcePool* GetResourcePool(ResourcePoolType t) noexcept;
+        ResourcePoolId CreateResourcePool(std::string_view name) noexcept;
+        bool DestroyResourcePool(ResourcePoolId id) noexcept;
+        ResourcePool* GetResourcePool(ResourcePoolId id) noexcept;
+        ResourcePool const* GetResourcePool(ResourcePoolId id) const noexcept;
+        ResourcePool* GetResourcePool(std::string_view name);
+        ResourcePool const* GetResourcePool(std::string_view name) const;
+        std::vector<ResourcePool*> GetResourcePools();
+        bool SetLookupOrder(std::vector<ResourcePoolId> const& order) noexcept;
+        std::vector<ResourcePoolId> const& GetLookupOrder() const noexcept { return m_lookupOrder; }
         void ClearAllResource() noexcept;
-        size_t GetResourcePoolGeneration(ResourcePoolType t) const noexcept;
+        size_t GetResourcePoolGeneration(ResourcePoolId id) const noexcept;
         void UpdateAsyncResourceLoading(size_t max_count = 8);
         void CancelAsyncResourceLoading() noexcept;
-        void CancelAsyncResourceLoading(ResourcePoolType pool_type) noexcept;
+        void CancelAsyncResourceLoading(ResourcePoolId pool_id) noexcept;
         std::shared_ptr<AsyncResourceJob> SubmitAsyncFileRead(std::string_view path);
         std::shared_ptr<AsyncResourceJob> SubmitAsyncResource(AsyncResourceRequest request);
 

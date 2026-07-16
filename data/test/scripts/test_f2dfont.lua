@@ -1,19 +1,15 @@
 local test = require("test")
+local resources = require("resource_pool")
 
 ---@class test.Module.Fancy2DFont : test.Base
 local M = {}
 
 function M:onCreate()
-    local old_pool = lstg.GetResourceStatus()
-    lstg.SetResourceStatus("global")
-    
-    lstg.LoadFont("f2dfont:f2dfont", "res/f2dfont.xml", "res/f2dfont.png", false)
-
-    lstg.SetResourceStatus(old_pool)
+    resources.loadSpriteFont("f2dfont:f2dfont", "res/f2dfont.xml", "res/f2dfont.png", false)
 end
 
 function M:onDestroy()
-    lstg.RemoveResource("global", 7, "f2dfont:f2dfont")
+    resources.removeResource("test", 7, "f2dfont:f2dfont")
 end
 
 function M:onUpdate()

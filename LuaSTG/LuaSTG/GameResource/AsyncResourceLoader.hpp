@@ -48,17 +48,17 @@ namespace luastg {
 
 	struct AsyncResourceRequest {
 		AsyncResourceRequestType type{ AsyncResourceRequestType::Texture };
-		ResourcePoolType pool_type{ ResourcePoolType::None };
+		ResourcePoolId pool_id{ InvalidResourcePoolId };
 		size_t pool_generation{};
 
 		std::string name;
 		std::string path;
-		std::string texture_name;
-		std::string image_name;
 		std::string texture_path;
-		std::vector<std::string> sprite_names;
 		std::vector<core::Graphics::TrueTypeFontInfo> fonts;
 		std::vector<std::string> font_sources;
+		core::SmartReference<IResourceTexture> texture;
+		core::SmartReference<IResourceSprite> sprite;
+		std::vector<core::SmartReference<IResourceSprite>> sprites;
 
 		double x{};
 		double y{};
@@ -142,7 +142,7 @@ namespace luastg {
 		std::shared_ptr<AsyncResourceJob> submitResource(AsyncResourceRequest request);
 		std::shared_ptr<AsyncResourceJob> submitFailedResource(AsyncResourceRequest request, std::string_view message);
 		void update(ResourceMgr& manager, size_t max_count);
-		void cancel(ResourcePoolType pool_type) noexcept;
+		void cancel(ResourcePoolId pool_id) noexcept;
 		void cancelAll() noexcept;
 		void stop() noexcept;
 		std::vector<AsyncResourceJobDebugInfo> getDebugSnapshot();

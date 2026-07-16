@@ -4,22 +4,20 @@ local FrameStyle = require("lstg.Window.FrameStyle")
 local SwapChain = require("lstg.SwapChain")
 local ScalingMode = require("lstg.SwapChain.ScalingMode")
 local test = require("test")
+local resources = require("resource_pool")
 
 ---@class test.Module.WindowAndDisplay : test.Base
 local M = {}
 
 function M:onCreate()
-    local last = lstg.GetResourceStatus()
-    lstg.SetResourceStatus("global")
-    lstg.LoadTTF("body", "C:/Windows/Fonts/msyh.ttc", 0, 24)
-    lstg.SetResourceStatus(last)
+    resources.loadTTF("body", "C:/Windows/Fonts/msyh.ttc", 0, 24)
     self.main_window = Window.getMain()
     self.main_swap_chain = SwapChain.getMain()
     self.has_key_down = false
 end
 
 function M:onDestroy()
-    lstg.RemoveResource("global", 8, "body")
+    resources.removeResource("test", 8, "body")
 end
 
 function M:onUpdate()

@@ -1,4 +1,5 @@
 local test = require("test")
+local resources = require("resource_pool")
 
 local function Camera3D()
     ---@class kuanlan.Camera3D
@@ -96,20 +97,17 @@ camera3d.z  = -1
 local M = {}
 
 function M:onCreate()
-    local old_pool = lstg.GetResourceStatus()
-    lstg.SetResourceStatus("global")
-    --lstg.LoadModel("model:test", "D:\\Project\\th\\thzzs-res\\模型\\007云树（高面数）\\007云树循环（实心）.gltf")
-    --lstg.LoadModel("model:test_top", "D:\\Project\\th\\thzzs-res\\模型\\007云树（高面数）\\007云树顶部（实心）.gltf")
-    --lstg.LoadModel("model:test", "D:\\Project\\khr\\glTF-Sample-Assets\\Models\\AlphaBlendModeTest\\glTF-Embedded\\AlphaBlendModeTest.gltf")
-    --lstg.LoadModel("model:test", "D:\\Project\\khr\\glTF-Sample-Assets\\Models\\CompareAlphaCoverage\\glTF\\CompareAlphaCoverage.gltf")
-    --lstg.LoadModel("model:test", "D:\\Project\\khr\\glTF-Sample-Assets\\Models\\VertexColorTest\\glTF-Embedded\\VertexColorTest.gltf")
-    lstg.LoadModel("model:test", "D:\\Project\\khr\\glTF-Sample-Assets\\Models\\BoxVertexColors\\glTF-Embedded\\BoxVertexColors.gltf")
-    lstg.SetResourceStatus(old_pool)
+    --resources.loadModel("model:test", "D:\\Project\\th\\thzzs-res\\模型\\007云树（高面数）\\007云树循环（实心）.gltf")
+    --resources.loadModel("model:test_top", "D:\\Project\\th\\thzzs-res\\模型\\007云树（高面数）\\007云树顶部（实心）.gltf")
+    --resources.loadModel("model:test", "D:\\Project\\khr\\glTF-Sample-Assets\\Models\\AlphaBlendModeTest\\glTF-Embedded\\AlphaBlendModeTest.gltf")
+    --resources.loadModel("model:test", "D:\\Project\\khr\\glTF-Sample-Assets\\Models\\CompareAlphaCoverage\\glTF\\CompareAlphaCoverage.gltf")
+    --resources.loadModel("model:test", "D:\\Project\\khr\\glTF-Sample-Assets\\Models\\VertexColorTest\\glTF-Embedded\\VertexColorTest.gltf")
+    resources.loadModel("model:test", "D:\\Project\\khr\\glTF-Sample-Assets\\Models\\BoxVertexColors\\glTF-Embedded\\BoxVertexColors.gltf")
     self.timer = 0
 end
 
 function M:onDestroy()
-    lstg.RemoveResource("global", 10, "model:test")
+    resources.removeResource("test", 10, "model:test")
 end
 
 function M:onUpdate()

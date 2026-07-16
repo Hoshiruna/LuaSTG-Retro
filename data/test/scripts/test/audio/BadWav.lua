@@ -1,20 +1,18 @@
 local test = require("test")
+local resources = require("resource_pool")
 
 ---@class test.audio.BadWav : test.Base
 local M = {}
 
 function M:onCreate()
-    local pool = lstg.GetResourceStatus()
-    lstg.SetResourceStatus("global")
     pcall(function()
-        lstg.LoadSound("se:ok00", "assets/se/se_ok00.wav")
+        resources.loadSound("se:ok00", "assets/se/se_ok00.wav")
     end)
-    lstg.LoadSound("se:ok00", "assets/se/se_ok00_fixed.wav")
-    lstg.SetResourceStatus(pool)
+    resources.loadSound("se:ok00", "assets/se/se_ok00_fixed.wav")
 end
 
 function M:onDestroy()
-    lstg.RemoveResource("global", 5, "se:ok00")
+    resources.removeResource("test", 5, "se:ok00")
 end
 
 function M:onUpdate()

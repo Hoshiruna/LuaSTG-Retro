@@ -1,22 +1,19 @@
 local test = require("test")
+local resources = require("resource_pool")
 
 ---@class test.Module.Sampler : test.Base
 local M = {}
 
 function M:onCreate()
-    local old_pool = lstg.GetResourceStatus()
-    lstg.SetResourceStatus("global")
-
-    lstg.LoadTexture("tex:block", "res/block.png")
+    resources.loadTexture("tex:block", "res/block.png")
     lstg.SetTextureSamplerState("tex:block", "linear+wrap")
 
-    lstg.SetResourceStatus(old_pool)
 
     self.timer = 0
 end
 
 function M:onDestroy()
-    lstg.RemoveResource("global", 1, "tex:block")
+    resources.removeResource("test", 1, "tex:block")
 end
 
 function M:onUpdate()

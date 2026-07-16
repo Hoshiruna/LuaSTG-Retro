@@ -1,18 +1,19 @@
 local test = require("test")
+local resources = require("resource_pool")
 local imgui = require("imgui")
 local Sprite = require("lstg.Sprite")
 local SpriteRenderer = require("lstg.SpriteRenderer")
 local Texture2D = require("lstg.Texture2D")
 
 local function load_image(name, path)
-    lstg.LoadTexture(name, path, false)
+    resources.loadTexture(name, path, false)
     local w, h = lstg.GetTextureSize(name)
-    lstg.LoadImage(name, name, 0, 0, w, h)
+    resources.createSprite(name, name, 0, 0, w, h)
 end
 
 local function unload_image(pool, name)
-    lstg.RemoveResource(pool, 2, name)
-    lstg.RemoveResource(pool, 1, name)
+    resources.removeResource(pool, 2, name)
+    resources.removeResource(pool, 1, name)
 end
 
 ---@class test.graphics.SpriteRenderer : test.Base
@@ -48,10 +49,7 @@ function M:onCreate()
     self.texture = Texture2D.createFromFile("res/image_1.png")
     self:init1()
 
-    local last_pool = lstg.GetResourceStatus()
-    lstg.SetResourceStatus("global")
     load_image("image_2", "res/image_2.jpg")
-    lstg.SetResourceStatus(last_pool)
 end
 
 function M:onDestroy()

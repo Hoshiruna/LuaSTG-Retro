@@ -1,4 +1,5 @@
 local test = require("test")
+local resources = require("resource_pool")
 local imgui = require("imgui")
 
 local SE_NAME = "啊！"
@@ -7,16 +8,13 @@ local SE_NAME = "啊！"
 local M = {}
 
 function M:onCreate()
-    local old = lstg.GetResourceStatus()
-    lstg.SetResourceStatus("global")
-    lstg.LoadSound(SE_NAME, "res/audio/啊！.wav")
-    lstg.SetResourceStatus(old)
+    resources.loadSound(SE_NAME, "res/audio/啊！.wav")
     self.vol = 1.0
     self.pan = 0.0
 end
 
 function M:onDestroy()
-    lstg.RemoveResource("global", 5, SE_NAME)
+    resources.removeResource("test", 5, SE_NAME)
 end
 
 function M:onUpdate()

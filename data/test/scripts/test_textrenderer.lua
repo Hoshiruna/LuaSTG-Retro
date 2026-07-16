@@ -1,4 +1,5 @@
 local test = require("test")
+local resources = require("resource_pool")
 
 ---@param ttfname string
 ---@param text string
@@ -83,14 +84,11 @@ end
 local M = {}
 
 function M:onCreate()
-    local old_pool = lstg.GetResourceStatus()
-    lstg.SetResourceStatus("global")
-    lstg.LoadTTF("Sans", "C:/Windows/Fonts/msyh.ttc", 32, 32)
-    lstg.SetResourceStatus(old_pool)
+    resources.loadTTF("Sans", "C:/Windows/Fonts/msyh.ttc", 32, 32)
 end
 
 function M:onDestroy()
-    lstg.RemoveResource("global", 8, "Sans")
+    resources.removeResource("test", 8, "Sans")
 end
 
 function M:onUpdate()

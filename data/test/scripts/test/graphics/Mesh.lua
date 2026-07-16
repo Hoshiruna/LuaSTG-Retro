@@ -1,16 +1,17 @@
 local test = require("test")
+local resources = require("resource_pool")
 local imgui = require("imgui")
 local Mesh = require("lstg.Mesh")
 
 local function load_image(name, path)
-    lstg.LoadTexture(name, path, false)
+    resources.loadTexture(name, path, false)
     local w, h = lstg.GetTextureSize(name)
-    lstg.LoadImage(name, name, 0, 0, w, h)
+    resources.createSprite(name, name, 0, 0, w, h)
 end
 
 local function unload_image(pool, name)
-    lstg.RemoveResource(pool, 2, name)
-    lstg.RemoveResource(pool, 1, name)
+    resources.removeResource(pool, 2, name)
+    resources.removeResource(pool, 1, name)
 end
 
 ---@class test.graphics.Mesh : test.Base
@@ -23,10 +24,7 @@ function M:onCreate()
         index_count = 6,
     })
 
-    local last_pool = lstg.GetResourceStatus()
-    lstg.SetResourceStatus("global")
     load_image("image_2", "res/image_2.jpg")
-    lstg.SetResourceStatus(last_pool)
 end
 
 function M:onDestroy()
