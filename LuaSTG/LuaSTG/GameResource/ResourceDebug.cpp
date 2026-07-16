@@ -1,5 +1,6 @@
 #include "GameResource/ResourceManager.h"
 #ifdef USING_DEAR_IMGUI
+#include "GameResource/AsyncResourceLoader.hpp"
 #include "imgui.h"
 #endif
 
@@ -25,6 +26,106 @@ static std::string bytes_count_to_string(unsigned long long size)
 	}
 	return std::string(buffer, count);
 }
+
+#ifdef USING_DEAR_IMGUI
+static char const* async_resource_pool_name(luastg::ResourcePoolType const type)
+{
+	switch (type)
+	{
+	case luastg::ResourcePoolType::Global:
+		return "Global";
+	case luastg::ResourcePoolType::Stage:
+		return "Stage";
+	default:
+		return "-";
+	}
+}
+
+static char const* async_resource_type_name(luastg::AsyncResourceJobDebugInfo const& info)
+{
+	if (info.kind == luastg::AsyncResourceJobKind::FileRead)
+	{
+		return "File Read";
+	}
+
+	switch (info.resource_type)
+	{
+	case luastg::AsyncResourceRequestType::Texture:
+		return "Texture";
+	case luastg::AsyncResourceRequestType::Video:
+		return "Video";
+	case luastg::AsyncResourceRequestType::Sprite:
+		return "Sprite";
+	case luastg::AsyncResourceRequestType::Animation:
+		return "Animation";
+	case luastg::AsyncResourceRequestType::Particle:
+		return "Particle";
+	case luastg::AsyncResourceRequestType::Sound:
+		return "Sound";
+	case luastg::AsyncResourceRequestType::Music:
+		return "Music";
+	case luastg::AsyncResourceRequestType::SpriteFont:
+		return "Sprite Font";
+	case luastg::AsyncResourceRequestType::TrueTypeFont:
+		return "TrueType Font";
+	case luastg::AsyncResourceRequestType::FX:
+		return "Post Effect";
+	case luastg::AsyncResourceRequestType::Model:
+		return "Model";
+	default:
+		return "Unknown";
+	}
+}
+
+static char const* async_resource_state_name(luastg::AsyncResourceJobState const state)
+{
+	switch (state)
+	{
+	case luastg::AsyncResourceJobState::Queued:
+		return "Queued";
+	case luastg::AsyncResourceJobState::Running:
+		return "Reading";
+	case luastg::AsyncResourceJobState::Ready:
+		return "Ready";
+	case luastg::AsyncResourceJobState::Done:
+		return "Done";
+	case luastg::AsyncResourceJobState::Failed:
+		return "Failed";
+	case luastg::AsyncResourceJobState::Cancelled:
+		return "Cancelled";
+	default:
+		return "Unknown";
+	}
+}
+
+static ImVec4 async_resource_state_color(luastg::AsyncResourceJobState const state)
+{
+	switch (state)
+	{
+	case luastg::AsyncResourceJobState::Queued:
+		return ImVec4(0.75f, 0.75f, 0.75f, 1.0f);
+	case luastg::AsyncResourceJobState::Running:
+		return ImVec4(1.0f, 0.75f, 0.25f, 1.0f);
+	case luastg::AsyncResourceJobState::Ready:
+		return ImVec4(0.35f, 0.7f, 1.0f, 1.0f);
+	case luastg::AsyncResourceJobState::Done:
+		return ImVec4(0.35f, 0.9f, 0.45f, 1.0f);
+	case luastg::AsyncResourceJobState::Failed:
+		return ImVec4(1.0f, 0.35f, 0.35f, 1.0f);
+	case luastg::AsyncResourceJobState::Cancelled:
+		return ImVec4(0.6f, 0.6f, 0.6f, 1.0f);
+	default:
+		return ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
+	}
+}
+
+static bool async_resource_state_finished(luastg::AsyncResourceJobState const state)
+{
+	return state == luastg::AsyncResourceJobState::Done
+		|| state == luastg::AsyncResourceJobState::Failed
+		|| state == luastg::AsyncResourceJobState::Cancelled;
+}
+#endif
 
 namespace luastg
 {
@@ -130,6 +231,122 @@ namespace luastg
 			{
 				if (ImGui::BeginTabBar("##lstg.ResourceManager"))
 				{
+					if (ImGui::BeginTabItem("Async Loading"))
+					{
+						static bool show_finished = true;
+						static bool selected_pool_only = true;
+						static ImGuiTextFilter filter;
+
+						ImGui::Checkbox("Show Finished", &show_finished);
+						ImGui::SameLine();
+						ImGui::Checkbox("Selected Pool Only", &selected_pool_only);
+						filter.Draw("Filter");
+
+						auto const selected_pool = current_pool == 0 ? ResourcePoolType::Global : ResourcePoolType::Stage;
+						auto const jobs = m_AsyncLoader->getDebugSnapshot();
+						size_t visible_count = 0;
+						size_t active_count = 0;
+						size_t failed_count = 0;
+						for (auto const& job : jobs)
+						{
+							if (selected_pool_only && job.pool_type != selected_pool)
+							{
+								continue;
+							}
+							if (!async_resource_state_finished(job.state))
+							{
+								active_count += 1;
+							}
+							if (job.state == AsyncResourceJobState::Failed)
+							{
+								failed_count += 1;
+							}
+							visible_count += 1;
+						}
+						ImGui::Text("Jobs: %zu | Active: %zu | Failed: %zu", visible_count, active_count, failed_count);
+
+						if (ImGui::BeginTable("##lstg.AsyncResourceJobs", 6,
+							ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable))
+						{
+							ImGui::TableSetupColumn("Type", ImGuiTableColumnFlags_WidthFixed);
+							ImGui::TableSetupColumn("Pool", ImGuiTableColumnFlags_WidthFixed);
+							ImGui::TableSetupColumn("Resource");
+							ImGui::TableSetupColumn("Files");
+							ImGui::TableSetupColumn("Status", ImGuiTableColumnFlags_WidthFixed);
+							ImGui::TableSetupColumn("Details");
+							ImGui::TableHeadersRow();
+
+							for (size_t i = 0; i < jobs.size(); ++i)
+							{
+								auto const& job = jobs[i];
+								if (selected_pool_only && job.pool_type != selected_pool)
+								{
+									continue;
+								}
+								if (!show_finished && async_resource_state_finished(job.state))
+								{
+									continue;
+								}
+
+								std::string searchable = job.resource_name;
+								for (auto const& file : job.files)
+								{
+									searchable.append("\n");
+									searchable.append(file);
+								}
+								searchable.append("\n");
+								searchable.append(job.error);
+								if (!filter.PassFilter(searchable.c_str()))
+								{
+									continue;
+								}
+
+								ImGui::PushID(static_cast<int>(i));
+								ImGui::TableNextRow();
+
+								ImGui::TableSetColumnIndex(0);
+								ImGui::TextUnformatted(async_resource_type_name(job));
+
+								ImGui::TableSetColumnIndex(1);
+								ImGui::TextUnformatted(async_resource_pool_name(job.pool_type));
+
+								ImGui::TableSetColumnIndex(2);
+								ImGui::TextUnformatted(job.resource_name.empty() ? "-" : job.resource_name.c_str());
+
+								ImGui::TableSetColumnIndex(3);
+								if (job.files.empty())
+								{
+									ImGui::TextDisabled("No file read");
+								}
+								else
+								{
+									for (auto const& file : job.files)
+									{
+										ImGui::TextWrapped("%s", file.c_str());
+									}
+								}
+
+								ImGui::TableSetColumnIndex(4);
+								ImGui::TextColored(async_resource_state_color(job.state), "%s", async_resource_state_name(job.state));
+
+								ImGui::TableSetColumnIndex(5);
+								if (!job.error.empty())
+								{
+									ImGui::TextWrapped("%s", job.error.c_str());
+								}
+								else if (job.state == AsyncResourceJobState::Ready)
+								{
+									ImGui::TextDisabled("Waiting for main thread");
+								}
+
+								ImGui::PopID();
+							}
+							ImGui::EndTable();
+						}
+
+						ImGui::EndTabItem();
+					}
+
 					if (ImGui::BeginTabItem("Texture"))
 					{
 						static unsigned long long total_texture_memory_usage = 0;

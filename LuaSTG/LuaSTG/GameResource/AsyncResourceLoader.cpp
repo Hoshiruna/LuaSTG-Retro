@@ -2,7 +2,6 @@
 #include "core/FileSystem.hpp"
 #include "utf8.hpp"
 
-#include <algorithm>
 #include <cstring>
 #include <filesystem>
 #include <string_view>
@@ -75,12 +74,59 @@ namespace luastg {
 
 	AsyncResourceJob::AsyncResourceJob(std::string_view const path)
 		: m_kind(AsyncResourceJobKind::FileRead)
-		, m_file_path(path) {
+		, m_file_path(path)
+		, m_debug_files{ std::string(path) } {
 	}
 
 	AsyncResourceJob::AsyncResourceJob(AsyncResourceRequest request)
 		: m_kind(AsyncResourceJobKind::Resource)
 		, m_request(std::move(request)) {
+		auto const add_file = [this](std::string_view const path) {
+			if (!path.empty()) {
+				m_debug_files.emplace_back(path);
+			}
+		};
+
+		switch (m_request.type) {
+		case AsyncResourceRequestType::Texture:
+		case AsyncResourceRequestType::Video:
+		case AsyncResourceRequestType::Sound:
+		case AsyncResourceRequestType::Music:
+		case AsyncResourceRequestType::FX:
+		case AsyncResourceRequestType::Model:
+			add_file(m_request.path);
+			break;
+
+		case AsyncResourceRequestType::Particle:
+			if (!m_request.has_particle_info) {
+				add_file(m_request.path);
+			}
+			break;
+
+		case AsyncResourceRequestType::SpriteFont:
+			add_file(m_request.path);
+			if (m_request.has_texture_path) {
+				add_file(m_request.texture_path);
+			}
+			break;
+
+		case AsyncResourceRequestType::TrueTypeFont:
+			if (m_request.fonts.empty()) {
+				add_file(m_request.path);
+			}
+			else {
+				for (size_t i = 0; i < m_request.fonts.size() && i < m_request.font_sources.size(); ++i) {
+					if (!m_request.fonts[i].is_buffer) {
+						add_file(m_request.font_sources[i]);
+					}
+				}
+			}
+			break;
+
+		case AsyncResourceRequestType::Sprite:
+		case AsyncResourceRequestType::Animation:
+			break;
+		}
 	}
 
 	AsyncResourceJobKind AsyncResourceJob::getKind() const {
@@ -132,6 +178,19 @@ namespace luastg {
 		return m_data;
 	}
 
+	AsyncResourceJobDebugInfo AsyncResourceJob::getDebugInfo() const {
+		std::lock_guard const lock(m_mutex);
+		AsyncResourceJobDebugInfo info;
+		info.kind = m_kind;
+		info.state = m_state;
+		info.resource_type = m_request.type;
+		info.pool_type = m_request.pool_type;
+		info.resource_name = m_request.name;
+		info.files = m_debug_files;
+		info.error = m_error;
+		return info;
+	}
+
 	bool AsyncResourceJob::isCancelled() const {
 		std::lock_guard const lock(m_mutex);
 		return m_cancel_requested || m_state == AsyncResourceJobState::Cancelled;
@@ -160,6 +219,16 @@ namespace luastg {
 	void AsyncResourceJob::finish() {
 		std::lock_guard const lock(m_mutex);
 		m_state = m_cancel_requested ? AsyncResourceJobState::Cancelled : AsyncResourceJobState::Done;
+	}
+
+	void AsyncResourceJob::setSecondaryDebugFile(std::string_view const path) {
+		std::lock_guard const lock(m_mutex);
+		if (m_debug_files.size() < 2) {
+			m_debug_files.emplace_back(path);
+		}
+		else {
+			m_debug_files[1].assign(path);
+		}
 	}
 
 	AsyncResourceLoader::AsyncResourceLoader() {
@@ -215,7 +284,24 @@ namespace luastg {
 	std::shared_ptr<AsyncResourceJob> AsyncResourceLoader::submitFailedResource(AsyncResourceRequest request, std::string_view const message) {
 		auto job = std::shared_ptr<AsyncResourceJob>(new AsyncResourceJob(std::move(request)));
 		job->fail(message);
+		{
+			std::lock_guard const lock(m_mutex);
+			addHistory(job->getDebugInfo());
+		}
 		return job;
+	}
+
+	std::vector<AsyncResourceJobDebugInfo> AsyncResourceLoader::getDebugSnapshot() {
+		std::lock_guard const lock(m_mutex);
+		std::vector<AsyncResourceJobDebugInfo> result;
+		result.reserve(m_history.size() + m_jobs.size());
+		for (auto const& job : m_jobs) {
+			if (job) {
+				result.emplace_back(job->getDebugInfo());
+			}
+		}
+		result.insert(result.end(), m_history.rbegin(), m_history.rend());
+		return result;
 	}
 
 	void AsyncResourceLoader::cancel(ResourcePoolType const pool_type) noexcept {
@@ -329,6 +415,7 @@ namespace luastg {
 					job.fail(error);
 					return;
 				}
+				job.setSecondaryDebugFile(request.texture_path);
 			}
 			else {
 				std::string texture_path;
@@ -340,6 +427,7 @@ namespace luastg {
 					job.fail(error);
 					return;
 				}
+				job.setSecondaryDebugFile(request.texture_path);
 			}
 			break;
 
@@ -407,9 +495,26 @@ namespace luastg {
 		}
 
 		std::lock_guard const lock(m_mutex);
-		m_jobs.erase(std::remove_if(m_jobs.begin(), m_jobs.end(), [](std::shared_ptr<AsyncResourceJob> const& job) {
-			return !job || (job.use_count() == 1 && job->isFinished());
-		}), m_jobs.end());
+		for (auto it = m_jobs.begin(); it != m_jobs.end();) {
+			if (!*it) {
+				it = m_jobs.erase(it);
+			}
+			else if (it->use_count() == 1 && (*it)->isFinished()) {
+				addHistory((*it)->getDebugInfo());
+				it = m_jobs.erase(it);
+			}
+			else {
+				++it;
+			}
+		}
+	}
+
+	void AsyncResourceLoader::addHistory(AsyncResourceJobDebugInfo info) {
+		constexpr size_t history_limit = 128;
+		if (m_history.size() == history_limit) {
+			m_history.pop_front();
+		}
+		m_history.emplace_back(std::move(info));
 	}
 
 	bool AsyncResourceLoader::finalize(ResourceMgr& manager, AsyncResourceJob& job) {
