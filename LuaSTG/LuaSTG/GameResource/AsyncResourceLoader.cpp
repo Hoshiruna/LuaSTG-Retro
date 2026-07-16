@@ -184,7 +184,7 @@ namespace luastg {
 		info.kind = m_kind;
 		info.state = m_state;
 		info.resource_type = m_request.type;
-		info.pool_type = m_request.pool_type;
+		info.pool_id = m_request.pool_id;
 		info.resource_name = m_request.name;
 		info.files = m_debug_files;
 		info.error = m_error;
@@ -304,7 +304,7 @@ namespace luastg {
 		return result;
 	}
 
-	void AsyncResourceLoader::cancel(ResourcePoolType const pool_type) noexcept {
+	void AsyncResourceLoader::cancel(ResourcePoolId const pool_id) noexcept {
 		std::lock_guard const lock(m_mutex);
 		for (auto& job : m_jobs) {
 			if (job && job->getKind() == AsyncResourceJobKind::Resource && job->m_request.pool_id == pool_id) {

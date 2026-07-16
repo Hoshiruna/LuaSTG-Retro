@@ -87,7 +87,7 @@ namespace luastg {
 		AsyncResourceJobKind kind{ AsyncResourceJobKind::FileRead };
 		AsyncResourceJobState state{ AsyncResourceJobState::Queued };
 		AsyncResourceRequestType resource_type{ AsyncResourceRequestType::Texture };
-		ResourcePoolType pool_type{ ResourcePoolType::None };
+		ResourcePoolId pool_id{ InvalidResourcePoolId };
 		std::string resource_name;
 		std::vector<std::string> files;
 		std::string error;

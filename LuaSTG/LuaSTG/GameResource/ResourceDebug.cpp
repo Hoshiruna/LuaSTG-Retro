@@ -28,17 +28,17 @@ static std::string bytes_count_to_string(unsigned long long size)
 }
 
 #ifdef USING_DEAR_IMGUI
-static char const* async_resource_pool_name(luastg::ResourcePoolType const type)
+static std::string async_resource_pool_name(luastg::ResourceMgr const& manager, luastg::ResourcePoolId const id)
 {
-	switch (type)
+	if (id == luastg::InvalidResourcePoolId)
 	{
-	case luastg::ResourcePoolType::Global:
-		return "Global";
-	case luastg::ResourcePoolType::Stage:
-		return "Stage";
-	default:
 		return "-";
 	}
+	if (auto const* pool = manager.GetResourcePool(id))
+	{
+		return pool->GetNameString();
+	}
+	return "#" + std::to_string(id) + " (destroyed)";
 }
 
 static char const* async_resource_type_name(luastg::AsyncResourceJobDebugInfo const& info)
@@ -244,14 +244,13 @@ namespace luastg
 						ImGui::Checkbox("Selected Pool Only", &selected_pool_only);
 						filter.Draw("Filter");
 
-						auto const selected_pool = current_pool == 0 ? ResourcePoolType::Global : ResourcePoolType::Stage;
 						auto const jobs = m_AsyncLoader->getDebugSnapshot();
 						size_t visible_count = 0;
 						size_t active_count = 0;
 						size_t failed_count = 0;
 						for (auto const& job : jobs)
 						{
-							if (selected_pool_only && job.pool_type != selected_pool)
+							if (selected_pool_only && job.pool_id != current_pool)
 							{
 								continue;
 							}
@@ -281,7 +280,7 @@ namespace luastg
 							for (size_t i = 0; i < jobs.size(); ++i)
 							{
 								auto const& job = jobs[i];
-								if (selected_pool_only && job.pool_type != selected_pool)
+								if (selected_pool_only && job.pool_id != current_pool)
 								{
 									continue;
 								}
@@ -310,7 +309,8 @@ namespace luastg
 								ImGui::TextUnformatted(async_resource_type_name(job));
 
 								ImGui::TableSetColumnIndex(1);
-								ImGui::TextUnformatted(async_resource_pool_name(job.pool_type));
+								auto const pool_name = async_resource_pool_name(*this, job.pool_id);
+								ImGui::TextUnformatted(pool_name.c_str());
 
 								ImGui::TableSetColumnIndex(2);
 								ImGui::TextUnformatted(job.resource_name.empty() ? "-" : job.resource_name.c_str());
