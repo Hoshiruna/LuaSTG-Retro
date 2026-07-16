@@ -83,6 +83,16 @@ namespace luastg {
 		hgeParticleSystemInfo particle_info{};
 	};
 
+	struct AsyncResourceJobDebugInfo {
+		AsyncResourceJobKind kind{ AsyncResourceJobKind::FileRead };
+		AsyncResourceJobState state{ AsyncResourceJobState::Queued };
+		AsyncResourceRequestType resource_type{ AsyncResourceRequestType::Texture };
+		ResourcePoolType pool_type{ ResourcePoolType::None };
+		std::string resource_name;
+		std::vector<std::string> files;
+		std::string error;
+	};
+
 	class AsyncResourceJob {
 	public:
 		AsyncResourceJobKind getKind() const;
@@ -92,6 +102,7 @@ namespace luastg {
 		bool cancel();
 		std::string getError() const;
 		core::SmartReference<core::IData> getFileData() const;
+		AsyncResourceJobDebugInfo getDebugInfo() const;
 
 	private:
 		friend class AsyncResourceLoader;
@@ -103,6 +114,7 @@ namespace luastg {
 		void setState(AsyncResourceJobState state);
 		void fail(std::string_view message);
 		void finish();
+		void setSecondaryDebugFile(std::string_view path);
 
 	private:
 		mutable std::mutex m_mutex;
@@ -112,6 +124,7 @@ namespace luastg {
 		std::string m_error;
 		std::string m_file_path;
 		AsyncResourceRequest m_request;
+		std::vector<std::string> m_debug_files;
 
 		core::SmartReference<core::IData> m_data;
 		core::SmartReference<core::IData> m_texture_data;
@@ -132,12 +145,14 @@ namespace luastg {
 		void cancel(ResourcePoolId pool_id) noexcept;
 		void cancelAll() noexcept;
 		void stop() noexcept;
+		std::vector<AsyncResourceJobDebugInfo> getDebugSnapshot();
 
 	private:
 		void workerMain();
 		void process(AsyncResourceJob& job);
 		bool finalize(ResourceMgr& manager, AsyncResourceJob& job);
 		void queueReady(std::shared_ptr<AsyncResourceJob> const& job);
+		void addHistory(AsyncResourceJobDebugInfo info);
 
 	private:
 		std::mutex m_mutex;
@@ -145,6 +160,7 @@ namespace luastg {
 		std::deque<std::shared_ptr<AsyncResourceJob>> m_queue;
 		std::deque<std::shared_ptr<AsyncResourceJob>> m_ready;
 		std::vector<std::shared_ptr<AsyncResourceJob>> m_jobs;
+		std::deque<AsyncResourceJobDebugInfo> m_history;
 		std::thread m_worker;
 		bool m_exit{};
 	};
