@@ -86,20 +86,20 @@ local adv_list = {}
 local select_adv = ""
 local function changeAudioDevice()
     if string.len(select_adv) > 0 then
-        lstg.ChangeAudioDevice(select_adv)
-        adv_list = lstg.ListAudioDevice(true) -- update
+        lstg.Audio.setDevice(select_adv)
+        adv_list = lstg.Audio.listDevices(true)
         select_adv = ""
     end
 end
 local function showSelectAudioDeviceWindow()
     local ImGui = imgui.ImGui
     if #adv_list < 1 then
-        adv_list = lstg.ListAudioDevice()
+        adv_list = lstg.Audio.listDevices()
     end
     if ImGui.Begin("Select Audio Device") then
         for _, v in ipairs(adv_list) do
-            if ImGui.Button(v) then
-                select_adv = v
+            if ImGui.Button(v.name) then
+                select_adv = v.id
             end
         end
     end

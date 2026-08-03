@@ -457,10 +457,20 @@ namespace core {
 			if (root.contains("audio_system"sv)) {
 				auto const& audio_system = root.at("audio_system"sv);
 				assert_type_is_object(audio_system, "/audio_system"sv);
-				if (audio_system.contains("preferred_endpoint_name"sv)) {
-					auto const& preferred_endpoint_name = audio_system.at("preferred_endpoint_name"sv);
-					assert_type_is_string(preferred_endpoint_name, "/audio_system/preferred_endpoint_name"sv);
-					loader.audio_system.setPreferredEndpointName(preferred_endpoint_name.get_ref<std::string const&>());
+				if (audio_system.contains("preferred_output_name"sv)) {
+					auto const& preferred_output_name = audio_system.at("preferred_output_name"sv);
+					assert_type_is_string(preferred_output_name, "/audio_system/preferred_output_name"sv);
+					loader.audio_system.setPreferredOutputName(preferred_output_name.get_ref<std::string const&>());
+				}
+				if (audio_system.contains("master_volume"sv)) {
+					auto const& master_volume = audio_system.at("master_volume"sv);
+					assert_type_is_number(master_volume, "/audio_system/master_volume"sv);
+					auto const v = master_volume.get<float>();
+					if (v < 0.0f || v > 1.0f) {
+						error_callback("[/audio_system/master_volume] out of range [0.0, 1.0]"sv);
+						return false;
+					}
+					loader.audio_system.setMasterVolume(v);
 				}
 				if (audio_system.contains("sound_effect_volume"sv)) {
 					auto const& sound_effect_volume = audio_system.at("sound_effect_volume"sv);
@@ -481,6 +491,16 @@ namespace core {
 						return false;
 					}
 					loader.audio_system.setMusicVolume(v);
+				}
+				if (audio_system.contains("max_sound_effect_voices"sv)) {
+					auto const& max_voices = audio_system.at("max_sound_effect_voices"sv);
+					assert_type_is_number(max_voices, "/audio_system/max_sound_effect_voices"sv);
+					auto const v = max_voices.get<uint32_t>();
+					if (v == 0 || v > 256) {
+						error_callback("[/audio_system/max_sound_effect_voices] out of range [1, 256]"sv);
+						return false;
+					}
+					loader.audio_system.setMaxSoundEffectVoices(v);
 				}
 			}
 

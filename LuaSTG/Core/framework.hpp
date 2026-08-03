@@ -40,7 +40,6 @@
 #include <dwmapi.h>
 #include <DirectXMath.h>
 
-#include <xaudio2.h>
 
 #include "spdlog/spdlog.h"
 

@@ -302,19 +302,26 @@ void luastg::binding::ResourceManager::Register(lua_State* L) noexcept
 			if (!pActivedPool)
 				return luaL_error(L, "can't load resource at this time.");
 
-			double loop_end = luaL_checknumber(L, 3);
-			double loop_duration = luaL_checknumber(L, 4);
-			double loop_start = std::max(0., loop_end - loop_duration);
+			core::AudioFrameRange loop_range{};
+			if (!lua_isnoneornil(L, 3)) {
+				luaL_checktype(L, 3, LUA_TTABLE);
+				lua_getfield(L, 3, "start_frame");
+				auto const start = luaL_optnumber(L, -1, 0);
+				lua_pop(L, 1);
+				lua_getfield(L, 3, "end_frame");
+				auto const end = luaL_optnumber(L, -1, 0);
+				lua_pop(L, 1);
+				if (start < 0 || end < 0) return luaL_error(L, "music loop frames cannot be negative");
+				loop_range = { static_cast<uint64_t>(start), static_cast<uint64_t>(end) };
+			}
 
 			if (!pActivedPool->LoadMusic(
 				name,
 				path,
-				loop_start,
-				loop_end,
-				(lua_gettop(L) >= 5) ? lua_toboolean(L, 5) : false
+				loop_range
 				))
 			{
-				return luaL_error(L, "load music failed (name=%s, path=%s, loop=%f~%f)", name, path, loop_start, loop_end);
+				return luaL_error(L, "load music failed (name=%s, path=%s)", name, path);
 			}
 			lua_pushboolean(L, true);
 			return 1;
@@ -323,11 +330,18 @@ void luastg::binding::ResourceManager::Register(lua_State* L) noexcept
 		{
 			auto request = CreateAsyncRequest(L, AsyncResourceRequestType::Music);
 			request.path = luaL_checkstring(L, 2);
-			double const loop_end = luaL_checknumber(L, 3);
-			double const loop_duration = luaL_checknumber(L, 4);
-			request.loop_end = loop_end;
-			request.loop_start = std::max(0., loop_end - loop_duration);
-			request.once_decode = (lua_gettop(L) >= 5) ? lua_toboolean(L, 5) != 0 : false;
+			if (!lua_isnoneornil(L, 3)) {
+				luaL_checktype(L, 3, LUA_TTABLE);
+				lua_getfield(L, 3, "start_frame");
+				auto const start = luaL_optnumber(L, -1, 0);
+				lua_pop(L, 1);
+				lua_getfield(L, 3, "end_frame");
+				auto const end = luaL_optnumber(L, -1, 0);
+				lua_pop(L, 1);
+				if (start < 0 || end < 0) return luaL_error(L, "music loop frames cannot be negative");
+				request.loop_start_frame = static_cast<uint64_t>(start);
+				request.loop_end_frame = static_cast<uint64_t>(end);
+			}
 			return PushAsyncJob(L, std::move(request));
 		}
 		static int LoadFont(lua_State* L) noexcept
@@ -927,10 +941,6 @@ void luastg::binding::ResourceManager::Register(lua_State* L) noexcept
 		{ "LoadAnimationAsync", &Wrapper::LoadAnimationAsync },
 		{ "LoadPS", &Wrapper::LoadPS },
 		{ "LoadPSAsync", &Wrapper::LoadPSAsync },
-		{ "LoadSound", &Wrapper::LoadSound },
-		{ "LoadSoundAsync", &Wrapper::LoadSoundAsync },
-		{ "LoadMusic", &Wrapper::LoadMusic },
-		{ "LoadMusicAsync", &Wrapper::LoadMusicAsync },
 		{ "LoadFont", &Wrapper::LoadFont },
 		{ "LoadFontAsync", &Wrapper::LoadFontAsync },
 		{ "LoadTTF", &Wrapper::LoadTTF },

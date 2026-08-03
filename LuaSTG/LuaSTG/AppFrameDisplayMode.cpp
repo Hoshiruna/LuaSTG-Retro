@@ -47,6 +47,23 @@ namespace luastg
 			p_window->setCursor(win.isCursorVisible() ? core::Graphics::WindowCursor::Arrow : core::Graphics::WindowCursor::None);
 			p_window->setWindowMode(core::Vector2U(gs.getWidth(), gs.getHeight()));
 		}
+		// 配置音频。设备 ID 只在一次枚举周期内使用，持久配置保存可读名称。
+		{
+			auto const& config = core::ConfigurationLoader::getInstance().getAudioSystem();
+			m_audio_engine->setBusVolume(core::AudioBus::master, config.getMasterVolume());
+			m_audio_engine->setBusVolume(core::AudioBus::sound_effect, config.getSoundEffectVolume());
+			m_audio_engine->setBusVolume(core::AudioBus::music, config.getMusicVolume());
+			m_audio_engine->setMaxSoundEffectVoices(config.getMaxSoundEffectVoices());
+			if (auto const& preferred = config.getPreferredOutputName(); !preferred.empty()) {
+				for (uint32_t i = 0; i < m_audio_engine->getAudioDeviceCount(); ++i) {
+					auto const device = m_audio_engine->getAudioDevice(i);
+					if (device.name == preferred) {
+						(void)m_audio_engine->setAudioDevice(device.id);
+						break;
+					}
+				}
+			}
+		}
 		return true;
 	}
 

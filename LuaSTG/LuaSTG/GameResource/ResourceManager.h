@@ -22,7 +22,6 @@
 namespace core
 {
     struct IData;
-    struct IAudioDecoder;
     struct IVideoDecoder;
 }
 
@@ -93,11 +92,11 @@ namespace luastg
             int intv,
             double a, double b, bool rect = false) noexcept;
         // 音乐
-        bool LoadMusic(const char* name, const char* path, double start, double end, bool once_decode) noexcept;
-        bool LoadMusic(const char* name, core::IAudioDecoder* decoder, const char* path, double start, double end, bool once_decode) noexcept;
+        bool LoadMusic(const char* name, const char* path, core::AudioFrameRange loop_range) noexcept;
+        bool LoadMusic(const char* name, core::IData* data, const char* path, core::AudioFrameRange loop_range) noexcept;
         // 音效
         bool LoadSoundEffect(const char* name, const char* path) noexcept;
-        bool LoadSoundEffect(const char* name, core::IAudioDecoder* decoder, const char* path) noexcept;
+        bool LoadSoundEffect(const char* name, core::IData* data, const char* path) noexcept;
         // 粒子特效(HGE)
         bool LoadParticle(const char* name, const hgeParticleSystemInfo& info, IResourceSprite* sprite,
                           double a, double b, bool rect = false, bool _nolog = false) noexcept;
@@ -183,7 +182,6 @@ namespace luastg
         
         bool GetTextureSize(const char* name, core::Vector2U& out) noexcept;
         void CacheTTFFontString(const char* name, const char* text, size_t len) noexcept;
-        void UpdateSound();
         void UpdateVideo(double delta_seconds);
     private:
         static bool g_ResourceLoadingLog;
