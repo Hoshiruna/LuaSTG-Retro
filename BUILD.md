@@ -56,6 +56,21 @@ cmake --workflow --preset windows-x86-release
 
 > TODO: Waiting for me to get a Windows on arm laptop  
 
+## Build with Ninja
+
+Run these commands from an AMD64 Visual Studio developer environment with Ninja available:
+
+```shell
+cmake --preset ninja-amd64-debug
+cmake --build --preset windows-ninja-amd64-debug
+```
+
+Replace `debug` with `release` for a Release build. You can also configure and build Release in one command:
+
+```shell
+cmake --workflow --preset windows-ninja-amd64-release
+```
+
 ## Start Developing
 
 Next, you can use Visual Studio 2022 to open the sln solution file and start developing.
@@ -165,16 +180,17 @@ cmake --workflow --preset windows-x86-release
 "C:\Program Files\Microsoft Visual Studio\18\Community\VC\Auxiliary\Build\vcvarsall.bat" x64 10.0.26100.0 -vcvars_ver=14.44
 ```
 
-接下来，执行 CMake 配置步骤，以 Debug 配置为例：
+接下来，使用预配配置并编译 Debug 版本：
 
 ```batch
-cmake -S . -B %cd%\build\amd64-ninja-debug -G Ninja -DCMAKE_C_COMPILER=cl -DCMAKE_CXX_COMPILER=cl -DCMAKE_BUILD_TYPE=Debug -DCPM_SOURCE_CACHE=%cd%\build\packages
+cmake --preset ninja-amd64-debug
+cmake --build --preset windows-ninja-amd64-debug
 ```
 
-最后，执行编译：
+将 `debug` 替换为 `release` 即可编译 Release 版本。也可以用工作流一次完成 Release 配置和编译：
 
 ```batch
-cmake --build %cd%\build\amd64-ninja-debug --target LuaSTG
+cmake --workflow --preset windows-ninja-amd64-release
 ```
 
 ## 开始编写代码
