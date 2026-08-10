@@ -615,7 +615,9 @@ namespace luastg
         return 0;
     }
 
+    // clang-format off
 #define MKFUNC(X) { #X, &lib_##X }
+    // clang-format on
 
     static luaL_Reg const lib_func[] = {
         MKFUNC(beginScene),

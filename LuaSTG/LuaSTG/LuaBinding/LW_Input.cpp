@@ -33,8 +33,10 @@ register_keyboard(lua_State* L)
         char const* name;
         lua_Integer value;
     } kcode[] = {
+    // clang-format off
 #define KV(KEY) { #KEY, #KEY, (lua_Integer)Platform::Keyboard::Key::##KEY }
 #define KNV(NAME, KEY) { NAME, NAME, (lua_Integer)Platform::Keyboard::Key::##KEY }
+        // clang-format on
         KV(None),
 
         KV(Back),

@@ -58,7 +58,9 @@ CommonGetFloat(getRightThumbY);
 int
 luaopen_xinput(lua_State* L)
 {
+    // clang-format off
 #define MakePair(_Name) { #_Name, &xinput_##_Name }
+    // clang-format on
     const luaL_Reg lib[] = {
         MakePair(isConnected),
         MakePair(refresh),

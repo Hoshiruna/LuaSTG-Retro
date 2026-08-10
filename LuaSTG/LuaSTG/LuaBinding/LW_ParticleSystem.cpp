@@ -932,7 +932,9 @@ namespace luastg::binding
             { "Render", &Wrapper::Render },
             { "SetOldBehavior", &Wrapper::SetOldBehavior },
 
+        // clang-format off
 #define F(X) { #X, &Wrapper::X }
+            // clang-format on
             F(getAliveCount),
             F(getAlphaVar),
             F(getCenter),
