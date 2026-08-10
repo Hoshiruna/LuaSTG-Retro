@@ -3,22 +3,23 @@
 #include "lua.hpp"
 #include "Core/Graphics/Window.hpp"
 
-namespace luastg::binding {
-	
-	struct Display {
+namespace luastg::binding
+{
 
-		static std::string_view class_name;
+    struct Display
+    {
 
-		[[maybe_unused]] core::Graphics::IDisplay* data{};
+        static std::string_view class_name;
 
-		static bool is(lua_State* L, int index);
+        [[maybe_unused]] core::Graphics::IDisplay* data{};
 
-		static Display* as(lua_State* L, int index);
+        static bool is(lua_State* L, int index);
 
-		static Display* create(lua_State* L);
+        static Display* as(lua_State* L, int index);
 
-		static void registerClass(lua_State* L);
+        static Display* create(lua_State* L);
 
-	};
+        static void registerClass(lua_State* L);
+    };
 
 }

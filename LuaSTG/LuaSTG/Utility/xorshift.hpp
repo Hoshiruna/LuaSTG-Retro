@@ -75,12 +75,12 @@ namespace random
         }
         bool deserialize(std::string const& data)
         {
-            if (!data.starts_with(name())) {
+            if(!data.starts_with(name())) {
                 return false;
             }
             std::string tail = data.substr(name().size() + 1);
-            for (auto& c : tail) {
-                if (c == '-') {
+            for(auto& c : tail) {
+                if(c == '-') {
                     c = ' ';
                 }
             }
@@ -90,16 +90,17 @@ namespace random
                 ss >> v_x;
                 x = v_x;
                 return true;
-            }
-            catch (std::exception const& e) {
+            } catch(std::exception const& e) {
                 std::ignore = e;
             }
             return false;
         }
-    
+
     public:
-        splitmix64() : x(0xbad0ff1ced15ea5e) {}
-        explicit splitmix64(uint64_t s) : x(s) {}
+        splitmix64()
+            : x(0xbad0ff1ced15ea5e) {}
+        explicit splitmix64(uint64_t s)
+            : x(s) {}
     };
 
     inline uint32_t rotl(const uint32_t x, const int k)
@@ -113,14 +114,13 @@ namespace random
     }
 
     // https://github.com/imneme/pcg-cpp/blob/428802d1a5634f96bcd0705fab379ff0113bcf13/include/pcg_extras.hpp#L540
-    template <typename RNG>
-    inline uint64_t bounded_rand(RNG &rng, uint64_t upper_bound)
+    template<typename RNG>
+    inline uint64_t bounded_rand(RNG& rng, uint64_t upper_bound)
     {
         uint64_t const threshold = (RNG::max() - RNG::min() + uint64_t(1) - upper_bound) % upper_bound;
-        for (;;)
-        {
+        for(;;) {
             uint64_t const r = rng() - RNG::min();
-            if (r >= threshold)
+            if(r >= threshold)
                 return r % upper_bound;
         }
     }
@@ -148,12 +148,9 @@ namespace random
             uint32_t s1 = 0;
             uint32_t s2 = 0;
             uint32_t s3 = 0;
-            for (int i = 0; i < 4; i++)
-            {
-                for (int b = 0; b < 32; b++)
-                {
-                    if (JUMP_TABLE[i] & UINT32_C(1) << b)
-                    {
+            for(int i = 0; i < 4; i++) {
+                for(int b = 0; b < 32; b++) {
+                    if(JUMP_TABLE[i] & UINT32_C(1) << b) {
                         s0 ^= s[0];
                         s1 ^= s[1];
                         s2 ^= s[2];
@@ -218,22 +215,22 @@ namespace random
 
         std::string serialize()
         {
-			std::ostringstream ss;
-			ss << name()
-				<< "-" << s[0]
-				<< "-" << s[1]
-				<< "-" << s[2]
-				<< "-" << s[3];
-			return ss.str();
+            std::ostringstream ss;
+            ss << name()
+               << "-" << s[0]
+               << "-" << s[1]
+               << "-" << s[2]
+               << "-" << s[3];
+            return ss.str();
         }
         bool deserialize(std::string const& data)
         {
-            if (!data.starts_with(name())) {
+            if(!data.starts_with(name())) {
                 return false;
             }
             std::string tail = data.substr(name().size() + 1);
-            for (auto& c : tail) {
-                if (c == '-') {
+            for(auto& c : tail) {
+                if(c == '-') {
                     c = ' ';
                 }
             }
@@ -244,8 +241,7 @@ namespace random
                 static_assert(sizeof(s) == sizeof(v_s));
                 std::memcpy(s, v_s, sizeof(s));
                 return true;
-            }
-            catch (std::exception const& e) {
+            } catch(std::exception const& e) {
                 std::ignore = e;
             }
             return false;
@@ -371,12 +367,9 @@ namespace random
         {
             uint64_t s0 = 0;
             uint64_t s1 = 0;
-            for (int i = 0; i < 2; i++)
-            {
-                for (int b = 0; b < 64; b++)
-                {
-                    if (JUMP_TABLE[i] & UINT64_C(1) << b)
-                    {
+            for(int i = 0; i < 2; i++) {
+                for(int b = 0; b < 64; b++) {
+                    if(JUMP_TABLE[i] & UINT64_C(1) << b) {
                         s0 ^= s[0];
                         s1 ^= s[1];
                     }
@@ -416,18 +409,18 @@ namespace random
         {
             std::ostringstream ss;
             ss << name()
-                << "-" << s[0]
-                << "-" << s[1];
+               << "-" << s[0]
+               << "-" << s[1];
             return ss.str();
         }
         bool deserialize(std::string const& data)
         {
-            if (!data.starts_with(name())) {
+            if(!data.starts_with(name())) {
                 return false;
             }
             std::string tail = data.substr(name().size() + 1);
-            for (auto& c : tail) {
-                if (c == '-') {
+            for(auto& c : tail) {
+                if(c == '-') {
                     c = ' ';
                 }
             }
@@ -438,8 +431,7 @@ namespace random
                 static_assert(sizeof(s) == sizeof(v_s));
                 std::memcpy(s, v_s, sizeof(s));
                 return true;
-            }
-            catch (std::exception const& e) {
+            } catch(std::exception const& e) {
                 std::ignore = e;
             }
             return false;
@@ -460,7 +452,7 @@ namespace random
 
             s1 ^= s0;
             s[0] = rotl(s0, 24) ^ s1 ^ (s1 << 16); // a, b
-            s[1] = rotl(s1, 37);                   // c
+            s[1] = rotl(s1, 37); // c
 
             return result;
         }
@@ -507,7 +499,7 @@ namespace random
 
             s1 ^= s0;
             s[0] = rotl(s0, 49) ^ s1 ^ (s1 << 21); // a, b
-            s[1] = rotl(s1, 28);                   // c
+            s[1] = rotl(s1, 28); // c
 
             return result;
         }
@@ -554,7 +546,7 @@ namespace random
 
             s1 ^= s0;
             s[0] = rotl(s0, 24) ^ s1 ^ (s1 << 16); // a, b
-            s[1] = rotl(s1, 37);                   // c
+            s[1] = rotl(s1, 37); // c
 
             return result;
         }
@@ -600,12 +592,9 @@ namespace random
             uint64_t s1 = 0;
             uint64_t s2 = 0;
             uint64_t s3 = 0;
-            for (int i = 0; i < 4; i++)
-            {
-                for (int b = 0; b < 64; b++)
-                {
-                    if (JUMP_TABLE[i] & UINT64_C(1) << b)
-                    {
+            for(int i = 0; i < 4; i++) {
+                for(int b = 0; b < 64; b++) {
+                    if(JUMP_TABLE[i] & UINT64_C(1) << b) {
                         s0 ^= s[0];
                         s1 ^= s[1];
                         s2 ^= s[2];
@@ -671,20 +660,20 @@ namespace random
         {
             std::ostringstream ss;
             ss << name()
-                << "-" << s[0]
-                << "-" << s[1]
-                << "-" << s[2]
-                << "-" << s[3];
+               << "-" << s[0]
+               << "-" << s[1]
+               << "-" << s[2]
+               << "-" << s[3];
             return ss.str();
         }
         bool deserialize(std::string const& data)
         {
-            if (!data.starts_with(name())) {
+            if(!data.starts_with(name())) {
                 return false;
             }
             std::string tail = data.substr(name().size() + 1);
-            for (auto& c : tail) {
-                if (c == '-') {
+            for(auto& c : tail) {
+                if(c == '-') {
                     c = ' ';
                 }
             }
@@ -695,8 +684,7 @@ namespace random
                 static_assert(sizeof(s) == sizeof(v_s));
                 std::memcpy(s, v_s, sizeof(s));
                 return true;
-            }
-            catch (std::exception const& e) {
+            } catch(std::exception const& e) {
                 std::ignore = e;
             }
             return false;
@@ -821,20 +809,17 @@ namespace random
         inline void jump_by_table(uint64_t const JUMP_TABLE[8])
         {
             uint64_t t[8] = {};
-            for (int i = 0; i < 8; i++)
-            {
-                for (int b = 0; b < 64; b++)
-                {
-                    if (JUMP_TABLE[i] & UINT64_C(1) << b)
-                    {
-                        for (int w = 0; w < 8; w++)
+            for(int i = 0; i < 8; i++) {
+                for(int b = 0; b < 64; b++) {
+                    if(JUMP_TABLE[i] & UINT64_C(1) << b) {
+                        for(int w = 0; w < 8; w++)
                             t[w] ^= s[w];
                     }
                     next();
                 }
             }
 
-            for (int i = 0; i < 8; i++)
+            for(int i = 0; i < 8; i++)
                 s[i] = t[i];
         }
         virtual std::string_view name() { return "xoshiro512"; }
@@ -851,7 +836,7 @@ namespace random
         void seed(uint64_t seedv)
         {
             splitmix64 gn(seedv);
-            for (int i = 0; i < 8; i++)
+            for(int i = 0; i < 8; i++)
                 s[i] = gn.next();
         }
         virtual uint64_t next()
@@ -895,24 +880,24 @@ namespace random
         {
             std::ostringstream ss;
             ss << name()
-                << "-" << s[0]
-                << "-" << s[1]
-                << "-" << s[2]
-                << "-" << s[3]
-                << "-" << s[4]
-                << "-" << s[5]
-                << "-" << s[6]
-                << "-" << s[7];
+               << "-" << s[0]
+               << "-" << s[1]
+               << "-" << s[2]
+               << "-" << s[3]
+               << "-" << s[4]
+               << "-" << s[5]
+               << "-" << s[6]
+               << "-" << s[7];
             return ss.str();
         }
         bool deserialize(std::string const& data)
         {
-            if (!data.starts_with(name())) {
+            if(!data.starts_with(name())) {
                 return false;
             }
             std::string tail = data.substr(name().size() + 1);
-            for (auto& c : tail) {
-                if (c == '-') {
+            for(auto& c : tail) {
+                if(c == '-') {
                     c = ' ';
                 }
             }
@@ -923,8 +908,7 @@ namespace random
                 static_assert(sizeof(s) == sizeof(v_s));
                 std::memcpy(s, v_s, sizeof(s));
                 return true;
-            }
-            catch (std::exception const& e) {
+            } catch(std::exception const& e) {
                 std::ignore = e;
             }
             return false;
@@ -1062,21 +1046,17 @@ namespace random
         inline void jump_by_table(uint64_t const JUMP_TABLE[16])
         {
             uint64_t t[16] = {};
-            for (int i = 0; i < 16; i++)
-            {
-                for (int b = 0; b < 64; b++)
-                {
-                    if (JUMP_TABLE[i] & UINT64_C(1) << b)
-                    {
-                        for (int j = 0; j < 16; j++)
+            for(int i = 0; i < 16; i++) {
+                for(int b = 0; b < 64; b++) {
+                    if(JUMP_TABLE[i] & UINT64_C(1) << b) {
+                        for(int j = 0; j < 16; j++)
                             t[j] ^= s[(j + p) & 16 - 1];
                     }
                     next();
                 }
             }
 
-            for (int i = 0; i < 16; i++)
-            {
+            for(int i = 0; i < 16; i++) {
                 s[(i + p) & 16 - 1] = t[i];
             }
         }
@@ -1094,7 +1074,7 @@ namespace random
         void seed(uint64_t seedv)
         {
             splitmix64 gn(seedv);
-            for (int i = 0; i < 16; i++)
+            for(int i = 0; i < 16; i++)
                 s[i] = gn.next();
             p = 0; // TODO: WTF? How should I init it?
         }
@@ -1155,20 +1135,20 @@ namespace random
         {
             std::ostringstream ss;
             ss << name() << "-" << p
-                << "-" << s[0] << "-" << s[1] << "-" << s[2] << "-" << s[3]
-                << "-" << s[4] << "-" << s[5] << "-" << s[6] << "-" << s[7]
-                << "-" << s[8] << "-" << s[9] << "-" << s[10] << "-" << s[11]
-                << "-" << s[12] << "-" << s[13] << "-" << s[14] << "-" << s[15];
+               << "-" << s[0] << "-" << s[1] << "-" << s[2] << "-" << s[3]
+               << "-" << s[4] << "-" << s[5] << "-" << s[6] << "-" << s[7]
+               << "-" << s[8] << "-" << s[9] << "-" << s[10] << "-" << s[11]
+               << "-" << s[12] << "-" << s[13] << "-" << s[14] << "-" << s[15];
             return ss.str();
         }
         bool deserialize(std::string const& data)
         {
-            if (!data.starts_with(name())) {
+            if(!data.starts_with(name())) {
                 return false;
             }
             std::string tail = data.substr(name().size() + 1);
-            for (auto& c : tail) {
-                if (c == '-') {
+            for(auto& c : tail) {
+                if(c == '-') {
                     c = ' ';
                 }
             }
@@ -1176,17 +1156,12 @@ namespace random
             try {
                 uint64_t v_s[16]{};
                 int v_p{};
-                ss >> v_p
-                    >> v_s[0] >> v_s[1] >> v_s[2] >> v_s[3]
-                    >> v_s[4] >> v_s[5] >> v_s[6] >> v_s[7]
-                    >> v_s[8] >> v_s[9] >> v_s[10] >> v_s[11]
-                    >> v_s[12] >> v_s[13] >> v_s[14] >> v_s[15];
+                ss >> v_p >> v_s[0] >> v_s[1] >> v_s[2] >> v_s[3] >> v_s[4] >> v_s[5] >> v_s[6] >> v_s[7] >> v_s[8] >> v_s[9] >> v_s[10] >> v_s[11] >> v_s[12] >> v_s[13] >> v_s[14] >> v_s[15];
                 static_assert(sizeof(s) == sizeof(v_s));
                 std::memcpy(s, v_s, sizeof(s));
                 p = v_p;
                 return true;
-            }
-            catch (std::exception const& e) {
+            } catch(std::exception const& e) {
                 std::ignore = e;
             }
             return false;

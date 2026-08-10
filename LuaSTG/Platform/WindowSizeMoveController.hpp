@@ -10,6 +10,7 @@ namespace Platform
             LRESULT lResult;
             BOOL bReturn;
         };
+
     private:
         HWND window;
         RECT title_bar_rect;
@@ -22,6 +23,7 @@ namespace Platform
         BOOL is_size_or_move;
         BOOL is_minimize_button_down;
         BOOL is_close_button_down;
+
     private:
         void enterSizeMove(HWND hWnd, LPARAM lParam);
         void onSizeMove(HWND hWnd, LPARAM lParam);
@@ -32,6 +34,7 @@ namespace Platform
         bool isMouseInTitleBar(LPARAM lParam);
         void onMouseLeftButtonDown(HWND hWnd, LPARAM lParam);
         void onMouseLeftButtonUp(HWND hWnd, LPARAM lParam);
+
     public:
         void setEnable(BOOL b);
         void setMinimizeButtonRect(RECT rc);
@@ -40,6 +43,7 @@ namespace Platform
         void setWindow(HWND hWnd);
         Result handleSizeMove(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
         static Result handleSizeMoveStatic(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+
     public:
         WindowSizeMoveController();
         ~WindowSizeMoveController();

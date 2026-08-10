@@ -4,10 +4,11 @@
 #include "core/implement/ReferenceCounted.hpp"
 #include "d3d11/pch.h"
 
-namespace core {
-    class RenderTarget final :
-        public implement::ReferenceCounted<IRenderTarget>,
-        public IGraphicsDeviceEventListener {
+namespace core
+{
+    class RenderTarget final : public implement::ReferenceCounted<IRenderTarget>,
+                               public IGraphicsDeviceEventListener
+    {
     public:
         // IRenderTarget
 

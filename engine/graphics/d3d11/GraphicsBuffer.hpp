@@ -4,10 +4,10 @@
 #include "core/implement/ReferenceCounted.hpp"
 #include "pch.h"
 
-namespace core {
-    class VertexBuffer final :
-        public implement::ReferenceCounted<IGraphicsBuffer>,
-        public IGraphicsDeviceEventListener
+namespace core
+{
+    class VertexBuffer final : public implement::ReferenceCounted<IGraphicsBuffer>,
+                               public IGraphicsDeviceEventListener
     {
     public:
         // IGraphicsDeviceEventListener
@@ -47,10 +47,10 @@ namespace core {
     };
 }
 
-namespace core {
-    class IndexBuffer final :
-        public implement::ReferenceCounted<IGraphicsBuffer>,
-        public IGraphicsDeviceEventListener
+namespace core
+{
+    class IndexBuffer final : public implement::ReferenceCounted<IGraphicsBuffer>,
+                              public IGraphicsDeviceEventListener
     {
     public:
         // IGraphicsDeviceEventListener
@@ -90,10 +90,10 @@ namespace core {
     };
 }
 
-namespace core {
-    class ConstantBuffer final :
-        public implement::ReferenceCounted<IGraphicsBuffer>,
-        public IGraphicsDeviceEventListener
+namespace core
+{
+    class ConstantBuffer final : public implement::ReferenceCounted<IGraphicsBuffer>,
+                                 public IGraphicsDeviceEventListener
     {
     public:
         // IGraphicsDeviceEventListener

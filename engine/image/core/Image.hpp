@@ -5,8 +5,10 @@
 #include "core/ImmutableString.hpp"
 #include "core/Data.hpp"
 
-namespace core {
-    enum class ImageFormat : int32_t {
+namespace core
+{
+    enum class ImageFormat : int32_t
+    {
         // Indicate that an error has occurred
         unknown,
 
@@ -26,7 +28,8 @@ namespace core {
         count,
     };
 
-    enum class ImageColorSpace : int32_t {
+    enum class ImageColorSpace : int32_t
+    {
         // Indicate that an error has occurred
         unknown,
 
@@ -40,7 +43,8 @@ namespace core {
         count,
     };
 
-    enum class ImageAlphaMode : int32_t {
+    enum class ImageAlphaMode : int32_t
+    {
         // Indicate that an error has occurred
         unknown,
 
@@ -60,14 +64,16 @@ namespace core {
         count,
     };
 
-    struct ImageDescription {
+    struct ImageDescription
+    {
         Vector2U size;
         ImageFormat format{};
         ImageColorSpace color_space{};
         ImageAlphaMode alpha_mode{};
     };
 
-    struct ImageMappedBuffer {
+    struct ImageMappedBuffer
+    {
         void* data{};
         uint32_t stride{};
         uint32_t size{};
@@ -75,18 +81,20 @@ namespace core {
 
     struct IImage;
 
-    struct ScopedImageMappedBuffer : ImageMappedBuffer {
+    struct ScopedImageMappedBuffer : ImageMappedBuffer
+    {
         IImage* image{};
 
         ~ScopedImageMappedBuffer() noexcept;
     };
 
-    CORE_INTERFACE IImage : IReferenceCounted {
+    CORE_INTERFACE IImage : IReferenceCounted
+    {
         // Get current image description
         virtual const ImageDescription* getDescription() const noexcept = 0;
 
         // Map image to read/write
-        virtual bool map(ImageMappedBuffer& buffer) noexcept = 0;
+        virtual bool map(ImageMappedBuffer & buffer) noexcept = 0;
 
         // Unmap image
         virtual void unmap() noexcept = 0;
@@ -110,9 +118,10 @@ namespace core {
         // vvvvvvvvvv Helper functions vvvvvvvvvv
 
         // Map image to read/write (scoped ver).
-        inline bool createScopedMap(ScopedImageMappedBuffer& buffer) noexcept {
+        inline bool createScopedMap(ScopedImageMappedBuffer & buffer) noexcept
+        {
             buffer.image = nullptr;
-            if (!map(buffer)) {
+            if(!map(buffer)) {
                 return false;
             }
             buffer.image = this;
@@ -121,27 +130,41 @@ namespace core {
         }
 
         // Get current image size.
-        inline Vector2U getSize() const noexcept { return getDescription()->size; }
+        inline Vector2U getSize() const noexcept
+        {
+            return getDescription()->size;
+        }
 
         // Get current image format, or return unknown if failed or not initialized.
-        inline ImageFormat getFormat() const noexcept { return getDescription()->format; }
+        inline ImageFormat getFormat() const noexcept
+        {
+            return getDescription()->format;
+        }
 
         // Get current image color-space, or return unknown if failed or not initialized.
-        inline ImageColorSpace getColorSpace() const noexcept { return getDescription()->color_space; }
+        inline ImageColorSpace getColorSpace() const noexcept
+        {
+            return getDescription()->color_space;
+        }
 
         // Get current image alpha-mode, or return unknown if failed or not initialized.
-        inline ImageAlphaMode getAlphaMode() const noexcept { return getDescription()->alpha_mode; }
+        inline ImageAlphaMode getAlphaMode() const noexcept
+        {
+            return getDescription()->alpha_mode;
+        }
     };
     CORE_INTERFACE_ID(IImage, "5e4c12e0-e094-5346-b129-b9ddbb881373")
 
-    inline ScopedImageMappedBuffer::~ScopedImageMappedBuffer() noexcept {
-        if (image) {
+    inline ScopedImageMappedBuffer::~ScopedImageMappedBuffer() noexcept
+    {
+        if(image) {
             image->unmap();
             image->release();
         }
     }
 
-    class ImageFactory {
+    class ImageFactory
+    {
     public:
         // Create a modifiable image.
         static bool create(const ImageDescription& description, IImage** output_image);

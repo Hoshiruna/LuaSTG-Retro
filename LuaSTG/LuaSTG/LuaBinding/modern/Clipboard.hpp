@@ -1,14 +1,15 @@
 #pragma once
 #include "lua.hpp"
 
-namespace luastg::binding {
+namespace luastg::binding
+{
 
-	struct Clipboard {
+    struct Clipboard
+    {
 
-		static std::string_view const class_name;
+        static std::string_view const class_name;
 
-		static void registerClass(lua_State* vm);
-
-	};
+        static void registerClass(lua_State* vm);
+    };
 
 }

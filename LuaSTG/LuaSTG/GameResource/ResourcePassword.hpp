@@ -3,5 +3,5 @@
 
 namespace luastg
 {
-	std::string GetGameName();
+    std::string GetGameName();
 }

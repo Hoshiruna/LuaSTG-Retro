@@ -5,13 +5,15 @@
 
 namespace luastg
 {
-	class ResourceModelImpl : public ResourceBaseImpl<IResourceModel>
-	{
-	private:
-		core::SmartReference<core::Graphics::IModel> model_;
-	public:
-		core::Graphics::IModel* GetModel() { return *model_; }
-	public:
-		ResourceModelImpl(const char* name, const char* path);
-	};
+    class ResourceModelImpl : public ResourceBaseImpl<IResourceModel>
+    {
+    private:
+        core::SmartReference<core::Graphics::IModel> model_;
+
+    public:
+        core::Graphics::IModel* GetModel() { return *model_; }
+
+    public:
+        ResourceModelImpl(const char* name, const char* path);
+    };
 }

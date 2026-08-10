@@ -33,72 +33,72 @@
 
 #include <cstdint>
 
-namespace sfc_detail {
+namespace sfc_detail
+{
 
-template <typename itype, typename rtype,
-          unsigned int p, unsigned int q, unsigned int r>
-class sfc {
-protected:
-    itype a_, b_, c_, d_;
-
-    static constexpr unsigned int ITYPE_BITS = 8*sizeof(itype);
-    static constexpr unsigned int RTYPE_BITS = 8*sizeof(rtype);
-
-    static itype rotate(itype x, unsigned int k)
+    template<typename itype, typename rtype, unsigned int p, unsigned int q, unsigned int r>
+    class sfc
     {
-        return (x << k) | (x >> (ITYPE_BITS - k));
-    }
+    protected:
+        itype a_, b_, c_, d_;
 
-public:
-    using result_type = rtype;
-    using state_type = itype;
+        static constexpr unsigned int ITYPE_BITS = 8 * sizeof(itype);
+        static constexpr unsigned int RTYPE_BITS = 8 * sizeof(rtype);
 
-    static constexpr result_type min() { return 0; }
-    static constexpr result_type max() { return ~ result_type(0); }
+        static itype rotate(itype x, unsigned int k)
+        {
+            return (x << k) | (x >> (ITYPE_BITS - k));
+        }
 
-    sfc(itype seed = itype(0xcafef00dbeef5eedULL))
-        : sfc(seed, seed, seed)
-    {
-        // Nothing (else) to do
-    }
-    
-    sfc(itype seed1, itype seed2, itype seed3)
-        : a_(seed3), b_(seed2), c_(seed1), d_(itype(1))
-    {
-        for (unsigned int i=0; i < 12; ++i)
-            advance();
-    }
+    public:
+        using result_type = rtype;
+        using state_type = itype;
 
-    void advance()
-    {
-        (void)operator()();
-    }
+        static constexpr result_type min() { return 0; }
+        static constexpr result_type max() { return ~result_type(0); }
 
-    rtype operator()()
-    {
-        itype tmp = a_ + b_ + d_++;
-        a_ = b_ ^ (b_ >> q);
-        b_ = c_ + (c_ << r);
-        c_ = rotate(c_, p) + tmp;
-        return rtype(tmp);
-    }
+        sfc(itype seed = itype(0xcafef00dbeef5eedULL))
+            : sfc(seed, seed, seed)
+        {
+            // Nothing (else) to do
+        }
 
-    bool operator==(const sfc& rhs)
-    {
-        return (a_ == rhs.a_) && (b_ == rhs.b_) 
-            && (c_ == rhs.c_) && (d_ == rhs.d_);
-    }
+        sfc(itype seed1, itype seed2, itype seed3)
+            : a_(seed3), b_(seed2), c_(seed1), d_(itype(1))
+        {
+            for(unsigned int i = 0; i < 12; ++i)
+                advance();
+        }
 
-    bool operator!=(const sfc& rhs)
-    {
-        return !operator==(rhs);
-    }
+        void advance()
+        {
+            (void)operator()();
+        }
 
-    // Not (yet) implemented:
-    //   - arbitrary jumpahead (doable, but annoying to write).
-    //   - I/O
-    //   - Seeding from a seed_seq.
-};
+        rtype operator()()
+        {
+            itype tmp = a_ + b_ + d_++;
+            a_ = b_ ^ (b_ >> q);
+            b_ = c_ + (c_ << r);
+            c_ = rotate(c_, p) + tmp;
+            return rtype(tmp);
+        }
+
+        bool operator==(const sfc& rhs)
+        {
+            return (a_ == rhs.a_) && (b_ == rhs.b_) && (c_ == rhs.c_) && (d_ == rhs.d_);
+        }
+
+        bool operator!=(const sfc& rhs)
+        {
+            return !operator==(rhs);
+        }
+
+        // Not (yet) implemented:
+        //   - arbitrary jumpahead (doable, but annoying to write).
+        //   - I/O
+        //   - Seeding from a seed_seq.
+    };
 
 } // end namespace
 
@@ -111,16 +111,16 @@ public:
 
 // - 256 state bits, uint64_t output
 
-using sfc64a = sfc_detail::sfc<uint64_t, uint64_t, 24,11,3>;
-using sfc64b = sfc_detail::sfc<uint64_t, uint64_t, 25,12,3>; // old, less good
+using sfc64a = sfc_detail::sfc<uint64_t, uint64_t, 24, 11, 3>;
+using sfc64b = sfc_detail::sfc<uint64_t, uint64_t, 25, 12, 3>; // old, less good
 
 using sfc64 = sfc64a;
 
 // - 128 state bits, uint32_t output
 
-using sfc32a = sfc_detail::sfc<uint32_t, uint32_t, 21,9,3>;
-using sfc32b = sfc_detail::sfc<uint32_t, uint32_t, 15,8,3>;
-using sfc32c = sfc_detail::sfc<uint32_t, uint32_t, 25,8,3>; // old, less good
+using sfc32a = sfc_detail::sfc<uint32_t, uint32_t, 21, 9, 3>;
+using sfc32b = sfc_detail::sfc<uint32_t, uint32_t, 15, 8, 3>;
+using sfc32c = sfc_detail::sfc<uint32_t, uint32_t, 25, 8, 3>; // old, less good
 
 using sfc32 = sfc32a;
 
@@ -128,12 +128,12 @@ using sfc32 = sfc32a;
 
 // - 64 state bits, uint16_t output
 
-using sfc16a = sfc_detail::sfc<uint16_t, uint16_t, 4,3,2>;
-using sfc16b = sfc_detail::sfc<uint16_t, uint16_t, 6,5,2>;
-using sfc16c = sfc_detail::sfc<uint16_t, uint16_t, 4,5,3>;
-using sfc16d = sfc_detail::sfc<uint16_t, uint16_t, 6,5,3>;
-using sfc16e = sfc_detail::sfc<uint16_t, uint16_t, 7,5,3>;
-using sfc16f = sfc_detail::sfc<uint16_t, uint16_t, 7,3,2>; // old, less good
+using sfc16a = sfc_detail::sfc<uint16_t, uint16_t, 4, 3, 2>;
+using sfc16b = sfc_detail::sfc<uint16_t, uint16_t, 6, 5, 2>;
+using sfc16c = sfc_detail::sfc<uint16_t, uint16_t, 4, 5, 3>;
+using sfc16d = sfc_detail::sfc<uint16_t, uint16_t, 6, 5, 3>;
+using sfc16e = sfc_detail::sfc<uint16_t, uint16_t, 7, 5, 3>;
+using sfc16f = sfc_detail::sfc<uint16_t, uint16_t, 7, 3, 2>; // old, less good
 
 using sfc16 = sfc16d;
 

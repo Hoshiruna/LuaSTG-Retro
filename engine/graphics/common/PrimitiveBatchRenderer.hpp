@@ -3,8 +3,10 @@
 #include "core/Graphics/Renderer.hpp"
 #include "core/SmartReference.hpp"
 
-namespace core {
-    class PrimitiveBatchRenderer : public IGraphicsDeviceEventListener {
+namespace core
+{
+    class PrimitiveBatchRenderer : public IGraphicsDeviceEventListener
+    {
     public:
         using DrawVertex = Graphics::IRenderer::DrawVertex;
         using DrawIndex = Graphics::IRenderer::DrawIndex;

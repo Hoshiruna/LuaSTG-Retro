@@ -1,50 +1,58 @@
 #include "backend/Direct2dDirectWriteTextRenderer.hpp"
 #include <cassert>
 
-namespace core {
+namespace core
+{
     // IUnknown
-        
-    HRESULT WINAPI Direct2dDirectWriteTextRenderer::QueryInterface(IID const& riid, void** ppvObject) {
-        if (riid == __uuidof(IUnknown)) {
+
+    HRESULT WINAPI Direct2dDirectWriteTextRenderer::QueryInterface(IID const& riid, void** ppvObject)
+    {
+        if(riid == __uuidof(IUnknown)) {
             AddRef();
             *ppvObject = static_cast<IUnknown*>(this);
             return S_OK;
         }
-        if (riid == __uuidof(IDWritePixelSnapping)) {
+        if(riid == __uuidof(IDWritePixelSnapping)) {
             AddRef();
             *ppvObject = static_cast<IDWritePixelSnapping*>(this);
             return S_OK;
         }
-        if (riid == __uuidof(IDWriteTextRenderer)) {
+        if(riid == __uuidof(IDWriteTextRenderer)) {
             AddRef();
             *ppvObject = static_cast<IDWriteTextRenderer*>(this);
             return S_OK;
         }
-        if (riid == __uuidof(IDWriteTextRenderer1)) {
+        if(riid == __uuidof(IDWriteTextRenderer1)) {
             AddRef();
             *ppvObject = static_cast<IDWriteTextRenderer1*>(this);
             return S_OK;
         }
         return E_NOINTERFACE;
     }
-    ULONG WINAPI Direct2dDirectWriteTextRenderer::AddRef() { return 2; }
-    ULONG WINAPI Direct2dDirectWriteTextRenderer::Release() { return 1; }
+    ULONG WINAPI Direct2dDirectWriteTextRenderer::AddRef()
+    {
+        return 2;
+    }
+    ULONG WINAPI Direct2dDirectWriteTextRenderer::Release()
+    {
+        return 1;
+    }
 
     // IDWritePixelSnapping
 
     HRESULT WINAPI Direct2dDirectWriteTextRenderer::IsPixelSnappingDisabled(
         void* clientDrawingContext,
-        BOOL* isDisabled
-    ) noexcept {
+        BOOL* isDisabled) noexcept
+    {
         UNREFERENCED_PARAMETER(clientDrawingContext);
         *isDisabled = FALSE; // recommended default value
         return S_OK;
     }
-    
+
     HRESULT WINAPI Direct2dDirectWriteTextRenderer::GetCurrentTransform(
         void* clientDrawingContext,
-        DWRITE_MATRIX* transform
-    ) noexcept {
+        DWRITE_MATRIX* transform) noexcept
+    {
         UNREFERENCED_PARAMETER(clientDrawingContext);
         // forward the render target's transform
         d2d1_rt->GetTransform(reinterpret_cast<D2D1_MATRIX_3X2_F*>(transform));
@@ -53,8 +61,8 @@ namespace core {
 
     HRESULT WINAPI Direct2dDirectWriteTextRenderer::GetPixelsPerDip(
         void* clientDrawingContext,
-        FLOAT* pixelsPerDip
-    ) noexcept {
+        FLOAT* pixelsPerDip) noexcept
+    {
         UNREFERENCED_PARAMETER(clientDrawingContext);
         float x = 0.0f, y = 0.0f;
         d2d1_rt->GetDpi(&x, &y);
@@ -71,8 +79,8 @@ namespace core {
         DWRITE_MEASURING_MODE measuringMode,
         DWRITE_GLYPH_RUN const* glyphRun,
         DWRITE_GLYPH_RUN_DESCRIPTION const* glyphRunDescription,
-        IUnknown* clientDrawingEffect
-    ) noexcept {
+        IUnknown* clientDrawingEffect) noexcept
+    {
         UNREFERENCED_PARAMETER(clientDrawingContext);
         UNREFERENCED_PARAMETER(measuringMode);
         UNREFERENCED_PARAMETER(glyphRunDescription);
@@ -84,13 +92,15 @@ namespace core {
 
         win32::com_ptr<ID2D1PathGeometry> d2d1_path_geometry;
         hr = d2d1_factory->CreatePathGeometry(d2d1_path_geometry.put());
-        if (FAILED(hr)) return hr;
+        if(FAILED(hr))
+            return hr;
 
         // Write to the path geometry using the geometry sink.
 
         win32::com_ptr<ID2D1GeometrySink> d2d1_geometry_sink;
         hr = d2d1_path_geometry->Open(d2d1_geometry_sink.put());
-        if (FAILED(hr)) return hr;
+        if(FAILED(hr))
+            return hr;
 
         hr = glyphRun->fontFace->GetGlyphRunOutline(
             glyphRun->fontEmSize,
@@ -100,12 +110,13 @@ namespace core {
             glyphRun->glyphCount,
             glyphRun->isSideways,
             glyphRun->bidiLevel % 2,
-            d2d1_geometry_sink.get()
-        );
-        if (FAILED(hr)) return hr;
+            d2d1_geometry_sink.get());
+        if(FAILED(hr))
+            return hr;
 
         hr = d2d1_geometry_sink->Close();
-        if (FAILED(hr)) return hr;
+        if(FAILED(hr))
+            return hr;
 
         const D2D1::Matrix3x2F matrix = D2D1::Matrix3x2F::Translation(baselineOriginX, baselineOriginY);
 
@@ -113,17 +124,19 @@ namespace core {
         hr = d2d1_factory->CreateTransformedGeometry(
             d2d1_path_geometry.get(),
             &matrix,
-            d2d1_transformed_geometry.put()
-        );
-        if (FAILED(hr)) return hr;
+            d2d1_transformed_geometry.put());
+        if(FAILED(hr))
+            return hr;
 
         // Draw the outline of the glyph run
 
-        if (layer_stroke) d2d1_rt->DrawGeometry(d2d1_transformed_geometry.get(), d2d1_brush_outline.get(), outline_width, d2d1_stroke_style.get());
+        if(layer_stroke)
+            d2d1_rt->DrawGeometry(d2d1_transformed_geometry.get(), d2d1_brush_outline.get(), outline_width, d2d1_stroke_style.get());
 
         // Fill in the glyph run
 
-        if (layer_text) d2d1_rt->FillGeometry(d2d1_transformed_geometry.get(), d2d1_brush_fill.get());
+        if(layer_text)
+            d2d1_rt->FillGeometry(d2d1_transformed_geometry.get(), d2d1_brush_fill.get());
 
         return S_OK;
     }
@@ -133,8 +146,8 @@ namespace core {
         FLOAT baselineOriginX,
         FLOAT baselineOriginY,
         DWRITE_UNDERLINE const* underline,
-        IUnknown* clientDrawingEffect
-    ) noexcept {
+        IUnknown* clientDrawingEffect) noexcept
+    {
         UNREFERENCED_PARAMETER(clientDrawingContext);
         UNREFERENCED_PARAMETER(clientDrawingEffect);
 
@@ -144,12 +157,12 @@ namespace core {
             0,
             underline->offset,
             underline->width,
-            underline->offset + underline->thickness
-        );
+            underline->offset + underline->thickness);
 
         win32::com_ptr<ID2D1RectangleGeometry> d2d1_rect_geometry;
         hr = d2d1_factory->CreateRectangleGeometry(&rect, d2d1_rect_geometry.put());
-        if (FAILED(hr)) return hr;
+        if(FAILED(hr))
+            return hr;
 
         const D2D1::Matrix3x2F matrix = D2D1::Matrix3x2F::Translation(baselineOriginX, baselineOriginY);
 
@@ -157,13 +170,15 @@ namespace core {
         hr = d2d1_factory->CreateTransformedGeometry(
             d2d1_rect_geometry.get(),
             &matrix,
-            d2d1_transformed_geometry.put()
-        );
-        if (FAILED(hr)) return hr;
+            d2d1_transformed_geometry.put());
+        if(FAILED(hr))
+            return hr;
 
-        if (layer_stroke) d2d1_rt->DrawGeometry(d2d1_transformed_geometry.get(), d2d1_brush_outline.get(), outline_width);
+        if(layer_stroke)
+            d2d1_rt->DrawGeometry(d2d1_transformed_geometry.get(), d2d1_brush_outline.get(), outline_width);
 
-        if (layer_text) d2d1_rt->FillGeometry(d2d1_transformed_geometry.get(), d2d1_brush_fill.get());
+        if(layer_text)
+            d2d1_rt->FillGeometry(d2d1_transformed_geometry.get(), d2d1_brush_fill.get());
 
         return S_OK;
     }
@@ -173,8 +188,8 @@ namespace core {
         FLOAT baselineOriginX,
         FLOAT baselineOriginY,
         DWRITE_STRIKETHROUGH const* strikethrough,
-        IUnknown* clientDrawingEffect
-    ) noexcept {
+        IUnknown* clientDrawingEffect) noexcept
+    {
         UNREFERENCED_PARAMETER(clientDrawingContext);
         UNREFERENCED_PARAMETER(clientDrawingEffect);
 
@@ -184,12 +199,12 @@ namespace core {
             0,
             strikethrough->offset,
             strikethrough->width,
-            strikethrough->offset + strikethrough->thickness
-        );
+            strikethrough->offset + strikethrough->thickness);
 
         win32::com_ptr<ID2D1RectangleGeometry> d2d1_rect_geometry;
         hr = d2d1_factory->CreateRectangleGeometry(&rect, d2d1_rect_geometry.put());
-        if (FAILED(hr)) return hr;
+        if(FAILED(hr))
+            return hr;
 
         const D2D1::Matrix3x2F matrix = D2D1::Matrix3x2F::Translation(baselineOriginX, baselineOriginY);
 
@@ -197,13 +212,15 @@ namespace core {
         hr = d2d1_factory->CreateTransformedGeometry(
             d2d1_rect_geometry.get(),
             &matrix,
-            d2d1_transformed_geometry.put()
-        );
-        if (FAILED(hr)) return hr;
+            d2d1_transformed_geometry.put());
+        if(FAILED(hr))
+            return hr;
 
-        if (layer_stroke) d2d1_rt->DrawGeometry(d2d1_transformed_geometry.get(), d2d1_brush_outline.get(), outline_width);
+        if(layer_stroke)
+            d2d1_rt->DrawGeometry(d2d1_transformed_geometry.get(), d2d1_brush_outline.get(), outline_width);
 
-        if (layer_text) d2d1_rt->FillGeometry(d2d1_transformed_geometry.get(), d2d1_brush_fill.get());
+        if(layer_text)
+            d2d1_rt->FillGeometry(d2d1_transformed_geometry.get(), d2d1_brush_fill.get());
 
         return S_OK;
     }
@@ -215,8 +232,8 @@ namespace core {
         IDWriteInlineObject* inlineObject,
         BOOL isSideways,
         BOOL isRightToLeft,
-        IUnknown* clientDrawingEffect
-    ) noexcept {
+        IUnknown* clientDrawingEffect) noexcept
+    {
         UNREFERENCED_PARAMETER(clientDrawingContext);
         UNREFERENCED_PARAMETER(originX);
         UNREFERENCED_PARAMETER(originY);
@@ -237,8 +254,8 @@ namespace core {
         DWRITE_MEASURING_MODE measuringMode,
         DWRITE_GLYPH_RUN const* glyphRun,
         DWRITE_GLYPH_RUN_DESCRIPTION const* glyphRunDescription,
-        IUnknown* clientDrawingEffect
-    ) noexcept {
+        IUnknown* clientDrawingEffect) noexcept
+    {
         UNREFERENCED_PARAMETER(clientDrawingContext);
         UNREFERENCED_PARAMETER(measuringMode);
         UNREFERENCED_PARAMETER(glyphRunDescription);
@@ -250,13 +267,15 @@ namespace core {
 
         win32::com_ptr<ID2D1PathGeometry> d2d1_path_geometry;
         hr = d2d1_factory->CreatePathGeometry(d2d1_path_geometry.put());
-        if (FAILED(hr)) return hr;
+        if(FAILED(hr))
+            return hr;
 
         // Write to the path geometry using the geometry sink.
 
         win32::com_ptr<ID2D1GeometrySink> d2d1_geometry_sink;
         hr = d2d1_path_geometry->Open(d2d1_geometry_sink.put());
-        if (FAILED(hr)) return hr;
+        if(FAILED(hr))
+            return hr;
 
         hr = glyphRun->fontFace->GetGlyphRunOutline(
             glyphRun->fontEmSize,
@@ -266,12 +285,13 @@ namespace core {
             glyphRun->glyphCount,
             glyphRun->isSideways,
             glyphRun->bidiLevel % 2,
-            d2d1_geometry_sink.get()
-        );
-        if (FAILED(hr)) return hr;
+            d2d1_geometry_sink.get());
+        if(FAILED(hr))
+            return hr;
 
         hr = d2d1_geometry_sink->Close();
-        if (FAILED(hr)) return hr;
+        if(FAILED(hr))
+            return hr;
 
         // TODO: 为什么旋转方向是这样判断的？
         FLOAT rotate_angle = 0.0f;
@@ -284,7 +304,7 @@ namespace core {
         //default: assert(false); break;
         //}
         UNREFERENCED_PARAMETER(orientationAngle);
-        switch (dwrite_text_layout->GetReadingDirection()) {
+        switch(dwrite_text_layout->GetReadingDirection()) {
             case DWRITE_READING_DIRECTION_LEFT_TO_RIGHT: rotate_angle = 0.0f; break;
             //case DWRITE_READING_DIRECTION_RIGHT_TO_LEFT: rotate_angle = 0.0f; break;
             case DWRITE_READING_DIRECTION_TOP_TO_BOTTOM: rotate_angle = 90.0f; break;
@@ -300,17 +320,19 @@ namespace core {
         hr = d2d1_factory->CreateTransformedGeometry(
             d2d1_path_geometry.get(),
             &matrix,
-            d2d1_transformed_geometry.put()
-        );
-        if (FAILED(hr)) return hr;
+            d2d1_transformed_geometry.put());
+        if(FAILED(hr))
+            return hr;
 
         // Draw the outline of the glyph run
 
-        if (layer_stroke) d2d1_rt->DrawGeometry(d2d1_transformed_geometry.get(), d2d1_brush_outline.get(), outline_width, d2d1_stroke_style.get());
+        if(layer_stroke)
+            d2d1_rt->DrawGeometry(d2d1_transformed_geometry.get(), d2d1_brush_outline.get(), outline_width, d2d1_stroke_style.get());
 
         // Fill in the glyph run
 
-        if (layer_text) d2d1_rt->FillGeometry(d2d1_transformed_geometry.get(), d2d1_brush_fill.get());
+        if(layer_text)
+            d2d1_rt->FillGeometry(d2d1_transformed_geometry.get(), d2d1_brush_fill.get());
 
         return S_OK;
     }
@@ -321,8 +343,8 @@ namespace core {
         FLOAT baselineOriginY,
         DWRITE_GLYPH_ORIENTATION_ANGLE orientationAngle,
         DWRITE_UNDERLINE const* underline,
-        IUnknown* clientDrawingEffect
-    ) noexcept {
+        IUnknown* clientDrawingEffect) noexcept
+    {
         UNREFERENCED_PARAMETER(clientDrawingContext);
         UNREFERENCED_PARAMETER(clientDrawingEffect);
 
@@ -332,12 +354,12 @@ namespace core {
             0,
             underline->offset,
             underline->width,
-            underline->offset + underline->thickness
-        );
+            underline->offset + underline->thickness);
 
         win32::com_ptr<ID2D1RectangleGeometry> d2d1_rect_geometry;
         hr = d2d1_factory->CreateRectangleGeometry(&rect, d2d1_rect_geometry.put());
-        if (FAILED(hr)) return hr;
+        if(FAILED(hr))
+            return hr;
 
         // TODO: 为什么旋转方向是这样判断的？
         FLOAT rotate_angle = 0.0f;
@@ -350,7 +372,7 @@ namespace core {
         //default: assert(false); break;
         //}
         UNREFERENCED_PARAMETER(orientationAngle);
-        switch (dwrite_text_layout->GetReadingDirection()) {
+        switch(dwrite_text_layout->GetReadingDirection()) {
             case DWRITE_READING_DIRECTION_LEFT_TO_RIGHT: rotate_angle = 0.0f; break;
             //case DWRITE_READING_DIRECTION_RIGHT_TO_LEFT: rotate_angle = 0.0f; break;
             case DWRITE_READING_DIRECTION_TOP_TO_BOTTOM: rotate_angle = 90.0f; break;
@@ -366,13 +388,15 @@ namespace core {
         hr = d2d1_factory->CreateTransformedGeometry(
             d2d1_rect_geometry.get(),
             &matrix,
-            d2d1_transformed_geometry.put()
-        );
-        if (FAILED(hr)) return hr;
+            d2d1_transformed_geometry.put());
+        if(FAILED(hr))
+            return hr;
 
-        if (layer_stroke) d2d1_rt->DrawGeometry(d2d1_transformed_geometry.get(), d2d1_brush_outline.get(), outline_width);
+        if(layer_stroke)
+            d2d1_rt->DrawGeometry(d2d1_transformed_geometry.get(), d2d1_brush_outline.get(), outline_width);
 
-        if (layer_text) d2d1_rt->FillGeometry(d2d1_transformed_geometry.get(), d2d1_brush_fill.get());
+        if(layer_text)
+            d2d1_rt->FillGeometry(d2d1_transformed_geometry.get(), d2d1_brush_fill.get());
 
         return S_OK;
     }
@@ -383,8 +407,8 @@ namespace core {
         FLOAT baselineOriginY,
         DWRITE_GLYPH_ORIENTATION_ANGLE orientationAngle,
         DWRITE_STRIKETHROUGH const* strikethrough,
-        IUnknown* clientDrawingEffect
-    ) noexcept {
+        IUnknown* clientDrawingEffect) noexcept
+    {
         UNREFERENCED_PARAMETER(clientDrawingContext);
         UNREFERENCED_PARAMETER(clientDrawingEffect);
 
@@ -394,12 +418,12 @@ namespace core {
             0,
             strikethrough->offset,
             strikethrough->width,
-            strikethrough->offset + strikethrough->thickness
-        );
+            strikethrough->offset + strikethrough->thickness);
 
         win32::com_ptr<ID2D1RectangleGeometry> d2d1_rect_geometry;
         hr = d2d1_factory->CreateRectangleGeometry(&rect, d2d1_rect_geometry.put());
-        if (FAILED(hr)) return hr;
+        if(FAILED(hr))
+            return hr;
 
         // TODO: 为什么旋转方向是这样判断的？
         FLOAT rotate_angle = 0.0f;
@@ -412,7 +436,7 @@ namespace core {
         //default: assert(false); break;
         //}
         UNREFERENCED_PARAMETER(orientationAngle);
-        switch (dwrite_text_layout->GetReadingDirection()) {
+        switch(dwrite_text_layout->GetReadingDirection()) {
             case DWRITE_READING_DIRECTION_LEFT_TO_RIGHT: rotate_angle = 0.0f; break;
             //case DWRITE_READING_DIRECTION_RIGHT_TO_LEFT: rotate_angle = 0.0f; break;
             case DWRITE_READING_DIRECTION_TOP_TO_BOTTOM: rotate_angle = 90.0f; break;
@@ -428,13 +452,15 @@ namespace core {
         hr = d2d1_factory->CreateTransformedGeometry(
             d2d1_rect_geometry.get(),
             &matrix,
-            d2d1_transformed_geometry.put()
-        );
-        if (FAILED(hr)) return hr;
+            d2d1_transformed_geometry.put());
+        if(FAILED(hr))
+            return hr;
 
-        if (layer_stroke) d2d1_rt->DrawGeometry(d2d1_transformed_geometry.get(), d2d1_brush_outline.get(), outline_width);
+        if(layer_stroke)
+            d2d1_rt->DrawGeometry(d2d1_transformed_geometry.get(), d2d1_brush_outline.get(), outline_width);
 
-        if (layer_text) d2d1_rt->FillGeometry(d2d1_transformed_geometry.get(), d2d1_brush_fill.get());
+        if(layer_text)
+            d2d1_rt->FillGeometry(d2d1_transformed_geometry.get(), d2d1_brush_fill.get());
 
         return S_OK;
     }
@@ -447,8 +473,8 @@ namespace core {
         IDWriteInlineObject* inlineObject,
         BOOL isSideways,
         BOOL isRightToLeft,
-        IUnknown* clientDrawingEffect
-    ) noexcept {
+        IUnknown* clientDrawingEffect) noexcept
+    {
         UNREFERENCED_PARAMETER(clientDrawingContext);
         UNREFERENCED_PARAMETER(originX);
         UNREFERENCED_PARAMETER(originY);
@@ -469,17 +495,19 @@ namespace core {
         ID2D1Brush* const outline,
         ID2D1Brush* const fill,
         ID2D1StrokeStyle* const stroke_style,
-        const FLOAT width
-    ) : d2d1_factory(factory),
-        d2d1_rt(target),
-        dwrite_text_layout(layout),
-        d2d1_brush_outline(outline),
-        d2d1_brush_fill(fill),
-        d2d1_stroke_style(stroke_style),
-        outline_width(width) {
+        const FLOAT width)
+        : d2d1_factory(factory),
+          d2d1_rt(target),
+          dwrite_text_layout(layout),
+          d2d1_brush_outline(outline),
+          d2d1_brush_fill(fill),
+          d2d1_stroke_style(stroke_style),
+          outline_width(width)
+    {
     }
 
-    void Direct2dDirectWriteTextRenderer::setLayerEnable(const BOOL text, const BOOL stroke) noexcept {
+    void Direct2dDirectWriteTextRenderer::setLayerEnable(const BOOL text, const BOOL stroke) noexcept
+    {
         layer_text = text;
         layer_stroke = stroke;
     }

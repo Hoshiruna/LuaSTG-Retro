@@ -1,8 +1,10 @@
 #pragma once
 #include <cstdint>
 
-namespace core {
-    enum class FontWeight : int32_t {
+namespace core
+{
+    enum class FontWeight : int32_t
+    {
         thin = 100,
         extra_light = 200,
         light = 300,
@@ -14,13 +16,15 @@ namespace core {
         black = 900,
     };
 
-    enum class FontStyle : int32_t {
+    enum class FontStyle : int32_t
+    {
         normal = 0,
         oblique = 1,
         italic = 2,
     };
 
-    enum class FontWidth : int32_t {
+    enum class FontWidth : int32_t
+    {
         ultra_condensed = 1,
         extra_condensed = 2,
         condensed = 3,

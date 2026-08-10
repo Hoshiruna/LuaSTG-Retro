@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 #include "AppFrame.h"
 #include "ApplicationRestart.hpp"
 #include "core/FileSystem.hpp"
@@ -442,3 +443,477 @@ bool AppFrame::onRender()
 }
 
 #pragma endregion
+=======
+#include "AppFrame.h"
+#include "ApplicationRestart.hpp"
+#include "core/FileSystem.hpp"
+#include "Platform/XInput.hpp"
+#include "Utility/Utility.h"
+#include "Debugger/ImGuiExtension.h"
+#include "DiscordRPC/DiscordRPC.hpp"
+#include "LuaBinding/LuaAppFrame.hpp"
+#include "utf8.hpp"
+#include "core/Configuration.hpp"
+
+using namespace luastg;
+
+////////////////////////////////////////////////////////////////////////////////
+/// AppFrame
+////////////////////////////////////////////////////////////////////////////////
+
+AppFrame&
+AppFrame::GetInstance()
+{
+    static AppFrame s_Instance;
+    return s_Instance;
+}
+AppFrame::AppFrame() noexcept = default;
+AppFrame::~AppFrame() noexcept
+{
+    if(m_iStatus != AppStatus::NotInitialized && m_iStatus != AppStatus::Destroyed) {
+        // Destroying framework if it has not been destroyed
+        Shutdown();
+    }
+}
+
+#pragma region // Script API
+
+void
+AppFrame::SetFPS(uint32_t v) noexcept
+{
+    m_target_fps = std::max(1u, v); // FPS must be at least 1
+}
+void
+AppFrame::SetSEVolume(float v)
+{
+    if(m_audio_engine) {
+        m_audio_engine->setMixingChannelVolume(core::AudioMixingChannel::sound_effect, v);
+    } else {
+        core::ConfigurationLoader::getInstance().getAudioSystemRef().setSoundEffectVolume(v);
+    }
+}
+void
+AppFrame::SetBGMVolume(float v)
+{
+    if(m_audio_engine) {
+        m_audio_engine->setMixingChannelVolume(core::AudioMixingChannel::music, v);
+    } else {
+        core::ConfigurationLoader::getInstance().getAudioSystemRef().setMusicVolume(v);
+    }
+}
+float
+AppFrame::GetSEVolume()
+{
+    if(m_audio_engine) {
+        return m_audio_engine->getMixingChannelVolume(core::AudioMixingChannel::sound_effect);
+    } else {
+        return core::ConfigurationLoader::getInstance().getAudioSystem().getSoundEffectVolume();
+    }
+}
+float
+AppFrame::GetBGMVolume()
+{
+    if(m_audio_engine) {
+        return m_audio_engine->getMixingChannelVolume(core::AudioMixingChannel::music);
+    } else {
+        return core::ConfigurationLoader::getInstance().getAudioSystem().getMusicVolume();
+    }
+}
+void
+AppFrame::SetTitle(const char* v) noexcept
+{
+    if(m_pAppModel) {
+        m_pAppModel->getWindow()->setTitleText(v);
+    } else {
+        auto& win = core::ConfigurationLoader::getInstance().getWindowRef();
+        win.setTitle(v);
+    }
+}
+void
+AppFrame::SetPreferenceGPU(const char* v) noexcept
+{
+    if(m_pAppModel) {
+        // TODO
+    } else {
+        auto& gs = core::ConfigurationLoader::getInstance().getGraphicsSystemRef();
+        gs.setPreferredDeviceName(v);
+    }
+}
+void
+AppFrame::SetSplash(bool v) noexcept
+{
+    if(m_pAppModel) {
+        m_pAppModel->getWindow()->setCursor(v ? core::Graphics::WindowCursor::Arrow : core::Graphics::WindowCursor::None);
+    } else {
+        auto& win = core::ConfigurationLoader::getInstance().getWindowRef();
+        win.setCursorVisible(v);
+    }
+}
+
+int
+AppFrame::LoadTextFile(lua_State* L_, const char* path, const char* packname) noexcept
+{
+    if(ResourceMgr::GetResourceLoadingLog()) {
+        if(packname)
+            spdlog::info("[luastg] Reading text file '{}' from resource package '{}'", packname, path);
+        else
+            spdlog::info("[luastg] Reading text file '{}'", path);
+    }
+    bool loaded = false;
+    core::SmartReference<core::IData> src;
+    if(packname) {
+        core::SmartReference<core::IFileSystemArchive> archive;
+        if(core::FileSystemManager::getFileSystemArchiveByPath(packname, archive.put())) {
+            loaded = archive->readFile(path, src.put());
+        }
+    } else {
+        loaded = core::FileSystemManager::readFile(path, src.put());
+    }
+    if(!loaded) {
+        spdlog::error("[luastg] Failed to load file '{}'", path);
+        return 0;
+    }
+    lua_pushlstring(L_, (char*)src->data(), src->size());
+    return 1;
+}
+
+#pragma endregion
+
+#pragma region // Framework function
+
+bool
+AppFrame::Init() noexcept
+{
+    assert(m_iStatus == AppStatus::NotInitialized);
+
+    spdlog::info(LUASTG_INFO);
+    spdlog::info("[luastg] Initializing engine");
+    m_iStatus = AppStatus::Initializing;
+
+    //////////////////////////////////////// Basics
+
+    // Initializing file system
+    if(auto const& resources = core::ConfigurationLoader::getInstance().getFileSystem().getResources(); !resources.empty()) {
+        for(auto const& resource : resources) {
+            using Type = core::ConfigurationLoader::FileSystem::ResourceFileSystem::Type;
+            switch(resource.getType()) {
+                case Type::directory:
+                    core::FileSystemManager::addSearchPath(resource.getPath());
+                    break;
+                case Type::archive:
+                    do {
+                        core::SmartReference<core::IFileSystemArchive> archive;
+                        if(core::IFileSystemArchive::createFromFile(resource.getPath(), archive.put())) {
+                            core::FileSystemManager::addFileSystem(resource.getName(), archive.get());
+                        }
+                    } while(false);
+                    break;
+            }
+        }
+    }
+
+    //////////////////////////////////////// Game object pool
+
+    // Allocating memory for object pool
+    spdlog::info("[luastg] Initializing object pool, capacity: {}", LOBJPOOL_SIZE);
+    try {
+        m_GameObjectPool = std::make_unique<GameObjectPool>();
+    } catch(const std::bad_alloc&) {
+        spdlog::error("[luastg] Failed to allocate memory for object pool");
+        return false;
+    }
+
+    //////////////////////////////////////// LuaJIT Engine
+
+    spdlog::info("[luastg] Initializing LuaJIT engine");
+
+    // Starting Lua engine
+    if(!OnOpenLuaEngine()) {
+        spdlog::info("[luastg] Failed to initialize LuaJIT engine");
+        return false;
+    }
+
+    // Loading initialization script (Optional)
+    if(!OnLoadLaunchScriptAndFiles()) {
+        return false;
+    }
+
+    //////////////////////////////////////// Application model, window subsystem, graphics subsystem, audio subsystem, etc.
+
+    {
+        if(auto& window_config = core::ConfigurationLoader::getInstance().getWindowRef(); !window_config.hasTitle()) {
+            window_config.setTitle(LUASTG_INFO);
+        }
+
+        if(!core::IApplicationModel::create(this, m_pAppModel.put()))
+            return false;
+        if(!core::IAudioEngine::create(m_audio_engine.put()))
+            return false;
+        if(!core::Graphics::ITextRenderer::create(m_pAppModel->getRenderer(), m_pTextRenderer.put()))
+            return false;
+        if(!InitializationApplySettingStage1())
+            return false;
+
+        // Renderer adapter
+        m_bRenderStarted = false;
+
+        OpenInput();
+
+        // Creating controller input
+        try {
+            m_DirectInput = std::make_unique<Platform::DirectInput>((ptrdiff_t)m_pAppModel->getWindow()->getNativeHandle());
+            {
+                m_DirectInput->refresh(); // Since the window has not been shown yet, an Acquire device failure may occur and can be ignored.
+                uint32_t cnt = m_DirectInput->count();
+                for(uint32_t i = 0; i < cnt; i += 1) {
+                    spdlog::info("[luastg] Detected {} controller(s), product name: {}, device name: {}",
+                        m_DirectInput->isXInputDevice(i) ? "XInput" : "DirectInput",
+                        utf8::to_string(m_DirectInput->getProductName(i)),
+                        utf8::to_string(m_DirectInput->getDeviceName(i)));
+                }
+                spdlog::info("[luastg] Successfully created {} controller(s)", cnt);
+            }
+        } catch(const std::bad_alloc&) {
+            spdlog::error("[luastg] Failed to allocate memory for DirectInput");
+        }
+
+        // Initializing ImGui
+#ifdef USING_DEAR_IMGUI
+        imgui::bindEngine();
+#endif
+
+        if(!InitializationApplySettingStage2())
+            return false;
+    }
+
+    // Loading main script
+    if(!OnLoadMainScriptAndFiles()) {
+        return false;
+    }
+
+    //////////////////////////////////////// Initialized
+    m_iStatus = AppStatus::Initialized;
+    spdlog::info("[luastg] Initialized");
+
+    //////////////////////////////////////// 调用GameInit
+    if(!SafeCallGlobalFunction(LuaEngine::G_CALLBACK_EngineInit)) {
+        return false;
+    }
+
+    return true;
+}
+void
+AppFrame::Shutdown() noexcept
+{
+    if(L) {
+        SafeCallGlobalFunction(LuaEngine::G_CALLBACK_EngineStop);
+    }
+
+    m_GameObjectPool = nullptr;
+    spdlog::info("[luastg] Object pool Cleared");
+
+    if(L) {
+        lua_close(L);
+        L = nullptr;
+        spdlog::info("[luastg] Shutting down LuaJIT engine");
+    }
+
+    m_stRenderTargetStack.clear();
+    m_ResourceMgr.ClearAllResource();
+    spdlog::info("[luastg] All game resources cleared");
+
+    // 卸载ImGui
+#ifdef USING_DEAR_IMGUI
+    imgui::unbindEngine();
+#endif
+
+    core::FileSystemManager::removeAllFileSystem();
+    spdlog::info("[luastg] All resource packages unloaded");
+
+    CloseInput();
+    m_DirectInput = nullptr;
+    m_pTextRenderer = nullptr;
+    m_pAppModel = nullptr;
+    m_audio_engine = nullptr;
+
+    m_iStatus = AppStatus::Destroyed;
+    spdlog::info("[luastg] Engine shutdown");
+}
+void
+AppFrame::Run() noexcept
+{
+    assert(m_iStatus == AppStatus::Initialized);
+    spdlog::info("[luastg] Starting update and render loop");
+
+    m_pAppModel->getWindow()->addEventListener(this);
+    onSwapChainCreate(); // 手动触发一次，让自动尺寸的RenderTarget设置为正确的尺寸
+    m_pAppModel->getSwapChain()->addEventListener(this);
+
+    m_pAppModel->getFrameRateController()->setTargetFPS(m_target_fps);
+    m_last_video_update_time = 0.0;
+    m_pAppModel->run();
+
+    m_pAppModel->getSwapChain()->removeEventListener(this);
+    m_pAppModel->getWindow()->removeEventListener(this);
+
+    spdlog::info("[luastg] Stopping update and render loop");
+}
+
+#pragma endregion
+
+#pragma region // Game loop
+
+void
+AppFrame::onWindowCreate()
+{
+    OpenInput();
+    m_DirectInput = std::make_unique<Platform::DirectInput>((ptrdiff_t)m_pAppModel->getWindow()->getNativeHandle());
+    {
+        m_DirectInput->refresh(); // Since the window has not been shown yet, an Acquire device failure may occur and can be ignored.
+        uint32_t cnt = m_DirectInput->count();
+        for(uint32_t i = 0; i < cnt; i += 1) {
+            spdlog::info("[luastg] Detected {} controller(s), product name: {}, device name: {}",
+                m_DirectInput->isXInputDevice(i) ? "XInput" : "DirectInput",
+                utf8::to_string(m_DirectInput->getProductName(i)),
+                utf8::to_string(m_DirectInput->getDeviceName(i)));
+        }
+        spdlog::info("[luastg] Successfully created {} controller(s)", cnt);
+    }
+}
+void
+AppFrame::onWindowDestroy()
+{
+    m_DirectInput = nullptr;
+    CloseInput();
+}
+void
+AppFrame::onWindowActive()
+{
+    Platform::XInput::setEnable(true);
+    m_window_active_changed.fetch_or(0x1);
+}
+void
+AppFrame::onWindowInactive()
+{
+    Platform::XInput::setEnable(false);
+    m_window_active_changed.fetch_or(0x2);
+}
+void
+AppFrame::onWindowSize(core::Vector2U size)
+{
+    m_win32_window_size = size;
+}
+void
+AppFrame::onDeviceChange()
+{
+    m_window_active_changed.fetch_or(0x4);
+}
+
+bool
+AppFrame::onUpdate()
+{
+    bool result = true;
+
+    // pre-check
+    if(ApplicationRestart::hasRestart()) {
+        m_pAppModel->requestExit();
+        result = false;
+    }
+
+    if(result) {
+        tracy_zone_scoped_with_name("OnUpdate-Event");
+
+        int window_active_changed = m_window_active_changed.exchange(0);
+        if(window_active_changed & 0x2) {
+            if(m_DirectInput)
+                m_DirectInput->reset();
+
+            lua_pushinteger(L, (lua_Integer)LuaEngine::EngineEvent::WindowActive);
+            lua_pushboolean(L, false);
+            SafeCallGlobalFunctionB(LuaEngine::G_CALLBACK_EngineEvent, 2, 0);
+
+            if(!SafeCallGlobalFunction(LuaEngine::G_CALLBACK_FocusLoseFunc)) {
+                result = false;
+                m_pAppModel->requestExit();
+            }
+        }
+        if(window_active_changed & 0x1) {
+            if(m_DirectInput)
+                m_DirectInput->reset();
+
+            lua_pushinteger(L, (lua_Integer)LuaEngine::EngineEvent::WindowActive);
+            lua_pushboolean(L, true);
+            SafeCallGlobalFunctionB(LuaEngine::G_CALLBACK_EngineEvent, 2, 0);
+
+            if(!SafeCallGlobalFunction(LuaEngine::G_CALLBACK_FocusGainFunc)) {
+                result = false;
+                m_pAppModel->requestExit();
+            }
+        }
+        if(window_active_changed & 0x4) {
+            if(m_DirectInput)
+                m_DirectInput->refresh();
+        }
+
+        UpdateInput();
+        DiscordRPC::RunCallbacks();
+    }
+
+#if(defined(_DEBUG) && defined(LuaSTG_enable_GameObjectManager_Debug))
+    static uint64_t _frame_count = 0;
+    spdlog::debug("[frame] ---------- {} ----------", _frame_count);
+    _frame_count += 1;
+#endif
+
+    if(result) {
+        tracy_zone_scoped_with_name("OnUpdate-LuaCallback");
+        m_ResourceMgr.UpdateAsyncResourceLoading();
+        // Executing frame function
+        imgui::cancelSetCursor();
+        m_GameObjectPool->DebugNextFrame();
+        if(!SafeCallGlobalFunction(LuaEngine::G_CALLBACK_EngineUpdate, 1)) {
+            result = false;
+            m_pAppModel->requestExit();
+        }
+        bool tAbort = lua_toboolean(L, -1) != 0;
+        lua_pop(L, 1);
+        if(tAbort)
+            m_pAppModel->requestExit();
+        m_ResourceMgr.UpdateSound();
+        double const video_update_time = m_pAppModel->getFrameRateController()->getTotalTime();
+        double video_delta_time = video_update_time - m_last_video_update_time;
+        if(m_last_video_update_time <= 0.0 || video_delta_time < 0.0 || video_delta_time > 1.0) {
+            video_delta_time = 1.0 / static_cast<double>(std::max(1u, m_target_fps));
+        }
+        m_last_video_update_time = video_update_time;
+        m_ResourceMgr.UpdateVideo(video_delta_time);
+    }
+
+    // check again after FrameFunc
+    if(ApplicationRestart::hasRestart()) {
+        m_pAppModel->requestExit();
+        result = false;
+    }
+
+    return result;
+}
+bool
+AppFrame::onRender()
+{
+    m_bRenderStarted = true;
+
+    GetRenderTargetManager()->BeginRenderTargetStack();
+
+    // Executing render function
+    bool result = SafeCallGlobalFunction(LuaEngine::G_CALLBACK_EngineDraw);
+    if(!result)
+        m_pAppModel->requestExit();
+
+    GetRenderTargetManager()->EndRenderTargetStack();
+
+    m_bRenderStarted = false;
+    return result;
+}
+
+#pragma endregion
+>>>>>>> origin/master

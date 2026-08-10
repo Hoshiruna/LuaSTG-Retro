@@ -35,6 +35,6 @@
 #include "tracy/TracyAPI.hpp"
 
 // 引擎公共头文件
-#include "Config.h"          // 自定义编译配置
-#include "LConfig.h"         // 引擎配置
+#include "Config.h" // 自定义编译配置
+#include "LConfig.h" // 引擎配置
 #include "LMathConstant.hpp" // 常用数学常量

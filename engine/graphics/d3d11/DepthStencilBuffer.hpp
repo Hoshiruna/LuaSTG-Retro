@@ -5,10 +5,11 @@
 #include "core/GraphicsDevice.hpp"
 #include "d3d11/pch.h"
 
-namespace core {
-    class DepthStencilBuffer final :
-        public implement::ReferenceCounted<IDepthStencilBuffer>,
-        public IGraphicsDeviceEventListener {
+namespace core
+{
+    class DepthStencilBuffer final : public implement::ReferenceCounted<IDepthStencilBuffer>,
+                                     public IGraphicsDeviceEventListener
+    {
     public:
         // IDepthStencilBuffer
 

@@ -450,7 +450,7 @@ OM_INPUT PS_Main_NoBaseTexture_ScreenDoor_VertexColor(PS_S4F_P4F_N4F_C4F_T2F inp
 
 )");
 
-#define IDX(x) (size_t)static_cast<uint8_t>(x)
+#define IDX(x) (size_t) static_cast<uint8_t>(x)
 
 static Platform::RuntimeLoader::Direct3DCompiler g_d3dcompiler_loader;
 
@@ -468,18 +468,15 @@ namespace core::Graphics
         win32::com_ptr<ID3DBlob> vs;
         win32::com_ptr<ID3DBlob> vs_vc;
 
-        auto fxc = [&](std::string_view const& name, D3D_SHADER_MACRO const* macro, std::string_view const& entry, int type, ID3DBlob** blob) -> bool
-        {
+        auto fxc = [&](std::string_view const& name, D3D_SHADER_MACRO const* macro, std::string_view const& entry, int type, ID3DBlob** blob) -> bool {
             win32::com_ptr<ID3DBlob> err;
             UINT compile_flags = D3DCOMPILE_ENABLE_STRICTNESS;
-        #ifdef _DEBUG
+#ifdef _DEBUG
             compile_flags |= (D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION);
-        #endif
+#endif
             hr = gHR = g_d3dcompiler_loader.Compile(
-                built_in_shader.data(), built_in_shader.size(), name.data(),
-                macro, NULL, entry.data(), type ? "ps_4_0" : "vs_4_0", compile_flags, 0, blob, err.put());
-            if (FAILED(hr))
-            {
+                built_in_shader.data(), built_in_shader.size(), name.data(), macro, NULL, entry.data(), type ? "ps_4_0" : "vs_4_0", compile_flags, 0, blob, err.put());
+            if(FAILED(hr)) {
                 Logger::error("[core] [Model] compile shader '{}' failed: {}", name, (char*)err->GetBufferPointer());
                 assert(false);
                 return false;
@@ -487,99 +484,124 @@ namespace core::Graphics
             return true;
         };
 
-        if (!fxc("model-vs", NULL, "VS_Main", 0, vs.put())) return false;
-        if (!fxc("model-vs-vertex-color", NULL, "VS_Main_VertexColor", 0, vs_vc.put())) return false;
+        if(!fxc("model-vs", NULL, "VS_Main", 0, vs.put()))
+            return false;
+        if(!fxc("model-vs-vertex-color", NULL, "VS_Main_VertexColor", 0, vs_vc.put()))
+            return false;
 
         hr = gHR = device->CreateVertexShader(vs->GetBufferPointer(), vs->GetBufferSize(), NULL, shader_vertex.put());
-        if (FAILED(hr)) return false;
+        if(FAILED(hr))
+            return false;
         hr = gHR = device->CreateVertexShader(vs_vc->GetBufferPointer(), vs_vc->GetBufferSize(), NULL, shader_vertex_vc.put());
-        if (FAILED(hr)) return false;
+        if(FAILED(hr))
+            return false;
 
         const D3D_SHADER_MACRO fog_none[] = {
             { NULL, NULL },
         };
         const D3D_SHADER_MACRO fog_line[] = {
-            { "FOG_ENABLE", "1"},
-            { "FOG_LINEAR", "1"},
+            { "FOG_ENABLE", "1" },
+            { "FOG_LINEAR", "1" },
             { NULL, NULL },
         };
         const D3D_SHADER_MACRO fog_exp1[] = {
-            { "FOG_ENABLE", "1"},
-            { "FOG_EXP", "1"},
+            { "FOG_ENABLE", "1" },
+            { "FOG_EXP", "1" },
             { NULL, NULL },
         };
         const D3D_SHADER_MACRO fog_exp2[] = {
-            { "FOG_ENABLE", "1"},
-            { "FOG_EXP2", "1"},
+            { "FOG_ENABLE", "1" },
+            { "FOG_EXP2", "1" },
             { NULL, NULL },
         };
 
-        auto fxc_ps = [&](std::string_view const& name, std::string_view const& entry, win32::com_ptr<ID3D11PixelShader> ps[IDX(IRenderer::FogState::MAX_COUNT)]) -> bool
-        {
+        auto fxc_ps = [&](std::string_view const& name, std::string_view const& entry, win32::com_ptr<ID3D11PixelShader> ps[IDX(IRenderer::FogState::MAX_COUNT)]) -> bool {
             win32::com_ptr<ID3DBlob> ps_bc;
 
-            if (!fxc(name, fog_none, entry, 1, ps_bc.put())) return false;
+            if(!fxc(name, fog_none, entry, 1, ps_bc.put()))
+                return false;
             hr = gHR = device->CreatePixelShader(ps_bc->GetBufferPointer(), ps_bc->GetBufferSize(), NULL, ps[IDX(IRenderer::FogState::Disable)].put());
-            if (FAILED(hr)) return false;
+            if(FAILED(hr))
+                return false;
 
-            if (!fxc(name, fog_line, entry, 1, ps_bc.put())) return false;
+            if(!fxc(name, fog_line, entry, 1, ps_bc.put()))
+                return false;
             hr = gHR = device->CreatePixelShader(ps_bc->GetBufferPointer(), ps_bc->GetBufferSize(), NULL, ps[IDX(IRenderer::FogState::Linear)].put());
-            if (FAILED(hr)) return false;
+            if(FAILED(hr))
+                return false;
 
-            if (!fxc(name, fog_exp1, entry, 1, ps_bc.put())) return false;
+            if(!fxc(name, fog_exp1, entry, 1, ps_bc.put()))
+                return false;
             hr = gHR = device->CreatePixelShader(ps_bc->GetBufferPointer(), ps_bc->GetBufferSize(), NULL, ps[IDX(IRenderer::FogState::Exp)].put());
-            if (FAILED(hr)) return false;
+            if(FAILED(hr))
+                return false;
 
-            if (!fxc(name, fog_exp2, entry, 1, ps_bc.put())) return false;
+            if(!fxc(name, fog_exp2, entry, 1, ps_bc.put()))
+                return false;
             hr = gHR = device->CreatePixelShader(ps_bc->GetBufferPointer(), ps_bc->GetBufferSize(), NULL, ps[IDX(IRenderer::FogState::Exp2)].put());
-            if (FAILED(hr)) return false;
+            if(FAILED(hr))
+                return false;
 
             return true;
         };
 
-        if (!fxc_ps("model-ps", "PS_Main", shader_pixel)) return false;
-        if (!fxc_ps("model-ps-alpha", "PS_Main_AlphaMask", shader_pixel_alpha)) return false;
-        if (!fxc_ps("model-ps-no-texture", "PS_Main_NoBaseTexture", shader_pixel_nt)) return false;
-        if (!fxc_ps("model-ps-alpha-no-texture", "PS_Main_NoBaseTexture_AlphaMask", shader_pixel_alpha_nt)) return false;
+        if(!fxc_ps("model-ps", "PS_Main", shader_pixel))
+            return false;
+        if(!fxc_ps("model-ps-alpha", "PS_Main_AlphaMask", shader_pixel_alpha))
+            return false;
+        if(!fxc_ps("model-ps-no-texture", "PS_Main_NoBaseTexture", shader_pixel_nt))
+            return false;
+        if(!fxc_ps("model-ps-alpha-no-texture", "PS_Main_NoBaseTexture_AlphaMask", shader_pixel_alpha_nt))
+            return false;
 
-        if (!fxc_ps("model-ps-vertex-color", "PS_Main_VertexColor", shader_pixel_vc)) return false;
-        if (!fxc_ps("model-ps-alpha-vertex-color", "PS_Main_AlphaMask_VertexColor", shader_pixel_alpha_vc)) return false;
-        if (!fxc_ps("model-ps-no-texture-vertex-color", "PS_Main_NoBaseTexture_VertexColor", shader_pixel_nt_vc)) return false;
-        if (!fxc_ps("model-ps-alpha-no-texture-vertex-color", "PS_Main_NoBaseTexture_AlphaMask_VertexColor", shader_pixel_alpha_nt_vc)) return false;
+        if(!fxc_ps("model-ps-vertex-color", "PS_Main_VertexColor", shader_pixel_vc))
+            return false;
+        if(!fxc_ps("model-ps-alpha-vertex-color", "PS_Main_AlphaMask_VertexColor", shader_pixel_alpha_vc))
+            return false;
+        if(!fxc_ps("model-ps-no-texture-vertex-color", "PS_Main_NoBaseTexture_VertexColor", shader_pixel_nt_vc))
+            return false;
+        if(!fxc_ps("model-ps-alpha-no-texture-vertex-color", "PS_Main_NoBaseTexture_AlphaMask_VertexColor", shader_pixel_alpha_nt_vc))
+            return false;
 
-        if (!fxc_ps("model-ps-inv-alpha", "PS_Main_InvAlphaMask", shader_pixel_inv_alpha)) return false;
-        if (!fxc_ps("model-ps-inv-alpha-no-texture", "PS_Main_NoBaseTexture_InvAlphaMask", shader_pixel_inv_alpha_nt)) return false;
-        if (!fxc_ps("model-ps-inv-alpha-vertex-color", "PS_Main_InvAlphaMask_VertexColor", shader_pixel_inv_alpha_vc)) return false;
-        if (!fxc_ps("model-ps-inv-alpha-no-texture-vertex-color", "PS_Main_NoBaseTexture_InvAlphaMask_VertexColor", shader_pixel_inv_alpha_nt_vc)) return false;
+        if(!fxc_ps("model-ps-inv-alpha", "PS_Main_InvAlphaMask", shader_pixel_inv_alpha))
+            return false;
+        if(!fxc_ps("model-ps-inv-alpha-no-texture", "PS_Main_NoBaseTexture_InvAlphaMask", shader_pixel_inv_alpha_nt))
+            return false;
+        if(!fxc_ps("model-ps-inv-alpha-vertex-color", "PS_Main_InvAlphaMask_VertexColor", shader_pixel_inv_alpha_vc))
+            return false;
+        if(!fxc_ps("model-ps-inv-alpha-no-texture-vertex-color", "PS_Main_NoBaseTexture_InvAlphaMask_VertexColor", shader_pixel_inv_alpha_nt_vc))
+            return false;
 
-        if (!fxc_ps("model-ps-screen-door", "PS_Main_ScreenDoor", shader_pixel_sd)) return false;
-        if (!fxc_ps("model-ps-screen-door-no-texture", "PS_Main_NoBaseTexture_ScreenDoor", shader_pixel_sd_nt)) return false;
-        if (!fxc_ps("model-ps-screen-door-vertex-color", "PS_Main_ScreenDoor_VertexColor", shader_pixel_sd_vc)) return false;
-        if (!fxc_ps("model-ps-screen-door-no-texture-vertex-color", "PS_Main_NoBaseTexture_ScreenDoor_VertexColor", shader_pixel_sd_nt_vc)) return false;
+        if(!fxc_ps("model-ps-screen-door", "PS_Main_ScreenDoor", shader_pixel_sd))
+            return false;
+        if(!fxc_ps("model-ps-screen-door-no-texture", "PS_Main_NoBaseTexture_ScreenDoor", shader_pixel_sd_nt))
+            return false;
+        if(!fxc_ps("model-ps-screen-door-vertex-color", "PS_Main_ScreenDoor_VertexColor", shader_pixel_sd_vc))
+            return false;
+        if(!fxc_ps("model-ps-screen-door-no-texture-vertex-color", "PS_Main_NoBaseTexture_ScreenDoor_VertexColor", shader_pixel_sd_nt_vc))
+            return false;
 
         // built-in: input layout
 
         D3D11_INPUT_ELEMENT_DESC ia_layout[] = {
             { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-            { "NORMAL"  , 0, DXGI_FORMAT_R32G32B32_FLOAT, 1, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-            { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT   , 2, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+            { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 1, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+            { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 2, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
         };
         hr = gHR = device->CreateInputLayout(ia_layout, 3, vs->GetBufferPointer(), vs->GetBufferSize(), input_layout.put());
-        if (FAILED(hr))
-        {
+        if(FAILED(hr)) {
             assert(false);
             return false;
         }
 
         D3D11_INPUT_ELEMENT_DESC ia_layout_vc[] = {
             { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-            { "NORMAL"  , 0, DXGI_FORMAT_R32G32B32_FLOAT, 1, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-            { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT   , 2, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-            { "COLOR"   , 0, DXGI_FORMAT_R32G32B32_FLOAT, 3, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+            { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 1, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+            { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 2, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+            { "COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT, 3, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
         };
         hr = gHR = device->CreateInputLayout(ia_layout_vc, 4, vs_vc->GetBufferPointer(), vs_vc->GetBufferSize(), input_layout_vc.put());
-        if (FAILED(hr))
-        {
+        if(FAILED(hr)) {
             assert(false);
             return false;
         }

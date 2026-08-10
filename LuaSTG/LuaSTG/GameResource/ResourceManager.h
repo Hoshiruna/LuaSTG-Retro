@@ -31,14 +31,15 @@ namespace luastg
     class AsyncResourceJob;
     struct AsyncResourceRequest;
     class ResourceMgr;
-    
+
     using ResourcePoolId = uint64_t;
     inline constexpr ResourcePoolId InvalidResourcePoolId = 0;
-    
+
     // 资源池
     class ResourcePool
     {
         friend class ResourceMgr;
+
     public:
         struct dictionary_hash_t
         {
@@ -49,6 +50,7 @@ namespace luastg
         };
         template<typename T>
         using dictionary_t = std::unordered_map<std::string, T, dictionary_hash_t, std::equal_to<>>;
+
     private:
         ResourceMgr* m_pMgr;
         ResourcePoolId m_id;
@@ -63,14 +65,16 @@ namespace luastg
         dictionary_t<core::SmartReference<IResourceFont>> m_TTFFontPool;
         dictionary_t<core::SmartReference<IResourcePostEffectShader>> m_FXPool;
         dictionary_t<core::SmartReference<IResourceModel>> m_ModelPool;
+
     private:
         const char* getResourcePoolName() const noexcept { return m_name.c_str(); }
+
     public:
         void Clear() noexcept;
         void RemoveResource(ResourceType t, const char* name) noexcept;
         bool CheckResourceExists(ResourceType t, std::string_view name) const noexcept;
-        int ExportResourceList(lua_State* L, ResourceType t) const  noexcept;
-        
+        int ExportResourceList(lua_State* L, ResourceType t) const noexcept;
+
         // 纹理
         bool LoadTexture(const char* name, const char* path, bool mipmaps = true) noexcept;
         bool LoadTexture(const char* name, core::IData* data, const char* path, bool mipmaps = true) noexcept;
@@ -80,28 +84,33 @@ namespace luastg
         // 渲染目标
         bool CreateRenderTarget(const char* name, int width = 0, int height = 0, bool depth_buffer = false) noexcept;
         // 图片精灵
-        bool CreateSprite(const char* name, IResourceTexture* texture,
-                          double x, double y, double w, double h,
-                          double a, double b, bool rect = false) noexcept;
+        bool CreateSprite(const char* name, IResourceTexture* texture, double x, double y, double w, double h, double a, double b, bool rect = false) noexcept;
         // 动画精灵
-        bool CreateAnimation(const char* name, IResourceTexture* texture,
-                             double x, double y, double w, double h, int n, int m, int intv,
-                             double a, double b, bool rect = false) noexcept;
+        bool CreateAnimation(const char* name, IResourceTexture* texture, double x, double y, double w, double h, int n, int m, int intv, double a, double b, bool rect = false) noexcept;
         bool CreateAnimation(const char* name,
             std::vector<core::SmartReference<IResourceSprite>> const& sprite_list,
             int intv,
-            double a, double b, bool rect = false) noexcept;
+            double a,
+            double b,
+            bool rect = false) noexcept;
         // 音乐
         bool LoadMusic(const char* name, const char* path, core::AudioFrameRange loop_range) noexcept;
         bool LoadMusic(const char* name, core::IData* data, const char* path, core::AudioFrameRange loop_range) noexcept;
         // 音效
         bool LoadSoundEffect(const char* name, const char* path) noexcept;
+<<<<<<< HEAD
         bool LoadSoundEffect(const char* name, core::IData* data, const char* path) noexcept;
         // 粒子特效(HGE)
         bool LoadParticle(const char* name, const hgeParticleSystemInfo& info, IResourceSprite* sprite,
                           double a, double b, bool rect = false, bool _nolog = false) noexcept;
         bool LoadParticle(const char* name, const char* path, IResourceSprite* sprite,
                           double a, double b, bool rect = false) noexcept;
+=======
+        bool LoadSoundEffect(const char* name, core::IAudioDecoder* decoder, const char* path) noexcept;
+        // 粒子特效(HGE)
+        bool LoadParticle(const char* name, const hgeParticleSystemInfo& info, IResourceSprite* sprite, double a, double b, bool rect = false, bool _nolog = false) noexcept;
+        bool LoadParticle(const char* name, const char* path, IResourceSprite* sprite, double a, double b, bool rect = false) noexcept;
+>>>>>>> origin/master
         // 装载纹理字体(HGE)
         bool LoadSpriteFont(const char* name, const char* path, bool mipmaps = true) noexcept;
         bool LoadSpriteFont(const char* name, core::IData* font_data, const char* path, core::IData* texture_data, const char* texture_path, bool mipmaps = true) noexcept;
@@ -117,7 +126,7 @@ namespace luastg
         bool LoadFXFromSource(const char* name, std::string_view source, const char* path) noexcept;
         // 模型
         bool LoadModel(const char* name, const char* path) noexcept;
-        
+
         core::SmartReference<IResourceTexture> GetTexture(std::string_view name) noexcept;
         core::SmartReference<IResourceVideo> GetVideo(std::string_view name) noexcept;
         core::SmartReference<IResourceSprite> GetSprite(std::string_view name) noexcept;
@@ -129,6 +138,7 @@ namespace luastg
         core::SmartReference<IResourceFont> GetTTFFont(std::string_view name) noexcept;
         core::SmartReference<IResourcePostEffectShader> GetFX(std::string_view name) noexcept;
         core::SmartReference<IResourceModel> GetModel(std::string_view name) noexcept;
+
     public:
         ResourcePool(ResourceMgr* mgr, ResourcePoolId id, std::string name);
         void UpdateVideo(double delta_seconds);
@@ -138,10 +148,11 @@ namespace luastg
         size_t GetGeneration() const noexcept { return m_generation; }
         ResourcePool& operator=(const ResourcePool&) = delete;
         ResourcePool(const ResourcePool&) = delete;
+
     private:
         size_t m_generation{ 0 };
     };
-    
+
     // 资源管理器
     class ResourceMgr
     {
@@ -150,6 +161,7 @@ namespace luastg
         std::unordered_map<ResourcePoolId, std::unique_ptr<ResourcePool>> m_resourcePools;
         std::unordered_map<std::string, ResourcePoolId> m_resourcePoolNames;
         std::vector<ResourcePoolId> m_lookupOrder;
+
     public:
         ResourcePoolId CreateResourcePool(std::string_view name) noexcept;
         bool DestroyResourcePool(ResourcePoolId id) noexcept;
@@ -179,20 +191,23 @@ namespace luastg
         core::SmartReference<IResourceFont> FindTTFFont(const char* name) noexcept;
         core::SmartReference<IResourcePostEffectShader> FindFX(const char* name) noexcept;
         core::SmartReference<IResourceModel> FindModel(const char* name) noexcept;
-        
+
         bool GetTextureSize(const char* name, core::Vector2U& out) noexcept;
         void CacheTTFFontString(const char* name, const char* text, size_t len) noexcept;
         void UpdateVideo(double delta_seconds);
+
     private:
         static bool g_ResourceLoadingLog;
         float m_GlobalImageScaleFactor = 1.0f;
         std::unique_ptr<AsyncResourceLoader> m_AsyncLoader;
+
     public:
         static void SetResourceLoadingLog(bool b);
         static bool GetResourceLoadingLog();
         float GetGlobalImageScaleFactor() const noexcept { return m_GlobalImageScaleFactor; }
         void SetGlobalImageScaleFactor(float s) noexcept { m_GlobalImageScaleFactor = s; }
         void ShowResourceManagerDebugWindow(bool* p_open = nullptr);
+
     public:
         ResourceMgr();
         ~ResourceMgr();

@@ -1,8 +1,10 @@
 #pragma once
 #include "d3d11/pch.h"
 
-namespace d3d11 {
-    class LetterBoxingRenderer {
+namespace d3d11
+{
+    class LetterBoxingRenderer
+    {
     public:
         LetterBoxingRenderer();
         LetterBoxingRenderer(const LetterBoxingRenderer&) = delete;
@@ -23,11 +25,12 @@ namespace d3d11 {
             DirectX::XMFLOAT2 pos;
             DirectX::XMFLOAT2 uv;
             inline Vertex() = default;
-            inline Vertex(float x, float y, float u, float v) : pos(x, y), uv(u, v) {}
+            inline Vertex(float x, float y, float u, float v)
+                : pos(x, y), uv(u, v) {}
         };
-        
+
         using Index = uint16_t;
-        
+
         struct TransformBuffer
         {
             DirectX::XMFLOAT4X4 mvp;

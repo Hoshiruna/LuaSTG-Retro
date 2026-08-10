@@ -1,5 +1,6 @@
 #pragma once
 
-namespace luastg {
-	int main();
+namespace luastg
+{
+    int main();
 }

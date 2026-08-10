@@ -32,13 +32,13 @@
 // Read online: https://github.com/ocornut/imgui/tree/master/docs
 
 #pragma once
-#include "imgui.h"      // IMGUI_IMPL_API
+#include "imgui.h" // IMGUI_IMPL_API
 
 struct ImGui_ImplWin32Ex_FrameData
 {
-	ImVec2 view_size;
-	ImVec2 mouse_offset;
-	ImVec2 mouse_scale;
+    ImVec2 view_size;
+    ImVec2 mouse_offset;
+    ImVec2 mouse_scale;
 };
 
 IMGUI_IMPL_API bool ImGui_ImplWin32Ex_Init(void* window);

@@ -14,20 +14,24 @@
 
 // END: FUCK MICROSOFT
 
-namespace core {
-    enum class GraphicsVertexInputRate : uint32_t {
+namespace core
+{
+    enum class GraphicsVertexInputRate : uint32_t
+    {
         vertex,
         instance,
     };
 
-    struct GraphicsVertexInputBuffer {
+    struct GraphicsVertexInputBuffer
+    {
         uint32_t slot;
         uint32_t stride;
         GraphicsVertexInputRate input_rate;
         uint32_t instance_step_rate;
     };
 
-    struct GraphicsVertexInputElement {
+    struct GraphicsVertexInputElement
+    {
         const char* semantic_name;
         uint32_t semantic_index;
         GraphicsFormat format;
@@ -35,25 +39,29 @@ namespace core {
         uint32_t offset;
     };
 
-    struct GraphicsVertexInputState {
+    struct GraphicsVertexInputState
+    {
         const GraphicsVertexInputBuffer* buffers;
         const GraphicsVertexInputElement* elements;
         uint32_t buffer_count;
         uint32_t element_count;
     };
 
-    enum class GraphicsCullMode : uint32_t {
+    enum class GraphicsCullMode : uint32_t
+    {
         none,
         front,
         back,
     };
 
-    enum class GraphicsFrontFace : uint32_t {
+    enum class GraphicsFrontFace : uint32_t
+    {
         clockwise,
         counter_clockwise,
     };
 
-    struct GraphicsRasterizerState {
+    struct GraphicsRasterizerState
+    {
         float depth_bias_constant_factor{};
         float depth_bias_clamp{};
         float depth_bias_slope_factor{};
@@ -61,7 +69,8 @@ namespace core {
         GraphicsFrontFace front_face{};
     };
 
-    enum class GraphicsCompareMethod : uint8_t {
+    enum class GraphicsCompareMethod : uint8_t
+    {
         never,
         less,
         equal,
@@ -72,7 +81,8 @@ namespace core {
         always,
     };
 
-    enum class GraphicsStencilMethod : uint8_t {
+    enum class GraphicsStencilMethod : uint8_t
+    {
         keep,
         zero,
         replace,
@@ -83,14 +93,16 @@ namespace core {
         decrement_and_wrap,
     };
 
-    struct GraphicsStencilState {
+    struct GraphicsStencilState
+    {
         GraphicsStencilMethod fail_method;
         GraphicsStencilMethod depth_fail_method;
         GraphicsStencilMethod pass_method;
         GraphicsCompareMethod compare_method;
     };
 
-    struct GraphicsDepthStencilState {
+    struct GraphicsDepthStencilState
+    {
         bool depth_test_enable;
         bool depth_write_enable;
         GraphicsCompareMethod depth_compare_method;
@@ -101,7 +113,8 @@ namespace core {
         GraphicsStencilState back_face;
     };
 
-    enum class GraphicsBlendFactor : uint8_t {
+    enum class GraphicsBlendFactor : uint8_t
+    {
         zero,
         one,
 
@@ -121,7 +134,8 @@ namespace core {
         src_alpha_saturate,
     };
 
-    enum class GraphicsBlendMethod : uint8_t {
+    enum class GraphicsBlendMethod : uint8_t
+    {
         add,
         subtract,
         reverse_subtract,
@@ -129,7 +143,8 @@ namespace core {
         max,
     };
 
-    struct GraphicsBlendState {
+    struct GraphicsBlendState
+    {
         bool blend_enable;
         GraphicsBlendFactor src_color_blend_factor;
         GraphicsBlendFactor dest_color_blend_factor;
@@ -139,12 +154,14 @@ namespace core {
         GraphicsBlendMethod alpha_blend_method;
     };
 
-    struct GraphicsShaderByteCode {
+    struct GraphicsShaderByteCode
+    {
         const void* data;
         size_t size;
     };
 
-    enum class GraphicsPrimitiveType : uint32_t {
+    enum class GraphicsPrimitiveType : uint32_t
+    {
         triangle_list,
         triangle_strip,
         line_list,
@@ -152,7 +169,8 @@ namespace core {
         point_list,
     };
 
-    struct GraphicsPipelineState {
+    struct GraphicsPipelineState
+    {
         GraphicsVertexInputState vertex_input_state;
         GraphicsPrimitiveType primitive_type;
         GraphicsShaderByteCode vertex_shader;
@@ -162,7 +180,8 @@ namespace core {
         GraphicsBlendState blend_state;
     };
 
-    CORE_INTERFACE IGraphicsPipeline : IReferenceCounted {
+    CORE_INTERFACE IGraphicsPipeline : IReferenceCounted
+    {
         virtual size_t getHash() const noexcept = 0;
         virtual const GraphicsPipelineState* getInfo() const noexcept = 0;
     };

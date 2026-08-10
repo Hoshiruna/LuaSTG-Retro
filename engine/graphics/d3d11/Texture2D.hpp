@@ -4,14 +4,15 @@
 #include "core/implement/ReferenceCounted.hpp"
 #include "d3d11/pch.h"
 
-namespace core {
-    class Texture2D final :
-        public implement::ReferenceCounted<ITexture2D>,
-        public IGraphicsDeviceEventListener {
+namespace core
+{
+    class Texture2D final : public implement::ReferenceCounted<ITexture2D>,
+                            public IGraphicsDeviceEventListener
+    {
     public:
         // ITexture2D
 
-        void* getNativeResource() const noexcept override  { return m_texture.get(); }
+        void* getNativeResource() const noexcept override { return m_texture.get(); }
         void* getNativeView() const noexcept override { return m_view.get(); }
 
         bool isDynamic() const noexcept override { return m_dynamic; }

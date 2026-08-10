@@ -5,8 +5,10 @@
 #define NOMINMAX
 #include <windows.h>
 
-namespace core {
-    class Display final : public implement::ReferenceCounted<IDisplay> {
+namespace core
+{
+    class Display final : public implement::ReferenceCounted<IDisplay>
+    {
     public:
         // IDisplay
 

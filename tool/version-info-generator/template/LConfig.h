@@ -1,11 +1,32 @@
 #pragma once
 
+<<<<<<< HEAD
 #define LUASTG_NAME          "LuaSTG"
 #define LUASTG_BRANCH        "Retro"
 #define LUASTG_VERSION_NAME  "v${VERSION}"
 #define LUASTG_VERSION_MAJOR ${VERSION_MAJOR}
 #define LUASTG_VERSION_MINOR ${VERSION_MINOR}
 #define LUASTG_VERSION_PATCH ${VERSION_PATCH}
+=======
+#define LUASTG_NAME "LuaSTG"
+#define LUASTG_BRANCH "Sub"
+#define LUASTG_VERSION_NAME "v${VERSION}"
+#define LUASTG_VERSION_MAJOR \
+    $                        \
+    {                        \
+        VERSION_MAJOR        \
+    }
+#define LUASTG_VERSION_MINOR \
+    $                        \
+    {                        \
+        VERSION_MINOR        \
+    }
+#define LUASTG_VERSION_PATCH \
+    $                        \
+    {                        \
+        VERSION_PATCH        \
+    }
+>>>>>>> origin/master
 
 #define LUASTG_INFO LUASTG_NAME " " LUASTG_BRANCH " " LUASTG_VERSION_NAME
 

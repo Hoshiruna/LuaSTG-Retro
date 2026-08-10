@@ -5,15 +5,16 @@
 #include "Core/Graphics/Direct3D11/Device.hpp"
 #include "tiny_gltf.h"
 
-#define IDX(x) (size_t)static_cast<uint8_t>(x)
+#define IDX(x) (size_t) static_cast<uint8_t>(x)
 
 namespace core::Graphics
 {
     class ModelSharedComponent_D3D11
-        : public implement::ReferenceCounted<IReferenceCounted>
-        , public IDeviceEventListener
+        : public implement::ReferenceCounted<IReferenceCounted>,
+          public IDeviceEventListener
     {
         friend class Model_D3D11;
+
     private:
         SmartReference<Direct3D11::Device> m_device;
 
@@ -74,8 +75,8 @@ namespace core::Graphics
     };
 
     class Model_D3D11
-        : public implement::ReferenceCounted<IModel>
-        , public IDeviceEventListener
+        : public implement::ReferenceCounted<IModel>,
+          public IDeviceEventListener
     {
     private:
         SmartReference<Direct3D11::Device> m_device;
@@ -123,8 +124,7 @@ namespace core::Graphics
             void setDir(float dir_deg, float upd_deg)
             {
                 DirectX::XMFLOAT3 slfrom(1.0f, 0.0f, 0.0f);
-                auto rotate_vec2 = [](float& x, float& y, float r)
-                {
+                auto rotate_vec2 = [](float& x, float& y, float r) {
                     float sin_v = std::sinf(r);
                     float cos_v = std::cosf(r);
                     float xx = x * cos_v - y * sin_v;
@@ -171,7 +171,6 @@ namespace core::Graphics
         void onDeviceDestroy();
 
     public:
-
         void setAmbient(Vector3F const& color, float brightness);
         void setDirectionalLight(Vector3F const& direction, Vector3F const& color, float brightness);
         void setScaling(Vector3F const& scale);

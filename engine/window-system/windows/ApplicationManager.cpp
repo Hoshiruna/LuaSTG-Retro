@@ -4,17 +4,21 @@
 #include <windows.h>
 #include <timeapi.h>
 
-namespace {
-    struct ScopedTimePeriod {
+namespace
+{
+    struct ScopedTimePeriod
+    {
         uint32_t period{};
 
-        ScopedTimePeriod(const uint32_t target_period = 1u) {
-            if (timeBeginPeriod(target_period) == TIMERR_NOERROR) {
+        ScopedTimePeriod(const uint32_t target_period = 1u)
+        {
+            if(timeBeginPeriod(target_period) == TIMERR_NOERROR) {
                 period = target_period;
             }
         }
-        ~ScopedTimePeriod() {
-            if (period > 0u) {
+        ~ScopedTimePeriod()
+        {
+            if(period > 0u) {
                 timeEndPeriod(period);
             }
         }
@@ -28,8 +32,10 @@ namespace {
     bool is_delegate_update_enabled{ true };
 }
 
-namespace core {
-    void ApplicationManager::run(IApplication* const application) {
+namespace core
+{
+    void ApplicationManager::run(IApplication* const application)
+    {
         // Main thread & UI thread
 
         assert(application != nullptr);
@@ -40,38 +46,37 @@ namespace core {
         SetThreadPriority(g_main_thread, THREAD_PRIORITY_HIGHEST);
         const ScopedTimePeriod scoped_time_period;
 
-        if (!application->onCreate()) {
+        if(!application->onCreate()) {
             return;
         }
 
         bool running = true;
         MSG msg{};
-        while (running) {
-            if (is_update_enabled && !is_updating) {
+        while(running) {
+            if(is_update_enabled && !is_updating) {
                 is_updating = true;
                 application->onBeforeUpdate();
                 is_updating = false;
             }
 
-            while (PeekMessageW(&msg, nullptr, 0, 0, PM_REMOVE)) {
-                if (msg.message == WM_QUIT) {
+            while(PeekMessageW(&msg, nullptr, 0, 0, PM_REMOVE)) {
+                if(msg.message == WM_QUIT) {
                     running = false;
-                }
-                else {
+                } else {
                     TranslateMessage(&msg);
                     DispatchMessageW(&msg);
                 }
             }
 
-            if (!running) {
+            if(!running) {
                 break;
             }
 
-            if (is_update_enabled && !is_updating) {
+            if(is_update_enabled && !is_updating) {
                 is_updating = true;
                 const auto update_result = application->onUpdate();
                 is_updating = false;
-                if (!update_result) {
+                if(!update_result) {
                     running = false;
                     break;
                 }
@@ -81,24 +86,29 @@ namespace core {
         application->onDestroy();
     }
 
-    IApplication* ApplicationManager::getApplication() {
+    IApplication* ApplicationManager::getApplication()
+    {
         return g_application;
     }
 
-    void ApplicationManager::requestExit() {
+    void ApplicationManager::requestExit()
+    {
         PostThreadMessageW(g_main_thread_id, WM_QUIT, 0, 0);
     }
 
-    bool ApplicationManager::isMainThread() {
+    bool ApplicationManager::isMainThread()
+    {
         return GetCurrentThreadId() == g_main_thread_id;
     }
 
-    bool ApplicationManager::isUpdating() {
+    bool ApplicationManager::isUpdating()
+    {
         return is_updating;
     }
 
-    void ApplicationManager::runBeforeUpdate() {
-        if (!is_update_enabled || is_updating) {
+    void ApplicationManager::runBeforeUpdate()
+    {
+        if(!is_update_enabled || is_updating) {
             return;
         }
         is_updating = true;
@@ -106,31 +116,36 @@ namespace core {
         is_updating = false;
     }
 
-    void ApplicationManager::runUpdate() {
-        if (!is_update_enabled || is_updating) {
+    void ApplicationManager::runUpdate()
+    {
+        if(!is_update_enabled || is_updating) {
             return;
         }
         is_updating = true;
         const auto update_result = g_application->onUpdate();
         is_updating = false;
-        if (!update_result) {
+        if(!update_result) {
             requestExit();
         }
     }
 
-    bool ApplicationManager::isUpdateEnabled() {
+    bool ApplicationManager::isUpdateEnabled()
+    {
         return is_update_enabled;
     }
 
-    void ApplicationManager::setUpdateEnabled(const bool enabled) {
+    void ApplicationManager::setUpdateEnabled(const bool enabled)
+    {
         is_update_enabled = enabled;
     }
 
-    bool ApplicationManager::isDelegateUpdateEnabled() {
+    bool ApplicationManager::isDelegateUpdateEnabled()
+    {
         return is_delegate_update_enabled;
     }
 
-    void ApplicationManager::setDelegateUpdateEnabled(const bool enabled) {
+    void ApplicationManager::setDelegateUpdateEnabled(const bool enabled)
+    {
         is_delegate_update_enabled = enabled;
     }
 }

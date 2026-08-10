@@ -1,8 +1,10 @@
 #pragma once
 #include <cstdint>
 
-namespace core {
-    enum class GraphicsFormat : int32_t {
+namespace core
+{
+    enum class GraphicsFormat : int32_t
+    {
         unknown = 0,
 
         // float

@@ -5,8 +5,10 @@
 #include "core/implement/ReferenceCounted.hpp"
 #include "d3d11/pch.h"
 
-namespace core {
-    struct GraphicsPipelineStateHelper : GraphicsPipelineState {
+namespace core
+{
+    struct GraphicsPipelineStateHelper : GraphicsPipelineState
+    {
         std::vector<GraphicsVertexInputBuffer> buffers_data;
         std::vector<std::string> semantic_names_data;
         std::vector<GraphicsVertexInputElement> elements_data;
@@ -17,7 +19,8 @@ namespace core {
         void save(const GraphicsPipelineState& state);
     };
 
-    class GraphicsPipeline final : public implement::ReferenceCounted<IGraphicsPipeline>, public IGraphicsDeviceEventListener {
+    class GraphicsPipeline final : public implement::ReferenceCounted<IGraphicsPipeline>, public IGraphicsDeviceEventListener
+    {
     public:
         // IGraphicsPipeline
 

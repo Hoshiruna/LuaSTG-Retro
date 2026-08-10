@@ -50,7 +50,23 @@
 
     { "name": "vs2026-x86"  , "inherits": [ "vs2026" ], "architecture": "Win32", "binaryDir": "${sourceDir}/build/x86"   },
     { "name": "vs2026-amd64", "inherits": [ "vs2026" ], "architecture": "x64"  , "binaryDir": "${sourceDir}/build/amd64" },
-    { "name": "vs2026-arm64", "inherits": [ "vs2026" ], "architecture": "ARM64", "binaryDir": "${sourceDir}/build/arm64" }
+    { "name": "vs2026-arm64", "inherits": [ "vs2026" ], "architecture": "ARM64", "binaryDir": "${sourceDir}/build/arm64" },
+
+    {
+      "name": "ninja-amd64",
+      "hidden": true,
+      "inherits": [
+        "cpm-cache"
+      ],
+      "generator": "Ninja",
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "cl",
+        "CMAKE_CXX_COMPILER": "cl"
+      }
+    },
+
+    { "name": "ninja-amd64-debug"  , "inherits": [ "ninja-amd64" ], "binaryDir": "${sourceDir}/build/amd64-ninja-debug"  , "cacheVariables": { "CMAKE_BUILD_TYPE": "Debug"   } },
+    { "name": "ninja-amd64-release", "inherits": [ "ninja-amd64" ], "binaryDir": "${sourceDir}/build/amd64-ninja-release", "cacheVariables": { "CMAKE_BUILD_TYPE": "Release" } }
   ],
   "buildPresets": [
     { "name": "debug"  , "hidden": true, "configuration": "Debug"   },
@@ -77,7 +93,10 @@
     { "name": "windows-vs2026-amd64-debug"  , "configurePreset": "vs2026-amd64", "inherits": [ "debug"  , "target-luastg" ] },
     { "name": "windows-vs2026-amd64-release", "configurePreset": "vs2026-amd64", "inherits": [ "release", "target-luastg" ] },
     { "name": "windows-vs2026-arm64-debug"  , "configurePreset": "vs2026-arm64", "inherits": [ "debug"  , "target-luastg" ] },
-    { "name": "windows-vs2026-arm64-release", "configurePreset": "vs2026-arm64", "inherits": [ "release", "target-luastg" ] }
+    { "name": "windows-vs2026-arm64-release", "configurePreset": "vs2026-arm64", "inherits": [ "release", "target-luastg" ] },
+
+    { "name": "windows-ninja-amd64-debug"  , "configurePreset": "ninja-amd64-debug"  , "inherits": [ "debug"  , "target-luastg" ] },
+    { "name": "windows-ninja-amd64-release", "configurePreset": "ninja-amd64-release", "inherits": [ "release", "target-luastg" ] }
   ],
   "workflowPresets": [
     { "name": "windows-x86-release"  , "steps": [ { "type": "configure", "name": "vs2022-x86"   }, { "type": "build", "name": "windows-x86-release"   } ] },
@@ -90,6 +109,8 @@
 
     { "name": "windows-vs2026-x86-release"  , "steps": [ { "type": "configure", "name": "vs2026-x86"   }, { "type": "build", "name": "windows-vs2026-x86-release"   } ] },
     { "name": "windows-vs2026-amd64-release", "steps": [ { "type": "configure", "name": "vs2026-amd64" }, { "type": "build", "name": "windows-vs2026-amd64-release" } ] },
-    { "name": "windows-vs2026-arm64-release", "steps": [ { "type": "configure", "name": "vs2026-arm64" }, { "type": "build", "name": "windows-vs2026-arm64-release" } ] }
+    { "name": "windows-vs2026-arm64-release", "steps": [ { "type": "configure", "name": "vs2026-arm64" }, { "type": "build", "name": "windows-vs2026-arm64-release" } ] },
+
+    { "name": "windows-ninja-amd64-release", "steps": [ { "type": "configure", "name": "ninja-amd64-release" }, { "type": "build", "name": "windows-ninja-amd64-release" } ] }
   ]
 }

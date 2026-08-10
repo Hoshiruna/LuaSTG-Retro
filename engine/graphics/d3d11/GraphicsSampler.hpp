@@ -4,10 +4,11 @@
 #include "core/implement/ReferenceCounted.hpp"
 #include "d3d11/pch.h"
 
-namespace core {
-    class GraphicsSampler final :
-        public implement::ReferenceCounted<IGraphicsSampler>,
-        public IGraphicsDeviceEventListener {
+namespace core
+{
+    class GraphicsSampler final : public implement::ReferenceCounted<IGraphicsSampler>,
+                                  public IGraphicsDeviceEventListener
+    {
     public:
         // IGraphicsSampler
 

@@ -4,6 +4,8 @@
 #error "ARE YOU X86?"
 #endif
 
-int main() {
+int
+main()
+{
     return 0;
 }
