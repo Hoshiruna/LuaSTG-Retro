@@ -2,7 +2,7 @@
 #include "core/SmartReference.hpp"
 #include "core/implement/ReferenceCounted.hpp"
 #include "Core/Graphics/SwapChain.hpp"
-#include "Core/Graphics/Window_Win32.hpp"
+#include "Core/Graphics/Window.hpp"
 #include "Core/Graphics/Direct3D11/Device.hpp"
 #include "Core/Graphics/Direct3D11/LetterBoxingRenderer.hpp"
 #include "Platform/RuntimeLoader/DirectComposition.hpp"
@@ -48,7 +48,7 @@ namespace core::Graphics
           public IDeviceEventListener
     {
     private:
-        SmartReference<Window_Win32> m_window;
+        SmartReference<IWindow> m_window;
         SmartReference<Direct3D11::Device> m_device;
         Direct3D11::LetterBoxingRenderer m_scaling_renderer;
 
@@ -171,10 +171,10 @@ namespace core::Graphics
         bool saveSnapshotToFile(StringView path);
 
     public:
-        SwapChain_D3D11(Window_Win32* p_window, Direct3D11::Device* p_device);
+        SwapChain_D3D11(IWindow* p_window, Direct3D11::Device* p_device);
         ~SwapChain_D3D11();
 
     public:
-        static bool create(Window_Win32* p_window, Direct3D11::Device* p_device, SwapChain_D3D11** pp_swapchain);
+        static bool create(IWindow* p_window, Direct3D11::Device* p_device, SwapChain_D3D11** pp_swapchain);
     };
 }

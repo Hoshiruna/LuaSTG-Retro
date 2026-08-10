@@ -10,7 +10,7 @@ namespace core
 
     CORE_INTERFACE IDisplay : IReferenceCounted
     {
-        virtual void* getNativeHandle() = 0;
+        virtual uint32_t getSDLDisplayID() const noexcept = 0;
         virtual void getFriendlyName(IImmutableString * *output) = 0;
         virtual Vector2U getSize() = 0;
         virtual Vector2I getPosition() = 0;

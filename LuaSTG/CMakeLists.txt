@@ -202,7 +202,7 @@ set(LUASTG_ENGINE_SOURCES
     LuaSTG/Main.cpp
     LuaSTG/ApplicationRestart.hpp
     LuaSTG/ApplicationRestart.cpp
-    LuaSTG/WindowsMain.cpp
+    LuaSTG/SdlMain.cpp
 
     LuaSTG/LuaSTG.manifest
 )
@@ -242,6 +242,7 @@ target_link_libraries(LuaSTG PRIVATE
     Core.ShellIntegration
     Core.Audio
     Core.Video
+    SDL3::SDL3
     LuaSTG.InternalLuaScriptsFileSystem
 )
 

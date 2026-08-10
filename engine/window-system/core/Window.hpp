@@ -5,6 +5,8 @@
 #include "core/ImmutableString.hpp"
 #include "core/Display.hpp"
 
+struct SDL_Window;
+
 namespace core
 {
     struct IWindowEventListener
@@ -16,6 +18,9 @@ namespace core
         virtual void onWindowInactive() {};
 
         virtual void onWindowSize(Vector2U size) { (void)size; };
+        virtual void onWindowPixelSize(Vector2U size) { (void)size; };
+        virtual void onWindowMove(Vector2I position) { (void)position; };
+        virtual void onWindowExposed() {};
         virtual void onWindowFullscreenStateChange(bool state) { (void)state; }
         virtual void onWindowDpiChange() {};
 
@@ -23,18 +28,6 @@ namespace core
 
         virtual void onDeviceChange() {};
 
-        struct NativeWindowMessageResult
-        {
-            intptr_t result;
-            bool should_return;
-
-            NativeWindowMessageResult()
-                : result(0), should_return(false) {}
-            NativeWindowMessageResult(intptr_t v, bool b)
-                : result(v), should_return(b) {}
-        };
-
-        virtual NativeWindowMessageResult onNativeWindowMessage(void*, uint32_t, uintptr_t, intptr_t) { return {}; };
     };
 
     enum class WindowFrameStyle
@@ -42,14 +35,6 @@ namespace core
         None,
         Fixed,
         Normal,
-    };
-
-    enum class WindowLayer
-    {
-        Bottom,
-        Normal,
-        Top,
-        TopMost,
     };
 
     enum class WindowCursor
@@ -77,7 +62,7 @@ namespace core
         virtual void addEventListener(IWindowEventListener * e) = 0;
         virtual void removeEventListener(IWindowEventListener * e) = 0;
 
-        virtual void* getNativeHandle() = 0;
+        virtual SDL_Window* getSDLWindow() const noexcept = 0;
 
         virtual void setIMEState(bool enable) = 0;
         virtual bool getIMEState() = 0;
@@ -105,10 +90,15 @@ namespace core
         virtual bool setFrameStyle(WindowFrameStyle style) = 0;
         virtual WindowFrameStyle getFrameStyle() = 0;
 
-        virtual Vector2U getSize() = 0; // TODO: history problem
-        virtual Vector2U _getCurrentSize() = 0; // TODO: history problem
+        virtual Vector2U getSize() = 0;
+        virtual Vector2U getPixelSize() = 0;
         virtual bool setSize(Vector2U v) = 0;
-        virtual bool setLayer(WindowLayer layer) = 0;
+        virtual Vector2I getPosition() = 0;
+        virtual bool setPosition(Vector2I position) = 0;
+        virtual bool setVisible(bool visible) = 0;
+        virtual bool isVisible() = 0;
+        virtual bool setAlwaysOnTop(bool enabled) = 0;
+        virtual bool raise() = 0;
 
         virtual uint32_t getDPI() = 0;
         virtual float getDPIScaling() = 0;
@@ -117,17 +107,8 @@ namespace core
         virtual void setFullScreenMode(IDisplay* display = nullptr) = 0;
         virtual void setCentered(bool show, IDisplay* display = nullptr) = 0;
 
-        virtual void setCustomSizeMoveEnable(bool v) = 0;
-        virtual void setCustomMinimizeButtonRect(RectI v) = 0;
-        virtual void setCustomCloseButtonRect(RectI v) = 0;
-        virtual void setCustomMoveButtonRect(RectI v) = 0;
-
         virtual bool setCursor(WindowCursor type) = 0;
         virtual WindowCursor getCursor() = 0;
-
-        // Windows 11
-        virtual void setWindowCornerPreference(bool allow) = 0;
-        virtual void setTitleBarAutoHidePreference(bool allow) = 0;
 
         static bool create(IWindow * *pp_window);
         static bool create(Vector2U size, StringView title_text, WindowFrameStyle style, bool show, IWindow** pp_window);

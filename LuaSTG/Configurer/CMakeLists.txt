@@ -21,9 +21,11 @@ target_link_libraries(Setting PRIVATE
     win32
     beautiful_win32_api
     imgui
-    imgui_impl_win32
+    imgui_impl_sdl3
     imgui_impl_dx11
     nlohmann_json
+    Core.WindowSystem
+    SDL3::SDL3
 )
 
 luastg_target_copy_to_bin_directory(Setting Setting)

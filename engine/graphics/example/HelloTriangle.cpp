@@ -1,4 +1,5 @@
 #include "core/Application.hpp"
+#include <SDL3/SDL_main.h>
 #include "core/FrameRateController.hpp"
 #include "core/Logger.hpp"
 #include "core/SmartReference.hpp"
@@ -202,8 +203,7 @@ namespace
     };
 }
 
-int
-main()
+int main(int, char**)
 {
     const auto logger = spdlog::stdout_color_mt("main", spdlog::color_mode::always);
     spdlog::set_default_logger(logger);

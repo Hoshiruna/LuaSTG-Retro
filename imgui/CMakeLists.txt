@@ -115,6 +115,23 @@ target_link_libraries(imgui_impl_win32 PUBLIC
 )
 set_target_properties(imgui_impl_win32 PROPERTIES FOLDER external)
 
+# Dear ImGui SDL3 platform backend
+
+add_library(imgui_impl_sdl3 STATIC)
+luastg_target_common_options(imgui_impl_sdl3)
+target_include_directories(imgui_impl_sdl3 PUBLIC
+    imgui/backends
+)
+target_sources(imgui_impl_sdl3 PRIVATE
+    imgui/backends/imgui_impl_sdl3.cpp
+    imgui/backends/imgui_impl_sdl3.h
+)
+target_link_libraries(imgui_impl_sdl3 PUBLIC
+    imgui
+    SDL3::SDL3
+)
+set_target_properties(imgui_impl_sdl3 PROPERTIES FOLDER external)
+
 # imgui lua binding
 
 add_library(lua_imgui STATIC)

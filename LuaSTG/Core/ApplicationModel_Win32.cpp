@@ -3,6 +3,8 @@
 #include "core/Configuration.hpp"
 #include "Platform/WindowsVersion.hpp"
 #include "Platform/ProcessorInfo.hpp"
+#include "sdl/Window.hpp"
+#include <SDL3/SDL.h>
 
 namespace core
 {
@@ -331,74 +333,34 @@ namespace core
         }
     };
 
-    DWORD WINAPI ApplicationModel_Win32::win32_thread_worker_entry(LPVOID lpThreadParameter)
+    bool SDLCALL ApplicationModel_Win32::sdlEventWatch(void* const userdata, SDL_Event* const event)
     {
-        static_cast<ApplicationModel_Win32*>(lpThreadParameter)->worker();
-        return 0;
+        auto* const self = static_cast<ApplicationModel_Win32*>(userdata);
+        if(self == nullptr || event == nullptr || event->type != SDL_EVENT_WINDOW_EXPOSED || !self->m_running) {
+            return true;
+        }
+
+        auto* const window = self->m_window->getSDLWindow();
+        if(window != nullptr && event->window.windowID == SDL_GetWindowID(window)) {
+            self->renderExposedFrame();
+        }
+        return true;
     }
-    void ApplicationModel_Win32::worker()
+
+    void ApplicationModel_Win32::renderExposedFrame()
     {
-        // 设置线程优先级为最高，并尽量让它运行在同一个 CPU 核心上，降低切换开销
-        SetThreadAffinityMask(GetCurrentThread(), 1);
-        SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_TIME_CRITICAL);
-
-        // 更新、渲染循环
-        TracyD3D11Collect(m_device->GetTracyContext());
-        FrameMark;
-        {
-            tracy_zone_scoped_with_name("OnInitWait");
-            m_swapchain->waitFrameLatency();
-            m_p_frame_rate_controller->update();
+        if(m_updating || m_rendering || m_exit_flag.load(std::memory_order_relaxed)) {
+            return;
         }
-        while(true) {
-            size_t const i = (m_framestate_index + 1) % 2;
-            FrameStatistics& d = m_framestate[i];
-            ScopeTimer gt(d.total_time);
 
-            bool update_result = false;
-
-            // 更新
-            {
-                tracy_zone_scoped_with_name("OnUpdate");
-                ScopeTimer t(d.update_time);
-                // 如果需要退出
-                if(WAIT_OBJECT_0 == WaitForSingleObjectEx(win32_event_exit.Get(), 0, TRUE)) {
-                    break;
-                }
-                update_result = m_listener->onUpdate();
-            }
-
-            bool render_result = false;
-
-            // 渲染
-            if(update_result) {
-                tracy_zone_scoped_with_name("OnRender");
-                tracy_d3d11_context_zone(m_device->GetTracyContext(), "OnRender");
-                ScopeTimer t(d.render_time);
-                m_swapchain->applyRenderAttachment();
-                m_swapchain->clearRenderAttachment();
-                render_result = m_listener->onRender();
-            }
-
-            // 呈现
-            if(render_result) {
-                tracy_zone_scoped_with_name("OnPresent");
-                ScopeTimer t(d.present_time);
-                m_swapchain->present();
-                TracyD3D11Collect(m_device->GetTracyContext());
-            }
-
-            // 等待下一帧
-            {
-                tracy_zone_scoped_with_name("OnWait");
-                ScopeTimer t(d.wait_time);
-                m_swapchain->waitFrameLatency();
-                m_p_frame_rate_controller->update();
-            }
-
-            m_framestate_index = i;
-            FrameMark;
+        m_rendering = true;
+        m_swapchain->applyRenderAttachment();
+        m_swapchain->clearRenderAttachment();
+        if(m_listener->onRender()) {
+            m_swapchain->present();
+            TracyD3D11Collect(m_device->GetTracyContext());
         }
+        m_rendering = false;
     }
 
     bool ApplicationModel_Win32::runSingleThread()
@@ -416,122 +378,30 @@ namespace core
             m_p_frame_rate_controller->update();
         }
 
-        // 游戏循环
-        MSG msg{};
-        while(!m_exit_flag) {
-            // 提取消息
-            while(PeekMessageW(&msg, NULL, 0, 0, PM_REMOVE)) {
-                if(msg.message == WM_QUIT) {
-                    m_exit_flag = true; // 应该结束循环
-                } else {
-                    TranslateMessage(&msg);
-                    DispatchMessageW(&msg);
+        if(!SDL_AddEventWatch(&ApplicationModel_Win32::sdlEventWatch, this)) {
+            spdlog::error("[sdl] SDL_AddEventWatch failed: {}", SDL_GetError());
+            return false;
+        }
+
+        m_exit_flag.store(false, std::memory_order_relaxed);
+        m_running = true;
+        while(!m_exit_flag.load(std::memory_order_relaxed)) {
+            SDL_Event event{};
+            while(SDL_PollEvent(&event)) {
+                Window::dispatchSDLEvent(event);
+                if(event.type == SDL_EVENT_QUIT || event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED) {
+                    m_exit_flag.store(true, std::memory_order_relaxed);
                 }
             }
 
-            // 更新并渲染
-            if(m_exit_flag) {
+            if(m_exit_flag.load(std::memory_order_relaxed)) {
                 break;
             }
             runFrame();
         }
 
-        return true;
-    }
-    bool ApplicationModel_Win32::runDoubleThread()
-    {
-        // 设置线程优先级为稍高，并尽量让它运行在同一个 CPU 核心上，降低切换开销
-        //SetThreadAffinityMask(GetCurrentThread(), 1);
-        SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_ABOVE_NORMAL);
-        // 创建退出用的事件
-        win32_event_exit.Attach(CreateEventExW(NULL, NULL, CREATE_EVENT_MANUAL_RESET, EVENT_ALL_ACCESS));
-        if(!win32_event_exit.IsValid()) {
-            return false;
-        }
-        // 创建更新、渲染线程
-        Microsoft::WRL::Wrappers::ThreadHandle win32_thread_worker;
-        win32_thread_worker.Attach(CreateThread(NULL, 0, &win32_thread_worker_entry, this, 0, NULL));
-        if(!win32_thread_worker.IsValid()) {
-            return false;
-        }
-        // 消息循环
-        MSG msg = {};
-        BOOL running = TRUE;
-        HANDLE win32_events[1] = { win32_event_exit.Get() };
-        while(running) {
-            if(win32_events[0]) {
-                // 监控退出事件和消息队列
-                // MsgWaitForMultipleObjectsEx 在不带 MWMO_INPUTAVAILABLE 调用时，只会注意到“新”消息
-                // 如果某些地方 PeekMessageW 不带 PM_REMOVE 调用，那么这个消息仍然存在于消息队列中，但是已经成为“老”消息
-                // 为了防止这种情况卡住 MsgWaitForMultipleObjectsEx 造成无限等待：
-                //   1、调用 MsgWaitForMultipleObjectsEx 时带上 MWMO_INPUTAVAILABLE
-                //   2、使用 while 循环带 PM_REMOVE 调用 PeekMessageW 直到返回 FALSE
-                switch(MsgWaitForMultipleObjectsEx(1, win32_events, INFINITE, QS_ALLINPUT, MWMO_INPUTAVAILABLE)) {
-                    case(WAIT_OBJECT_0):
-                        // 退出信号不是由窗口触发的，而是由工作线程触发的
-                        PostQuitMessage(EXIT_SUCCESS);
-                        win32_events[0] = NULL; // 不再需要监控退出事件
-                        break;
-                    case(WAIT_OBJECT_0 + 1):
-                        while(PeekMessageW(&msg, NULL, 0, 0, PM_REMOVE)) {
-                            if(msg.message == WM_QUIT) {
-                                running = FALSE; // 应该结束循环
-                            } else {
-                                TranslateMessage(&msg);
-                                DispatchMessageW(&msg);
-                            }
-                        }
-                        break;
-                    case WAIT_TIMEOUT:
-                        i18n_core_system_call_report_error("MsgWaitForMultipleObjectsEx => WAIT_TIMEOUT");
-                        break;
-                    case WAIT_FAILED:
-                        gHRLastError;
-                        i18n_core_system_call_report_error("MsgWaitForMultipleObjectsEx");
-                        running = FALSE; // 应该结束循环
-                        break;
-                }
-            } else {
-                // 监控消息队列
-                BOOL const result = GetMessageW(&msg, NULL, 0, 0);
-                if(result >= TRUE) {
-                    TranslateMessage(&msg);
-                    DispatchMessageW(&msg);
-                } else if(result == FALSE) {
-                    running = FALSE; // 应该结束循环
-                } else {
-                    gHRLastError;
-                    i18n_core_system_call_report_error("GetMessageW");
-                    running = FALSE; // 应该结束循环
-                }
-            }
-        }
-        // 让工作线程退出
-        requestExit();
-        //WaitForSingleObjectEx(win32_thread_worker.Get(), INFINITE, TRUE);
-        auto wait_worker = [&]() {
-            for(;;) {
-                switch(WaitForSingleObjectEx(win32_thread_worker.Get(), USER_TIMER_MINIMUM, TRUE)) {
-                    case WAIT_OBJECT_0:
-                        return; // ok
-                    case WAIT_TIMEOUT:
-                        break; // msg
-                    case WAIT_FAILED:
-                        gHRLastError;
-                        return; // failed
-                }
-                // 你妈的，是不是还有消息没处理
-                if(PeekMessageW(&msg, NULL, 0, 0, PM_REMOVE)) {
-                    if(msg.message == WM_QUIT) {
-                        // NOOP
-                    } else {
-                        TranslateMessage(&msg);
-                        DispatchMessageW(&msg);
-                    }
-                }
-            }
-        };
-        wait_worker();
+        m_running = false;
+        SDL_RemoveEventWatch(&ApplicationModel_Win32::sdlEventWatch, this);
         return true;
     }
     void ApplicationModel_Win32::runFrame()
@@ -548,29 +418,32 @@ namespace core
         {
             tracy_zone_scoped_with_name("OnUpdate");
             ScopeTimer t(d.update_time);
+            m_updating = true;
             update_result = m_listener->onUpdate();
+            m_updating = false;
         }
 
-        bool render_result = false;
-
-        // 渲染
-        if(update_result) {
+        if(update_result && !m_rendering) {
+            m_rendering = true;
+            bool render_result = false;
             tracy_zone_scoped_with_name("OnRender");
             tracy_d3d11_context_zone(m_device->GetTracyContext(), "OnRender");
-            ScopeTimer t(d.render_time);
-            frame_query.begin(); // TODO: enable/disable by configuration
-            m_swapchain->applyRenderAttachment();
-            m_swapchain->clearRenderAttachment();
-            render_result = m_listener->onRender();
-            frame_query.end(); // TODO: enable/disable by configuration
-        }
+            {
+                ScopeTimer t(d.render_time);
+                frame_query.begin(); // TODO: enable/disable by configuration
+                m_swapchain->applyRenderAttachment();
+                m_swapchain->clearRenderAttachment();
+                render_result = m_listener->onRender();
+                frame_query.end(); // TODO: enable/disable by configuration
+            }
 
-        // 呈现
-        if(render_result) {
-            tracy_zone_scoped_with_name("OnPresent");
-            ScopeTimer t(d.present_time);
-            m_swapchain->present();
-            TracyD3D11Collect(m_device->GetTracyContext());
+            if(render_result) {
+                tracy_zone_scoped_with_name("OnPresent");
+                ScopeTimer t(d.present_time);
+                m_swapchain->present();
+                TracyD3D11Collect(m_device->GetTracyContext());
+            }
+            m_rendering = false;
         }
 
         // 等待下一帧
@@ -600,8 +473,12 @@ namespace core
 
     void ApplicationModel_Win32::requestExit()
     {
-        SetEvent(win32_event_exit.Get());
-        m_exit_flag = true;
+        m_exit_flag.store(true, std::memory_order_relaxed);
+        SDL_Event event{};
+        event.type = SDL_EVENT_QUIT;
+        if(!SDL_PushEvent(&event)) {
+            spdlog::error("[sdl] SDL_PushEvent failed: {}", SDL_GetError());
+        }
     }
     bool ApplicationModel_Win32::run()
     {
@@ -612,6 +489,9 @@ namespace core
         : m_listener(p_listener)
     {
         assert(m_listener);
+        if(!m_sdl_runtime.initialize()) {
+            throw std::runtime_error("SdlRuntime::initialize");
+        }
         spdlog::info("[core] System: {}", Platform::WindowsVersion::GetName());
         spdlog::info("[core] Kernel: {}", Platform::WindowsVersion::GetKernelVersionString());
         spdlog::info("[core] CPU: {}", Platform::ProcessorInfo::name());
@@ -622,9 +502,8 @@ namespace core
             m_p_frame_rate_controller = &m_frame_rate_controller;
         }
         get_system_memory_status();
-        if(!Graphics::Window_Win32::create(m_window.put()))
-            throw std::runtime_error("Graphics::Window_Win32::create");
-        m_window->implSetApplicationModel(this);
+        if(!Graphics::IWindow::create(m_window.put()))
+            throw std::runtime_error("Graphics::IWindow::create");
         auto const& gpu = core::ConfigurationLoader::getInstance().getGraphicsSystem().getPreferredDeviceName();
         if(!Graphics::Direct3D11::Device::create(gpu, m_device.put()))
             throw std::runtime_error("Graphics::Direct3D11::Device::create");

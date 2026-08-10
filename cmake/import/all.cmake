@@ -18,6 +18,7 @@ include(${CMAKE_CURRENT_LIST_DIR}/pcg.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/xxhash.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/simdutf.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/ada_url.cmake)
+include(${CMAKE_CURRENT_LIST_DIR}/sdl3.cmake)
 
 include(${CMAKE_CURRENT_LIST_DIR}/wil.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/directx_tk.cmake)

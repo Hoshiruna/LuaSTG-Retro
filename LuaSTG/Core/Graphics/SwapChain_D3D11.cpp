@@ -9,8 +9,18 @@
 #include "utf8.hpp"
 
 #include "ScreenGrab11.h"
+#include <SDL3/SDL.h>
 
 #include <algorithm>
+
+namespace
+{
+    HWND getWindowHandle(core::Graphics::IWindow* const window)
+    {
+        const SDL_PropertiesID properties = SDL_GetWindowProperties(window->getSDLWindow());
+        return static_cast<HWND>(SDL_GetPointerProperty(properties, SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr));
+    }
+}
 
 //#define _log(x) OutputDebugStringA(x "\n")
 #define _log(x)
@@ -968,7 +978,8 @@ namespace core::Graphics
 
         // 必须成功的操作
 
-        if(!m_window->GetWindow()) {
+        const HWND window_handle = getWindowHandle(m_window.get());
+        if(window_handle == nullptr) {
             i18n_log_error("[core].SwapChain_D3D11.create_swapchain_failed_null_window");
             assert(false);
             return false;
@@ -995,7 +1006,7 @@ namespace core::Graphics
         if(!fullscreen) {
             // 获取窗口尺寸
             RECT rc = {};
-            if(!GetClientRect(m_window->GetWindow(), &rc)) {
+            if(!GetClientRect(window_handle, &rc)) {
                 HRGet = HRESULT_FROM_WIN32(GetLastError());
                 HRCheckCallReturnBool("GetClientRect");
             }
@@ -1033,7 +1044,7 @@ namespace core::Graphics
 
         HRGet = m_device->GetDXGIFactory2()->CreateSwapChainForHwnd(
             m_device->GetD3D11Device(),
-            m_window->GetWindow(),
+            window_handle,
             &m_swap_chain_info,
             fullscreen ? &m_swap_chain_fullscreen_info : NULL,
             NULL,
@@ -1089,17 +1100,12 @@ namespace core::Graphics
 
         m_swapchain_want_present_reset = TRUE;
 
-#ifdef LUASTG_ENABLE_DIRECT2D
-        m_window->getTitleBarController().createResources(m_window->GetWindow(), m_device->GetD2D1DeviceContext());
-#endif
-
         return true;
     }
     void SwapChain_D3D11::destroySwapChain()
     {
         _log("destroySwapChain");
 
-        m_window->getTitleBarController().destroyResources();
         destroyDirectCompositionResources();
         destroyRenderAttachment();
         if(dxgi_swapchain) {
@@ -1203,7 +1209,7 @@ namespace core::Graphics
         HRGet = dxgi_swapchain->SetFullscreenState(FALSE, NULL);
         HRCheckCallReturnBool("IDXGISwapChain::SetFullscreenState -> FALSE");
 
-        m_window->setLayer(WindowLayer::Normal); // 强制取消窗口置顶
+        m_window->setAlwaysOnTop(false);
 
         return true;
     }
@@ -1221,7 +1227,7 @@ namespace core::Graphics
         }
 
         DXGI_MODE_DESC1 display_mode{};
-        if(!findBestDisplayMode(m_window->GetWindow(), dxgi_swapchain.Get(), m_canvas_size, display_mode)) {
+        if(!findBestDisplayMode(getWindowHandle(m_window.get()), dxgi_swapchain.Get(), m_canvas_size, display_mode)) {
             return false;
         }
 
@@ -1335,7 +1341,7 @@ namespace core::Graphics
         }
 #endif
 
-        HRGet = dcomp_desktop_device->CreateTargetForHwnd(m_window->GetWindow(), TRUE, &dcomp_target);
+        HRGet = dcomp_desktop_device->CreateTargetForHwnd(getWindowHandle(m_window.get()), TRUE, &dcomp_target);
         HRCheckCallReturnBool("IDCompositionDesktopDevice::CreateTargetForHwnd");
 
         HRGet = dcomp_desktop_device->CreateVisual(&dcomp_visual_swap_chain);
@@ -1355,7 +1361,7 @@ namespace core::Graphics
                    m_device->GetDXGIFactory2(),
                    m_device->GetD3D11Device(),
                    m_device->GetD2D1DeviceContext(),
-                   m_window->_getCurrentSize())) {
+                   m_window->getPixelSize())) {
                 return false;
             }
             // 标题栏交换链需要的时候再使用
@@ -1456,7 +1462,7 @@ namespace core::Graphics
         HRCheckCallReturnBool("IDXGISwapChain1::GetDesc1");
 
         RECT rc = {};
-        if(!GetClientRect(m_window->GetWindow(), &rc)) {
+        if(!GetClientRect(getWindowHandle(m_window.get()), &rc)) {
             HRGet = HRESULT_FROM_WIN32(GetLastError());
             HRCheckCallReturnBool("GetClientRect");
         }
@@ -1540,7 +1546,7 @@ namespace core::Graphics
 
         // 检查组件
 
-        if(!m_window->GetWindow()) {
+        if(getWindowHandle(m_window.get()) == nullptr) {
             i18n_log_error("[core].SwapChain_D3D11.create_swapchain_failed_null_window");
             assert(false);
             return false;
@@ -1617,10 +1623,6 @@ namespace core::Graphics
         // 标记
 
         m_swapchain_want_present_reset = TRUE;
-
-#ifdef LUASTG_ENABLE_DIRECT2D
-        m_window->getTitleBarController().createResources(m_window->GetWindow(), m_device->GetD2D1DeviceContext());
-#endif
 
         return true;
     }
@@ -2105,46 +2107,6 @@ namespace core::Graphics
             m_device->GetD3D11DeviceContext()->Flush(); // 立即提交命令到 GPU
         }
 
-        // 绘制标题栏
-
-#ifdef LUASTG_ENABLE_DIRECT2D
-        if(m_is_composition_mode) {
-            tracy_d3d11_context_zone(m_device->GetTracyContext(), "TitleBarComposition");
-            // 绘制标题栏到单独的表面
-            if(m_window->getTitleBarController().isVisible()) {
-                if(!m_title_bar_attached) {
-                    HRGet = dcomp_visual_root->AddVisual(dcomp_visual_title_bar.Get(), TRUE, dcomp_visual_swap_chain.Get());
-                    HRCheckCallReturnBool("IDCompositionVisual2::AddVisual");
-                    if(!commitDirectComposition())
-                        return false;
-                    m_title_bar_attached = true;
-                }
-                auto const swap_chain_size = swap_chain_title_bar.getSize();
-                auto const title_bar_height = m_window->getTitleBarController().getHeight();
-                if(title_bar_height != swap_chain_size.y) {
-                    if(!swap_chain_title_bar.setSize(Vector2U(swap_chain_size.x, title_bar_height))) {
-                        return false;
-                    }
-                }
-                swap_chain_title_bar.clearRenderTarget();
-                m_window->getTitleBarController().draw(swap_chain_title_bar.GetD2D1Bitmap1());
-                if(!swap_chain_title_bar.present()) {
-                    return false;
-                }
-            } else if(m_title_bar_attached) {
-                HRGet = dcomp_visual_root->RemoveVisual(dcomp_visual_title_bar.Get());
-                HRCheckCallReturnBool("IDCompositionVisual2::RemoveVisual");
-                if(!commitDirectComposition())
-                    return false;
-                m_title_bar_attached = false;
-            }
-        } else {
-            tracy_d3d11_context_zone(m_device->GetTracyContext(), "DrawTitleBar");
-            // 绘制标题栏到交换链上，而不是画布上
-            m_window->getTitleBarController().draw(m_swap_chain_d2d1_bitmap.Get());
-        }
-#endif
-
         // 呈现
 
         // TODO: 这里应该使用FLIP交换链的立即丢弃机制吗
@@ -2205,7 +2167,7 @@ namespace core::Graphics
         return true;
     }
 
-    SwapChain_D3D11::SwapChain_D3D11(Window_Win32* p_window, Direct3D11::Device* p_device)
+    SwapChain_D3D11::SwapChain_D3D11(IWindow* p_window, Direct3D11::Device* p_device)
         : m_window(p_window), m_device(p_device)
     {
         assert(p_window);
@@ -2231,7 +2193,7 @@ namespace core::Graphics
         assert(m_eventobj_late.size() == 0);
     }
 
-    bool SwapChain_D3D11::create(Window_Win32* p_window, Direct3D11::Device* p_device, SwapChain_D3D11** pp_swapchain)
+    bool SwapChain_D3D11::create(IWindow* p_window, Direct3D11::Device* p_device, SwapChain_D3D11** pp_swapchain)
     {
         try {
             *pp_swapchain = new SwapChain_D3D11(p_window, p_device);
@@ -2245,7 +2207,7 @@ namespace core::Graphics
     bool ISwapChain::create(IWindow* p_window, IDevice* p_device, ISwapChain** pp_swapchain)
     {
         try {
-            *pp_swapchain = new SwapChain_D3D11(dynamic_cast<Window_Win32*>(p_window), dynamic_cast<Direct3D11::Device*>(p_device));
+            *pp_swapchain = new SwapChain_D3D11(p_window, dynamic_cast<Direct3D11::Device*>(p_device));
             return true;
         } catch(...) {
             *pp_swapchain = nullptr;

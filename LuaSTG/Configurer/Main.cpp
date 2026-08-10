@@ -4,10 +4,16 @@
 #include "imgui.h"
 #include "imgui_stdlib.h"
 #include "imgui_freetype.h"
-#include "imgui_impl_win32.h"
+#include "imgui_impl_sdl3.h"
 #include "imgui_impl_dx11.h"
+#include "core/SdlRuntime.hpp"
 #include "luastg_config_generated.h"
 #include "LConfig.h"
+#include <SDL3/SDL.h>
+#include <SDL3/SDL_main.h>
+#include <cstdio>
+#include <cstdlib>
+#include <memory>
 
 using std::string_view_literals::operator""sv;
 using std::string_literals::operator""s;
@@ -330,29 +336,24 @@ struct DisplayMode
 constexpr UINT WINDOW_SIZE_X = 400;
 constexpr UINT WINDOW_SIZE_Y = 300;
 
+struct SdlWindowDeleter
+{
+    void operator()(SDL_Window* const window) const noexcept
+    {
+        SDL_DestroyWindow(window);
+    }
+};
+
 struct Window
 {
-    WNDCLASSEXW win32_wincls;
-    ATOM win32_wincls_atom;
-    HWND win32_window;
-    DWORD win32_window_style;
-    DWORD win32_window_style_ex;
-    UINT win32_window_width;
-    UINT win32_window_height;
-    UINT win32_window_dpi;
-    static LRESULT CALLBACK win32_window_proc(HWND window, UINT message, WPARAM arg1, LPARAM arg2)
-    {
-        if(Window* self = (Window*)GetWindowLongPtrW(window, GWLP_USERDATA)) {
-            return self->WndProc(window, message, arg1, arg2);
-        }
-        switch(message) {
-            case WM_CREATE:
-                SetWindowLongPtrW(window, GWLP_USERDATA, (LONG_PTR)((CREATESTRUCT*)arg2)->lpCreateParams);
-                return 0;
-            default:
-                return DefWindowProcW(window, message, arg1, arg2);
-        }
-    }
+    std::unique_ptr<SDL_Window, SdlWindowDeleter> sdl_window;
+    SDL_WindowID window_id{};
+    HWND win32_window{};
+    UINT window_width{ WINDOW_SIZE_X };
+    UINT window_height{ WINDOW_SIZE_Y };
+    UINT pixel_width{ WINDOW_SIZE_X };
+    UINT pixel_height{ WINDOW_SIZE_Y };
+    float window_scale{ 1.0f };
 
     Microsoft::WRL::ComPtr<IDXGIFactory1> dxgi_factory;
     Microsoft::WRL::ComPtr<IDXGIAdapter1> dxgi_adapter;
@@ -368,62 +369,85 @@ struct Window
     nlohmann::json config_json = nlohmann::json::object();
     bool show_advance{ false };
 
-    BOOL is_open = FALSE;
-    BOOL want_exit = FALSE;
+    bool is_open{};
+    bool want_exit{};
+    bool is_updating{};
+    bool is_rendering{};
+    bool event_watch_registered{};
+    bool directx_initialized{};
+    bool imgui_context_created{};
+    bool imgui_platform_initialized{};
+    bool imgui_renderer_initialized{};
 
-    LRESULT WndProc(HWND window, UINT message, WPARAM arg1, LPARAM arg2)
+    static bool SDLCALL EventWatch(void* const userdata, SDL_Event* const event)
     {
-        extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
-        if(ImGui_ImplWin32_WndProcHandler(window, message, arg1, arg2)) {
-            return TRUE;
+        auto* const self = static_cast<Window*>(userdata);
+        if(self == nullptr || event == nullptr || event->type != SDL_EVENT_WINDOW_EXPOSED || !self->is_open) {
+            return true;
         }
-        switch(message) {
-            case WM_CLOSE:
-                PostQuitMessage(0);
-                return 0;
-            case WM_SIZE:
-                OnSize(LOWORD(arg2), HIWORD(arg2));
-                return 0;
-            case WM_SYSCOMMAND:
-                if((arg1 & 0xFFF0) == SC_KEYMENU)
-                    return 0; // Disable ALT application menu
-                return DefWindowProcW(window, message, arg1, arg2);
-            case WM_PAINT:
-                OnUpdate();
-                return 0;
-            case WM_DPICHANGED:
-                OnScaling(LOWORD(arg1));
-                return 0;
-            case WM_THEMECHANGED:
-            case WM_SETTINGCHANGE:
-                Platform::WindowTheme::UpdateColorMode(window, TRUE);
-                ApplyStyle();
-                return DefWindowProcW(window, message, arg1, arg2);
-            default:
-                return DefWindowProcW(window, message, arg1, arg2);
+        if(event->window.windowID == self->window_id) {
+            self->RenderCurrentFrame();
         }
+        return true;
     }
 
     int Run()
     {
-        MSG msg = {};
+        if(!SDL_AddEventWatch(&Window::EventWatch, this)) {
+            throw std::runtime_error(std::string("SDL_AddEventWatch failed: ") + SDL_GetError());
+        }
+        event_watch_registered = true;
+
         while(!want_exit) {
-            BOOL result = GetMessageW(&msg, NULL, 0, 0);
-            if(result == -1) {
-                throw std::runtime_error("GetMessageW failed."); // 这不该发生
-            } else if(result == 0) {
-                want_exit = TRUE;
-            } else {
-                TranslateMessage(&msg);
-                DispatchMessageW(&msg);
+            SDL_Event event{};
+            while(SDL_PollEvent(&event)) {
+                ImGui_ImplSDL3_ProcessEvent(&event);
+                if(event.type == SDL_EVENT_QUIT) {
+                    want_exit = true;
+                    continue;
+                }
+                if(event.type == SDL_EVENT_SYSTEM_THEME_CHANGED) {
+                    Platform::WindowTheme::UpdateColorMode(win32_window, TRUE);
+                    ApplyStyle();
+                    continue;
+                }
+                if(event.type < SDL_EVENT_WINDOW_FIRST || event.type > SDL_EVENT_WINDOW_LAST || event.window.windowID != window_id) {
+                    continue;
+                }
+
+                switch(event.type) {
+                    case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
+                        want_exit = true;
+                        break;
+                    case SDL_EVENT_WINDOW_RESIZED:
+                        window_width = static_cast<UINT>(event.window.data1);
+                        window_height = static_cast<UINT>(event.window.data2);
+                        break;
+                    case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
+                        OnPixelSize(static_cast<UINT>(event.window.data1), static_cast<UINT>(event.window.data2));
+                        break;
+                    case SDL_EVENT_WINDOW_DISPLAY_SCALE_CHANGED:
+                        OnScaling(SDL_GetWindowDisplayScale(sdl_window.get()));
+                        break;
+                    default:
+                        break;
+                }
+            }
+
+            if(!want_exit) {
+                OnUpdate();
+                SDL_Delay(10);
             }
         }
+
+        SDL_RemoveEventWatch(&Window::EventWatch, this);
+        event_watch_registered = false;
         return 0;
     }
-    void OnSize(UINT width, UINT height)
+    void OnPixelSize(const UINT width, const UINT height)
     {
-        win32_window_width = width;
-        win32_window_height = height;
+        pixel_width = width;
+        pixel_height = height;
         if(dxgi_swapchain && width > 0 && height > 0) {
             DestroyRenderTarget();
             HRESULT hr = dxgi_swapchain->ResizeBuffers(2, width, height, DXGI_FORMAT_B8G8R8A8_UNORM, 0);
@@ -435,11 +459,12 @@ struct Window
     }
     void OnUpdate()
     {
-        if(!is_open)
+        if(!is_open || is_updating)
             return;
 
+        is_updating = true;
         ImGui_ImplDX11_NewFrame();
-        ImGui_ImplWin32_NewFrame();
+        ImGui_ImplSDL3_NewFrame();
         ImGui::NewFrame();
 
         //ImGui::ShowDemoWindow();
@@ -448,17 +473,27 @@ struct Window
 
         ImGui::EndFrame();
         ImGui::Render();
+        is_updating = false;
+        RenderCurrentFrame();
+    }
+    void RenderCurrentFrame()
+    {
+        if(!is_open || is_updating || is_rendering || ImGui::GetDrawData() == nullptr) {
+            return;
+        }
+
+        is_rendering = true;
         ImVec4 const clear_color = ImGui::GetStyleColorVec4(ImGuiCol_WindowBg);
         ID3D11RenderTargetView* rtvs[] = { d3d11_rtv.Get() };
         d3d11_devctx->OMSetRenderTargets(1, rtvs, NULL);
         d3d11_devctx->ClearRenderTargetView(rtvs[0], (FLOAT*)&clear_color);
         ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
         dxgi_swapchain->Present(0, 0);
+        is_rendering = false;
     }
-    void OnScaling(UINT dpi)
+    void OnScaling(const float scale)
     {
-        win32_window_dpi = dpi;
-        updateWindowSize();
+        window_scale = scale > 0.0f ? scale : 1.0f;
         UpdateStyleAndFont();
         ImGui_ImplDX11_InvalidateDeviceObjects();
         ImGui_ImplDX11_CreateDeviceObjects();
@@ -466,7 +501,12 @@ struct Window
 
     void wantExit()
     {
-        want_exit = TRUE;
+        want_exit = true;
+        SDL_Event event{};
+        event.type = SDL_EVENT_QUIT;
+        if(!SDL_PushEvent(&event)) {
+            spdlog::error("[sdl] SDL_PushEvent failed: {}", SDL_GetError());
+        }
     }
     bool refreshOutputModeList()
     {
@@ -537,7 +577,7 @@ struct Window
         if(!ImGui::GetCurrentContext())
             return;
 
-        float const scaling = win32::getScalingFromDpi(win32_window_dpi);
+        const float scaling = window_scale;
 
         ImGuiStyle style;
         if(Platform::WindowTheme::ShouldApplicationEnableDarkMode())
@@ -669,7 +709,7 @@ struct Window
     void Layout()
     {
         ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f), ImGuiCond_Always);
-        ImGui::SetNextWindowSize(ImVec2((float)win32_window_width, (float)win32_window_height), ImGuiCond_Always);
+        ImGui::SetNextWindowSize(ImVec2(static_cast<float>(window_width), static_cast<float>(window_height)), ImGuiCond_Always);
         if(ImGui::Begin("##MainWindow", nullptr, (ImGuiWindowFlags_NoDecoration ^ ImGuiWindowFlags_NoScrollbar) | ImGuiWindowFlags_NoBackground)) {
             int select_lang = (int)i18n_map_index;
             char const* langs[2] = {
@@ -775,8 +815,8 @@ struct Window
 
         auto swpachain = DXGI_SWAP_CHAIN_DESC{
             .BufferDesc = DXGI_MODE_DESC{
-                .Width = win32_window_width,
-                .Height = win32_window_height,
+                .Width = pixel_width,
+                .Height = pixel_height,
                 .RefreshRate = DXGI_RATIONAL{
                     .Numerator = 0,
                     .Denominator = 0,
@@ -856,46 +896,36 @@ struct Window
 
     void moveToCenter()
     {
-        HMONITOR monitor = MonitorFromWindow(win32_window, MONITOR_DEFAULTTONEAREST);
-        MONITORINFO monitor_info = { sizeof(MONITORINFO) };
-        if(!GetMonitorInfoA(monitor, &monitor_info)) {
-            throw std::runtime_error("GetMonitorInfoA failed."); // 这不应该发生
-        }
-
-        RECT rc = {};
-        if(!GetWindowRect(win32_window, &rc)) {
-            throw std::runtime_error("AdjustWindowRectExForDpi failed."); // 这不应该发生
-        }
-
-        LONG const x = (monitor_info.rcWork.left + monitor_info.rcWork.right) / 2 - (rc.left + rc.right) / 2;
-        LONG const y = (monitor_info.rcWork.top + monitor_info.rcWork.bottom) / 2 - (rc.top + rc.bottom) / 2;
-        if(!SetWindowPos(win32_window, NULL, x, y, 0, 0, SWP_NOZORDER | SWP_NOSIZE)) {
-            throw std::runtime_error("SetWindowPos failed."); // 这不应该发生
+        if(!SDL_SetWindowPosition(sdl_window.get(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED)) {
+            throw std::runtime_error(std::string("SDL_SetWindowPosition failed: ") + SDL_GetError());
         }
     }
     void updateWindowSize()
     {
-        RECT rc = {
-            .left = 0,
-            .top = 0,
-            .right = 0,
-            .bottom = 0,
-        };
-        if(!win32::adjustWindowRectExForDpi(&rc, win32_window_style, FALSE, win32_window_style_ex, win32_window_dpi)) {
-            throw std::runtime_error("AdjustWindowRectExForDpi failed.");
+        if(!SDL_SetWindowSize(sdl_window.get(), static_cast<int>(WINDOW_SIZE_X), static_cast<int>(WINDOW_SIZE_Y))) {
+            throw std::runtime_error(std::string("SDL_SetWindowSize failed: ") + SDL_GetError());
         }
-        win32_window_width = win32::scaleByDpi(WINDOW_SIZE_X, win32_window_dpi);
-        win32_window_height = win32::scaleByDpi(WINDOW_SIZE_Y, win32_window_dpi);
-        rc.right += win32_window_width;
-        rc.bottom += win32_window_height;
-        if(!SetWindowPos(win32_window, NULL, 0, 0, rc.right - rc.left, rc.bottom - rc.top, SWP_NOZORDER | SWP_NOMOVE)) {
-            throw std::runtime_error("SetWindowPos failed.");
+        if(!SDL_SyncWindow(sdl_window.get())) {
+            throw std::runtime_error(std::string("SDL_SyncWindow timed out after resizing the window: ") + SDL_GetError());
         }
+        int width{};
+        int height{};
+        if(!SDL_GetWindowSize(sdl_window.get(), &width, &height)) {
+            throw std::runtime_error(std::string("SDL_GetWindowSize failed: ") + SDL_GetError());
+        }
+        window_width = static_cast<UINT>(width);
+        window_height = static_cast<UINT>(height);
+        if(!SDL_GetWindowSizeInPixels(sdl_window.get(), &width, &height)) {
+            throw std::runtime_error(std::string("SDL_GetWindowSizeInPixels failed: ") + SDL_GetError());
+        }
+        pixel_width = static_cast<UINT>(width);
+        pixel_height = static_cast<UINT>(height);
     }
     void updateTitle()
     {
-        std::wstring str(utf8::to_wstring(i18n("window-title")));
-        SetWindowTextW(win32_window, str.c_str());
+        if(!SDL_SetWindowTitle(sdl_window.get(), i18n("window-title").data())) {
+            throw std::runtime_error(std::string("SDL_SetWindowTitle failed: ") + SDL_GetError());
+        }
     }
 
     void loadConfigFromJson()
@@ -917,83 +947,116 @@ struct Window
     }
 
     Window()
-        : win32_wincls({ sizeof(WNDCLASSEXW) }), win32_wincls_atom(0), win32_window(NULL), win32_window_style(WS_OVERLAPPEDWINDOW ^ (WS_THICKFRAME | WS_MAXIMIZEBOX)), win32_window_style_ex(0), win32_window_width(WINDOW_SIZE_X), win32_window_height(WINDOW_SIZE_Y), win32_window_dpi(win32::getUserDefaultScreenDpi()), is_open(FALSE)
     {
-        win32_wincls.style = CS_HREDRAW | CS_VREDRAW;
-        win32_wincls.lpfnWndProc = &win32_window_proc;
-        win32_wincls.hInstance = GetModuleHandleW(NULL);
-        win32_wincls.lpszClassName = L"SettingWindow";
+        try {
+            sdl_window.reset(SDL_CreateWindow("", WINDOW_SIZE_X, WINDOW_SIZE_Y, SDL_WINDOW_HIGH_PIXEL_DENSITY | SDL_WINDOW_HIDDEN));
+            if(sdl_window == nullptr) {
+                throw std::runtime_error(std::string("SDL_CreateWindow failed: ") + SDL_GetError());
+            }
+            window_id = SDL_GetWindowID(sdl_window.get());
+            if(window_id == 0) {
+                throw std::runtime_error(std::string("SDL_GetWindowID failed: ") + SDL_GetError());
+            }
+            const SDL_PropertiesID properties = SDL_GetWindowProperties(sdl_window.get());
+            if(properties == 0) {
+                throw std::runtime_error(std::string("SDL_GetWindowProperties failed: ") + SDL_GetError());
+            }
+            win32_window = static_cast<HWND>(SDL_GetPointerProperty(properties, SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr));
+            if(win32_window == nullptr) {
+                throw std::runtime_error(std::string("SDL_PROP_WINDOW_WIN32_HWND_POINTER is unavailable: ") + SDL_GetError());
+            }
+            Platform::WindowTheme::UpdateColorMode(win32_window, TRUE);
+            window_scale = SDL_GetWindowDisplayScale(sdl_window.get());
+            if(window_scale <= 0.0f) {
+                throw std::runtime_error(std::string("SDL_GetWindowDisplayScale failed: ") + SDL_GetError());
+            }
+            updateWindowSize();
+            moveToCenter();
+            updateTitle();
 
-        win32_wincls_atom = RegisterClassExW(&win32_wincls);
-        if(win32_wincls_atom == 0) {
-            throw std::runtime_error("RegisterClassExW failed."); // 这不应该发生
+            if(!SDL_ShowWindow(sdl_window.get())) {
+                throw std::runtime_error(std::string("SDL_ShowWindow failed: ") + SDL_GetError());
+            }
+
+            CreateDirectX();
+            directx_initialized = true;
+            IMGUI_CHECKVERSION();
+            ImGui::CreateContext();
+            imgui_context_created = true;
+            ImGui::GetIO().IniFilename = NULL;
+            if(!ImGui_ImplSDL3_InitForD3D(sdl_window.get())) {
+                throw std::runtime_error("ImGui_ImplSDL3_InitForD3D failed.");
+            }
+            imgui_platform_initialized = true;
+            if(!ImGui_ImplDX11_Init(d3d11_device.Get(), d3d11_devctx.Get())) {
+                throw std::runtime_error("ImGui_ImplDX11_Init failed.");
+            }
+            imgui_renderer_initialized = true;
+
+            ImFontConfig font_cfg;
+            font_cfg.FontLoaderFlags = ImGuiFreeTypeLoaderFlags_NoHinting | ImGuiFreeTypeLoaderFlags_LoadColor;
+            ImFont* font = ImGui::GetIO().Fonts->AddFontFromFileTTF("C:\\Windows\\Fonts\\msyh.ttc", 16.0f * window_scale, &font_cfg, nullptr);
+            if(!font) {
+                font = ImGui::GetIO().Fonts->AddFontFromFileTTF("C:\\Windows\\Fonts\\msyh.ttf", 16.0f * window_scale, &font_cfg, nullptr);
+            }
+            if(!font) {
+                throw std::runtime_error("ImFontAtlas::AddFontFromFileTTF failed.");
+            }
+
+            UpdateStyleAndFont();
+            is_open = true;
+            loadConfigFromJson();
+        } catch(...) {
+            Shutdown();
+            throw;
         }
-
-        win32_window = CreateWindowExW(
-            win32_window_style_ex, win32_wincls.lpszClassName, L"", win32_window_style, 0, 0, (int)win32_window_width, (int)win32_window_height, NULL, NULL, win32_wincls.hInstance, this);
-        if(win32_window == NULL) {
-            throw std::runtime_error("CreateWindowExW failed."); // 这不应该发生
+    }
+    void Shutdown() noexcept
+    {
+        if(event_watch_registered) {
+            SDL_RemoveEventWatch(&Window::EventWatch, this);
+            event_watch_registered = false;
         }
-        Platform::WindowTheme::UpdateColorMode(win32_window, TRUE);
-        win32_window_dpi = win32::getDpiForWindow(win32_window);
-        updateWindowSize();
-        moveToCenter();
-        updateTitle();
-
-        ShowWindow(win32_window, SW_SHOWDEFAULT);
-        UpdateWindow(win32_window);
-
-        CreateDirectX();
-        IMGUI_CHECKVERSION();
-        ImGui::CreateContext();
-        ImGui::GetIO().IniFilename = NULL;
-        ImGui_ImplWin32_Init(win32_window);
-        ImGui_ImplDX11_Init(d3d11_device.Get(), d3d11_devctx.Get());
-
-        auto const scaling = ImGui_ImplWin32_GetDpiScaleForHwnd(win32_window);
-        ImFontConfig font_cfg;
-        font_cfg.FontLoaderFlags = ImGuiFreeTypeLoaderFlags_NoHinting | ImGuiFreeTypeLoaderFlags_LoadColor;
-        ImFont* font = ImGui::GetIO().Fonts->AddFontFromFileTTF("C:\\Windows\\Fonts\\msyh.ttc", 16.0f * scaling, &font_cfg, nullptr);
-        if(!font) {
-            font = ImGui::GetIO().Fonts->AddFontFromFileTTF("C:\\Windows\\Fonts\\msyh.ttf", 16.0f * scaling, &font_cfg, nullptr);
+        is_open = false;
+        if(imgui_renderer_initialized) {
+            ImGui_ImplDX11_Shutdown();
+            imgui_renderer_initialized = false;
         }
-        if(!font) {
-            throw std::runtime_error("ImFontAtlas::AddFontFromFileTTF failed.");
+        if(imgui_platform_initialized) {
+            ImGui_ImplSDL3_Shutdown();
+            imgui_platform_initialized = false;
         }
-
-        UpdateStyleAndFont();
-        is_open = TRUE;
-
-        loadConfigFromJson();
+        if(imgui_context_created) {
+            ImGui::DestroyContext();
+            imgui_context_created = false;
+        }
+        if(directx_initialized) {
+            DestroyDirectX();
+            directx_initialized = false;
+        }
+        sdl_window.reset();
+        window_id = 0;
+        win32_window = nullptr;
     }
     ~Window()
     {
-        if(is_open) {
-            is_open = FALSE;
-            ImGui_ImplDX11_Shutdown();
-            ImGui_ImplWin32_Shutdown();
-            ImGui::DestroyContext();
-            DestroyDirectX();
-        }
-        if(win32_window)
-            DestroyWindow(win32_window);
-        win32_window = NULL;
-        if(win32_wincls_atom)
-            UnregisterClassW(win32_wincls.lpszClassName, win32_wincls.hInstance);
-        win32_wincls_atom = 0;
-        win32_wincls = WNDCLASSEXW{ sizeof(WNDCLASSEXW) };
+        Shutdown();
     }
 };
 
-_Use_decl_annotations_ int WINAPI
-wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
+int main(int, char**)
 {
+    core::SdlRuntime sdl_runtime;
+    if(!sdl_runtime.initialize()) {
+        std::fprintf(stderr, "SDL_Init failed: %s\n", SDL_GetError());
+        return EXIT_FAILURE;
+    }
+
     try {
         Window window;
         return window.Run();
     } catch(std::runtime_error const& e) {
-        std::wstring err(utf8::to_wstring(e.what()));
-        MessageBoxW(NULL, err.c_str(), L"Error", MB_OK | MB_ICONERROR);
+        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Error", e.what(), nullptr);
     }
-    return 0;
+    return EXIT_FAILURE;
 }

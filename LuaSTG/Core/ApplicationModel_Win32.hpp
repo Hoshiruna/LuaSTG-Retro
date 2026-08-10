@@ -1,10 +1,13 @@
 #pragma once
 #include "core/implement/ReferenceCounted.hpp"
 #include "Core/ApplicationModel.hpp"
-#include "Core/Graphics/Window_Win32.hpp"
+#include "Core/Graphics/Window.hpp"
+#include "core/SdlRuntime.hpp"
 #include "Core/Graphics/Direct3D11/Device.hpp"
 #include "Core/Graphics/SwapChain_D3D11.hpp"
 #include "Core/Graphics/Renderer_D3D11.hpp"
+#include <SDL3/SDL_events.h>
+#include <atomic>
 
 namespace core
 {
@@ -372,9 +375,12 @@ namespace core
     private:
         // 多个线程共享
 
-        SmartReference<Graphics::Window_Win32> m_window;
-        Microsoft::WRL::Wrappers::Event win32_event_exit;
-        bool m_exit_flag{};
+        SdlRuntime m_sdl_runtime;
+        SmartReference<Graphics::IWindow> m_window;
+        std::atomic_bool m_exit_flag{};
+        bool m_running{};
+        bool m_updating{};
+        bool m_rendering{};
 
         // 仅限工作线程
 
@@ -390,11 +396,9 @@ namespace core
         std::vector<FrameQuery> m_frame_query_list;
         size_t m_frame_query_index{};
 
-        static DWORD WINAPI win32_thread_worker_entry(LPVOID lpThreadParameter);
-        void worker();
-
         bool runSingleThread();
-        bool runDoubleThread();
+        void renderExposedFrame();
+        static bool SDLCALL sdlEventWatch(void* userdata, SDL_Event* event);
 
     public:
         // 内部公开
