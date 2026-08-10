@@ -7,14 +7,17 @@
 #include "core/GraphicsFormat.hpp"
 #include "core/GraphicsSampler.hpp"
 
-namespace core {
-    enum class TextureBindFlag {
+namespace core
+{
+    enum class TextureBindFlag
+    {
         shader_resource = 0x8,
         render_target = 0x20,
         depth_stencil_buffer = 0x40,
     };
 
-    struct TextureInfo {
+    struct TextureInfo
+    {
         GraphicsFormat format;
         TextureBindFlag bind_flags;
         uint32_t width;
@@ -22,7 +25,8 @@ namespace core {
         uint32_t mipmap_level;
     };
 
-    CORE_INTERFACE ITexture2D : IReferenceCounted {
+    CORE_INTERFACE ITexture2D : IReferenceCounted
+    {
         virtual void* getNativeResource() const noexcept = 0;
         virtual void* getNativeView() const noexcept = 0;
 
@@ -33,11 +37,11 @@ namespace core {
 
         virtual bool setSize(Vector2U size) = 0;
         virtual bool update(RectU rect, void const* data, uint32_t row_pitch_in_bytes) = 0;
-        virtual void setImage(IImage* image) = 0;
+        virtual void setImage(IImage * image) = 0;
 
         virtual bool saveToFile(StringView path) = 0;
 
-        virtual void setSamplerState(IGraphicsSampler* sampler) = 0;
+        virtual void setSamplerState(IGraphicsSampler * sampler) = 0;
         virtual IGraphicsSampler* getSamplerState() const noexcept = 0;
     };
 

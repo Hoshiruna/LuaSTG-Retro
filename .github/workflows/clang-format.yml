@@ -47,7 +47,7 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Install clang-format
-        run: sudo apt-get update && sudo apt-get install --yes clang-format
+        run: sudo apt-get update && sudo apt-get install --yes clang-format-18
 
       - name: Check formatting
         shell: bash
@@ -56,12 +56,12 @@ jobs:
             git ls-files -z -- \
               '*.c' '*.cc' '*.cpp' '*.cxx' \
               '*.h' '*.hh' '*.hpp' '*.hxx' |
-              grep -zvE '^(external|imgui)/'
+              grep -zvE '^(external/|imgui/imgui/|imgui/implot/|doc/|LuaSTG/Shader/generated/|LuaSTG/LuaSTG/LuaBinding/generated/|engine/embedded-file-system/generated/|engine/graphics/d3d11/shader/)'
           )
 
           if (( ${#files[@]} == 0 )); then
-            echo "No C or C++ files found."
+            echo "No C or C++ files require checking."
             exit 0
           fi
 
-          clang-format --dry-run --Werror "${files[@]}"
+          clang-format-18 --dry-run --Werror "${files[@]}"

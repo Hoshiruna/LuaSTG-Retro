@@ -3,70 +3,71 @@
 #include "lua.hpp"
 #include "Core/Graphics/Window.hpp"
 
-namespace luastg::binding {
+namespace luastg::binding
+{
 
-	struct Window {
+    struct Window
+    {
 
-		static std::string_view class_name;
+        static std::string_view class_name;
 
-		[[maybe_unused]] core::Graphics::IWindow* data{};
+        [[maybe_unused]] core::Graphics::IWindow* data{};
 
-		static bool is(lua_State* L, int index);
+        static bool is(lua_State* L, int index);
 
-		static Window* as(lua_State* L, int index);
+        static Window* as(lua_State* L, int index);
 
-		static Window* create(lua_State* L);
+        static Window* create(lua_State* L);
 
-		static void registerClass(lua_State* L);
+        static void registerClass(lua_State* L);
+    };
 
-	};
+    struct Window_InputMethodExtension
+    {
 
-	struct Window_InputMethodExtension {
+        static std::string_view class_name;
 
-		static std::string_view class_name;
+        [[maybe_unused]] core::Graphics::IWindow* data{};
 
-		[[maybe_unused]] core::Graphics::IWindow* data{};
+        static bool is(lua_State* L, int index);
 
-		static bool is(lua_State* L, int index);
+        static Window_InputMethodExtension* as(lua_State* L, int index);
 
-		static Window_InputMethodExtension* as(lua_State* L, int index);
+        static Window_InputMethodExtension* create(lua_State* L);
 
-		static Window_InputMethodExtension* create(lua_State* L);
+        static void registerClass(lua_State* L);
+    };
 
-		static void registerClass(lua_State* L);
+    struct Window_TextInputExtension
+    {
 
-	};
+        static std::string_view class_name;
 
-	struct Window_TextInputExtension {
+        [[maybe_unused]] core::Graphics::IWindow* data{};
 
-		static std::string_view class_name;
+        static bool is(lua_State* L, int index);
 
-		[[maybe_unused]] core::Graphics::IWindow* data{};
+        static Window_TextInputExtension* as(lua_State* L, int index);
 
-		static bool is(lua_State* L, int index);
+        static Window_TextInputExtension* create(lua_State* L);
 
-		static Window_TextInputExtension* as(lua_State* L, int index);
+        static void registerClass(lua_State* L);
+    };
 
-		static Window_TextInputExtension* create(lua_State* L);
+    struct Window_Windows11Extension
+    {
 
-		static void registerClass(lua_State* L);
+        static std::string_view class_name;
 
-	};
+        [[maybe_unused]] core::Graphics::IWindow* data{};
 
-	struct Window_Windows11Extension {
+        static bool is(lua_State* L, int index);
 
-		static std::string_view class_name;
+        static Window_Windows11Extension* as(lua_State* L, int index);
 
-		[[maybe_unused]] core::Graphics::IWindow* data{};
+        static Window_Windows11Extension* create(lua_State* L);
 
-		static bool is(lua_State* L, int index);
-
-		static Window_Windows11Extension* as(lua_State* L, int index);
-
-		static Window_Windows11Extension* create(lua_State* L);
-
-		static void registerClass(lua_State* L);
-
-	};
+        static void registerClass(lua_State* L);
+    };
 
 }

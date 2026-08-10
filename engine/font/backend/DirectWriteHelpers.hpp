@@ -7,12 +7,14 @@
 #define NOIME
 #define NOMINMAX
 #include <windows.h>
-#undef DrawText        // FUCK Microsoft
+#undef DrawText // FUCK Microsoft
 #undef GetGlyphIndices // FUCK Microsoft
 #include <dwrite_3.h>
 
-namespace core {
-    class DirectWriteHelpers {
+namespace core
+{
+    class DirectWriteHelpers
+    {
     public:
         static IDWriteFactory* getFactory();
         static HRESULT createCustomFontCollection(core::IImmutableStringList* files, IDWriteFontCollection** output);

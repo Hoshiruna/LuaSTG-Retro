@@ -2,8 +2,10 @@
 #include <cstdint>
 #include <array>
 
-namespace core {
-    struct FrameRateStatistics {
+namespace core
+{
+    struct FrameRateStatistics
+    {
         std::array<double, 240> durations{};
         double duration_average{};
         double duration_min{};
@@ -21,7 +23,8 @@ namespace core {
         void update(double duration) noexcept;
     };
 
-    struct IFrameRateController {
+    struct IFrameRateController
+    {
         virtual bool arrived() const noexcept = 0;
         virtual double update() noexcept = 0;
         virtual double getFrameRate() const noexcept = 0;
@@ -31,7 +34,8 @@ namespace core {
         static IFrameRateController* getInstance();
     };
 
-    class ScopeTimer {
+    class ScopeTimer
+    {
     public:
         ScopeTimer(double* value = nullptr);
         ~ScopeTimer();

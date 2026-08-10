@@ -1,8 +1,10 @@
 #pragma once
 #include "core/Texture2D.hpp"
 
-namespace core {
-    CORE_INTERFACE IRenderTarget : IReferenceCounted {
+namespace core
+{
+    CORE_INTERFACE IRenderTarget : IReferenceCounted
+    {
         virtual void* getNativeView() const noexcept = 0;
         // (Direct2D)
         virtual void* getNativeBitmap() const noexcept = 0;

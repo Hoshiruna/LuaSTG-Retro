@@ -12,62 +12,69 @@
 #include <fstream>
 #include "webp/encode.h"
 
-namespace {
-    using std::string_literals::operator ""s;
-    using std::string_view_literals::operator ""sv;
+namespace
+{
+    using std::string_literals::operator""s;
+    using std::string_view_literals::operator""sv;
 
-    void win32LoggerWriter(const std::string_view message) {
+    void win32LoggerWriter(const std::string_view message)
+    {
         core::Logger::error(message);
     }
 
-    void setupLogger() {
-        if (!spdlog::get("test"s)) {
+    void setupLogger()
+    {
+        if(!spdlog::get("test"s)) {
             spdlog::set_default_logger(spdlog::stdout_color_mt("test"s));
         }
         win32::set_logger_writer(&win32LoggerWriter);
     }
 
-    std::string_view to_string_view(const core::FontWeight weight) {
+    std::string_view to_string_view(const core::FontWeight weight)
+    {
         static std::string s;
-        switch (weight) {
-            case core::FontWeight::thin:        return "thin"sv;
+        switch(weight) {
+            case core::FontWeight::thin: return "thin"sv;
             case core::FontWeight::extra_light: return "extra_light"sv;
-            case core::FontWeight::light:       return "light"sv;
-            case core::FontWeight::normal:      return "normal"sv;
-            case core::FontWeight::medium:      return "medium"sv;
-            case core::FontWeight::semi_bold:   return "semi_bold"sv;
-            case core::FontWeight::bold:        return "bold"sv;
-            case core::FontWeight::extra_bold:  return "extra_bold"sv;
-            case core::FontWeight::black:       return "black"sv;
+            case core::FontWeight::light: return "light"sv;
+            case core::FontWeight::normal: return "normal"sv;
+            case core::FontWeight::medium: return "medium"sv;
+            case core::FontWeight::semi_bold: return "semi_bold"sv;
+            case core::FontWeight::bold: return "bold"sv;
+            case core::FontWeight::extra_bold: return "extra_bold"sv;
+            case core::FontWeight::black: return "black"sv;
             default: return s = std::to_string(std::to_underlying(weight));
         }
     }
-    std::string_view to_string_view(const core::FontStyle style) {
+    std::string_view to_string_view(const core::FontStyle style)
+    {
         static std::string s;
-        switch (style) {
-            case core::FontStyle::normal:  return "normal"sv;
+        switch(style) {
+            case core::FontStyle::normal: return "normal"sv;
             case core::FontStyle::oblique: return "oblique"sv;
-            case core::FontStyle::italic:  return "italic"sv;
+            case core::FontStyle::italic: return "italic"sv;
             default: return s = std::to_string(std::to_underlying(style));
         }
     }
-    std::string_view to_string_view(const core::FontWidth width) {
+    std::string_view to_string_view(const core::FontWidth width)
+    {
         static std::string s;
-        switch (width) {
+        switch(width) {
             case core::FontWidth::ultra_condensed: return "ultra_condensed"sv;
             case core::FontWidth::extra_condensed: return "extra_condensed"sv;
-            case core::FontWidth::condensed:       return "condensed"sv;
-            case core::FontWidth::semi_condensed:  return "semi_condensed"sv;
-            case core::FontWidth::normal:          return "normal"sv;
-            case core::FontWidth::semi_expanded:   return "semi_expanded"sv;
-            case core::FontWidth::expanded:        return "expanded"sv;
-            case core::FontWidth::extra_expanded:  return "extra_expanded"sv;
-            case core::FontWidth::ultra_expanded:  return "ultra_expanded"sv;
+            case core::FontWidth::condensed: return "condensed"sv;
+            case core::FontWidth::semi_condensed: return "semi_condensed"sv;
+            case core::FontWidth::normal: return "normal"sv;
+            case core::FontWidth::semi_expanded: return "semi_expanded"sv;
+            case core::FontWidth::expanded: return "expanded"sv;
+            case core::FontWidth::extra_expanded: return "extra_expanded"sv;
+            case core::FontWidth::ultra_expanded: return "ultra_expanded"sv;
             default: return s = std::to_string(std::to_underlying(width));
         }
     }
 
-    std::string readTextFile(const std::string_view path) {
+    std::string readTextFile(const std::string_view path)
+    {
         const auto path_w{ utf8::to_wstring(path) };
         const auto size = std::filesystem::file_size(path_w);
         std::string text(size, '\0');
@@ -75,20 +82,21 @@ namespace {
         file.read(text.data(), static_cast<std::streamsize>(size));
         return text;
     }
-    void writeFile(const std::string_view path, const void* const data, const size_t size) {
+    void writeFile(const std::string_view path, const void* const data, const size_t size)
+    {
         const auto path_w{ utf8::to_wstring(path) };
         std::ofstream file(path_w, std::ios::out | std::ios::trunc | std::ios::binary);
         file.write(static_cast<const char*>(data), static_cast<std::streamsize>(size));
     }
-    void convertPremultipliedAlphaToStraight(core::ImageMappedBuffer& buffer, const core::Vector2U& size) {
+    void convertPremultipliedAlphaToStraight(core::ImageMappedBuffer& buffer, const core::Vector2U& size)
+    {
         auto pixels = static_cast<core::Color4B*>(buffer.data);
-        for (uint32_t y = 0; y < size.y; y += 1) {
-            for (uint32_t x = 0; x < size.x; x += 1) {
+        for(uint32_t y = 0; y < size.y; y += 1) {
+            for(uint32_t x = 0; x < size.x; x += 1) {
                 auto& c = pixels[y * size.x + x];
-                if (c.a == 0) {
+                if(c.a == 0) {
                     c = {};
-                }
-                else if (c.a < 255) {
+                } else if(c.a < 255) {
                     const auto inv = 255.0f / static_cast<float>(c.a);
                     const auto r = inv * static_cast<float>(c.r) / 255.0f;
                     const auto g = inv * static_cast<float>(c.g) / 255.0f;
@@ -101,15 +109,16 @@ namespace {
         }
     }
 
-    void printFontCollectionInfo(core::IFontCollection* const font_collection) {
+    void printFontCollectionInfo(core::IFontCollection* const font_collection)
+    {
         using namespace core;
 
-        for (uint32_t i = 0; i < font_collection->getFontFamilyCount(); i += 1) {
+        for(uint32_t i = 0; i < font_collection->getFontFamilyCount(); i += 1) {
             SmartReference<IImmutableString> font_family_name;
             ASSERT_TRUE(font_collection->getFontFamilyName(i, font_family_name.put()));
             Logger::info("[{}] {}"sv, i, font_family_name->view());
 
-            for (uint32_t j = 0; j < font_collection->getFontCount(i); j += 1) {
+            for(uint32_t j = 0; j < font_collection->getFontCount(i); j += 1) {
                 SmartReference<IImmutableString> font_name;
                 ASSERT_TRUE(font_collection->getFontName(i, j, font_name.put()));
                 const auto weight = font_collection->getFontWeight(i, j);
@@ -117,15 +126,18 @@ namespace {
                 const auto width = font_collection->getFontWidth(i, j);
                 Logger::info(
                     "    [{}] '{}' (weight: {}, style: {}, width: {})"sv,
-                    j, font_name->view(),
-                    to_string_view(weight), to_string_view(style), to_string_view(width)
-                );
+                    j,
+                    font_name->view(),
+                    to_string_view(weight),
+                    to_string_view(style),
+                    to_string_view(width));
             }
         }
     }
 }
 
-TEST(FontCollection, system) {
+TEST(FontCollection, system)
+{
     setupLogger();
     using namespace core;
 
@@ -135,7 +147,8 @@ TEST(FontCollection, system) {
     printFontCollectionInfo(font_collection.get());
 }
 
-TEST(FontCollection, custom) {
+TEST(FontCollection, custom)
+{
     setupLogger();
     using namespace core;
 
@@ -144,7 +157,7 @@ TEST(FontCollection, custom) {
 
     EXPECT_FALSE(font_collection->addFile("not_a_file"sv));
 
-    for (auto it : std::filesystem::directory_iterator("assets/font/"sv)) {
+    for(auto it : std::filesystem::directory_iterator("assets/font/"sv)) {
         const auto path = it.path().lexically_normal().generic_u8string();
         ASSERT_TRUE(font_collection->addFile(utf8::to_string(path)));
     }
@@ -154,7 +167,8 @@ TEST(FontCollection, custom) {
     printFontCollectionInfo(font_collection.get());
 }
 
-TEST(TextLayout, text) {
+TEST(TextLayout, text)
+{
     setupLogger();
     using namespace core;
 
@@ -185,15 +199,15 @@ TEST(TextLayout, text) {
         static_cast<int>(size.x),
         static_cast<int>(size.y),
         static_cast<int>(buffer.stride),
-        &webp_data
-    );
+        &webp_data);
     ASSERT_TRUE(webp_data != nullptr);
     std::filesystem::create_directory("userdata");
     writeFile("userdata/1.webp", webp_data, webp_size);
     WebPFree(webp_data);
 }
 
-TEST(TextLayout, stroke) {
+TEST(TextLayout, stroke)
+{
     setupLogger();
     using namespace core;
 
@@ -224,8 +238,7 @@ TEST(TextLayout, stroke) {
         static_cast<int>(size.x),
         static_cast<int>(size.y),
         static_cast<int>(buffer.stride),
-        &webp_data
-    );
+        &webp_data);
     ASSERT_TRUE(webp_data != nullptr);
     std::filesystem::create_directory("userdata");
     writeFile("userdata/2.webp", webp_data, webp_size);

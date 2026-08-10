@@ -1,6 +1,7 @@
 #include "GameResource/ResourcePassword.hpp"
 
-std::string luastg::GetGameName()
+std::string
+luastg::GetGameName()
 {
-	return "password";
+    return "password";
 }

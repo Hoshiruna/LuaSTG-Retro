@@ -8,56 +8,56 @@
 namespace luastg::DiscordRPC
 {
 #ifdef LUASTG_DISCORD_RPC_ENABLE
-	namespace
-	{
+    namespace
+    {
 #if defined(LUASTG_DISCORD_RPC_APP_ID)
-		constexpr char kDiscordAppId[] = LUASTG_DISCORD_RPC_APP_ID;
+        constexpr char kDiscordAppId[] = LUASTG_DISCORD_RPC_APP_ID;
 #else
-		constexpr char kDiscordAppId[] = "";
+        constexpr char kDiscordAppId[] = "";
 #endif
-		bool g_initialized = false;
-	}
+        bool g_initialized = false;
+    }
 #endif
 
-	bool Init()
-	{
+    bool Init()
+    {
 #ifdef LUASTG_DISCORD_RPC_ENABLE
-		if (kDiscordAppId[0] == '\0') {
-			return true;
-		}
+        if(kDiscordAppId[0] == '\0') {
+            return true;
+        }
 
-		DiscordEventHandlers handlers{};
-		::Discord_Initialize(kDiscordAppId, &handlers, 1, nullptr);
-		g_initialized = true;
+        DiscordEventHandlers handlers{};
+        ::Discord_Initialize(kDiscordAppId, &handlers, 1, nullptr);
+        g_initialized = true;
 #endif
-		return true;
-	}
+        return true;
+    }
 
-	bool IsInitialized()
-	{
+    bool IsInitialized()
+    {
 #ifdef LUASTG_DISCORD_RPC_ENABLE
-		return g_initialized;
+        return g_initialized;
 #else
-		return false;
+        return false;
 #endif
-	}
+    }
 
-	void RunCallbacks()
-	{
+    void RunCallbacks()
+    {
 #ifdef LUASTG_DISCORD_RPC_ENABLE
-		if (g_initialized) {
-			::Discord_RunCallbacks();
-		}
+        if(g_initialized) {
+            ::Discord_RunCallbacks();
+        }
 #endif
-	}
+    }
 
-	void Shutdown()
-	{
+    void Shutdown()
+    {
 #ifdef LUASTG_DISCORD_RPC_ENABLE
-		if (g_initialized) {
-			::Discord_Shutdown();
-			g_initialized = false;
-		}
+        if(g_initialized) {
+            ::Discord_Shutdown();
+            g_initialized = false;
+        }
 #endif
-	}
+    }
 }

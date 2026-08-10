@@ -4,6 +4,8 @@
 #error "ARE YOU ARM64?"
 #endif
 
-int main() {
+int
+main()
+{
     return 0;
 }

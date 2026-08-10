@@ -2,7 +2,7 @@
 #include "core/Logger.hpp"
 #include "core/FileSystem.hpp"
 
-#define IDX(x) (size_t)static_cast<uint8_t>(x)
+#define IDX(x) (size_t) static_cast<uint8_t>(x)
 
 namespace DirectX
 {
@@ -27,39 +27,29 @@ namespace core::Graphics
 
         // default: purple & black tile image
 
-        auto RGBA = [](uint8_t r_, uint8_t g_, uint8_t b_, uint8_t a_) -> uint32_t
-        {
-            return uint32_t(r_)
-                | (uint32_t(g_) << 8)
-                | (uint32_t(b_) << 16)
-                | (uint32_t(a_) << 24);
+        auto RGBA = [](uint8_t r_, uint8_t g_, uint8_t b_, uint8_t a_) -> uint32_t {
+            return uint32_t(r_) | (uint32_t(g_) << 8) | (uint32_t(b_) << 16) | (uint32_t(a_) << 24);
         };
         uint32_t black = RGBA(0, 0, 0, 255);
         uint32_t purple = RGBA(255, 0, 255, 255);
         std::vector<uint32_t> pixels(64 * 64);
         uint32_t* ptr = pixels.data();
-        for (int i = 0; i < 32; i += 1)
-        {
-            for (int j = 0; j < 32; j += 1)
-            {
+        for(int i = 0; i < 32; i += 1) {
+            for(int j = 0; j < 32; j += 1) {
                 *ptr = black;
                 ptr++;
             }
-            for (int j = 0; j < 32; j += 1)
-            {
+            for(int j = 0; j < 32; j += 1) {
                 *ptr = purple;
                 ptr++;
             }
         }
-        for (int i = 0; i < 32; i += 1)
-        {
-            for (int j = 0; j < 32; j += 1)
-            {
+        for(int i = 0; i < 32; i += 1) {
+            for(int j = 0; j < 32; j += 1) {
                 *ptr = purple;
                 ptr++;
             }
-            for (int j = 0; j < 32; j += 1)
-            {
+            for(int j = 0; j < 32; j += 1) {
                 *ptr = black;
                 ptr++;
             }
@@ -89,8 +79,7 @@ namespace core::Graphics
         };
         win32::com_ptr<ID3D11Texture2D> def_texture2d;
         hr = device->CreateTexture2D(&def_tex_def, &def_dat_def, def_texture2d.put());
-        if (FAILED(hr))
-        {
+        if(FAILED(hr)) {
             assert(false);
             return false;
         }
@@ -103,8 +92,7 @@ namespace core::Graphics
             },
         };
         hr = device->CreateShaderResourceView(def_texture2d.get(), &def_srv_def, default_image.put());
-        if (FAILED(hr))
-        {
+        if(FAILED(hr)) {
             assert(false);
             return false;
         }
@@ -133,8 +121,7 @@ namespace core::Graphics
             .MaxLOD = D3D11_FLOAT32_MAX,
         };
         hr = device->CreateSamplerState(&def_samp_def, default_sampler.put());
-        if (FAILED(hr))
-        {
+        if(FAILED(hr)) {
             assert(false);
             return false;
         }
@@ -159,8 +146,7 @@ namespace core::Graphics
             .StructureByteStride = 0,
         };
         hr = device->CreateBuffer(&cbo_def, NULL, cbo_mvp.put());
-        if (FAILED(hr))
-        {
+        if(FAILED(hr)) {
             assert(false);
             return false;
         }
@@ -169,8 +155,7 @@ namespace core::Graphics
 
         cbo_def.ByteWidth = 2 * sizeof(DirectX::XMFLOAT4X4);
         hr = device->CreateBuffer(&cbo_def, NULL, cbo_mlw.put());
-        if (FAILED(hr))
-        {
+        if(FAILED(hr)) {
             assert(false);
             return false;
         }
@@ -179,8 +164,7 @@ namespace core::Graphics
 
         cbo_def.ByteWidth = 2 * sizeof(DirectX::XMFLOAT4X4);
         hr = device->CreateBuffer(&cbo_def, NULL, cbo_caminfo.put());
-        if (FAILED(hr))
-        {
+        if(FAILED(hr)) {
             assert(false);
             return false;
         }
@@ -189,8 +173,7 @@ namespace core::Graphics
 
         cbo_def.ByteWidth = 2 * sizeof(DirectX::XMFLOAT4);
         hr = device->CreateBuffer(&cbo_def, NULL, cbo_alpha.put());
-        if (FAILED(hr))
-        {
+        if(FAILED(hr)) {
             assert(false);
             return false;
         }
@@ -199,8 +182,7 @@ namespace core::Graphics
 
         cbo_def.ByteWidth = 4 * sizeof(DirectX::XMFLOAT4);
         hr = device->CreateBuffer(&cbo_def, NULL, cbo_light.put());
-        if (FAILED(hr))
-        {
+        if(FAILED(hr)) {
             assert(false);
             return false;
         }
@@ -231,8 +213,7 @@ namespace core::Graphics
             .AntialiasedLineEnable = FALSE,
         };
         hr = device->CreateRasterizerState(&rs_def, state_rs_cull_none.put());
-        if (FAILED(hr))
-        {
+        if(FAILED(hr)) {
             assert(false);
             return false;
         }
@@ -242,8 +223,7 @@ namespace core::Graphics
         rs_def.CullMode = D3D11_CULL_BACK;
         rs_def.FrontCounterClockwise = TRUE;
         hr = device->CreateRasterizerState(&rs_def, state_rs_cull_back.put());
-        if (FAILED(hr))
-        {
+        if(FAILED(hr)) {
             assert(false);
             return false;
         }
@@ -273,8 +253,7 @@ namespace core::Graphics
             },
         };
         hr = device->CreateDepthStencilState(&ds_def, state_ds.put());
-        if (FAILED(hr))
-        {
+        if(FAILED(hr)) {
             assert(false);
             return false;
         }
@@ -284,8 +263,7 @@ namespace core::Graphics
         ds_def.DepthFunc = D3D11_COMPARISON_LESS;
 
         hr = device->CreateDepthStencilState(&ds_def, state_ds_dl.put());
-        if (FAILED(hr))
-        {
+        if(FAILED(hr)) {
             assert(false);
             return false;
         }
@@ -295,8 +273,7 @@ namespace core::Graphics
         ds_def.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
 
         hr = device->CreateDepthStencilState(&ds_def, state_ds_no_write.put());
-        if (FAILED(hr))
-        {
+        if(FAILED(hr)) {
             assert(false);
             return false;
         }
@@ -307,8 +284,7 @@ namespace core::Graphics
         ds_def.DepthFunc = D3D11_COMPARISON_ALWAYS;
 
         hr = device->CreateDepthStencilState(&ds_def, state_ds_disable.put());
-        if (FAILED(hr))
-        {
+        if(FAILED(hr)) {
             assert(false);
             return false;
         }
@@ -332,13 +308,11 @@ namespace core::Graphics
             .IndependentBlendEnable = FALSE,
             .RenderTarget = {},
         };
-        for (auto& rt_blend : blend_def.RenderTarget)
-        {
+        for(auto& rt_blend : blend_def.RenderTarget) {
             rt_blend = rt_blend_def;
         }
         hr = device->CreateBlendState(&blend_def, state_blend.put());
-        if (FAILED(hr))
-        {
+        if(FAILED(hr)) {
             assert(false);
             return false;
         }
@@ -347,13 +321,11 @@ namespace core::Graphics
 
         rt_blend_def.BlendEnable = TRUE;
         rt_blend_def.SrcBlend = D3D11_BLEND_SRC_ALPHA;
-        for (auto& rt_blend : blend_def.RenderTarget)
-        {
+        for(auto& rt_blend : blend_def.RenderTarget) {
             rt_blend = rt_blend_def;
         }
         hr = device->CreateBlendState(&blend_def, state_blend_alpha.put());
-        if (FAILED(hr))
-        {
+        if(FAILED(hr)) {
             assert(false);
             return false;
         }
@@ -365,23 +337,28 @@ namespace core::Graphics
     {
         // load image to shader resource
 
-        if (!createImage()) return false;
+        if(!createImage())
+            return false;
 
         // create sampler state
 
-        if (!createSampler()) return false;
+        if(!createSampler())
+            return false;
 
         // create shader and input layout
 
-        if (!createShader()) return false;
+        if(!createShader())
+            return false;
 
         // create constant buffer
 
-        if (!createConstantBuffer()) return false;
+        if(!createConstantBuffer())
+            return false;
 
         // create state
 
-        if (!createState()) return false;
+        if(!createState())
+            return false;
 
         return true;
     }
@@ -398,14 +375,14 @@ namespace core::Graphics
         input_layout_vc.reset();
         shader_vertex.reset();
         shader_vertex_vc.reset();
-        for (auto& v : shader_pixel) v.reset();
-        for (auto& v : shader_pixel_alpha) v.reset();
-        for (auto& v : shader_pixel_nt) v.reset();
-        for (auto& v : shader_pixel_alpha_nt) v.reset();
-        for (auto& v : shader_pixel_vc) v.reset();
-        for (auto& v : shader_pixel_alpha_vc) v.reset();
-        for (auto& v : shader_pixel_nt_vc) v.reset();
-        for (auto& v : shader_pixel_alpha_nt_vc) v.reset();
+        for(auto& v : shader_pixel) v.reset();
+        for(auto& v : shader_pixel_alpha) v.reset();
+        for(auto& v : shader_pixel_nt) v.reset();
+        for(auto& v : shader_pixel_alpha_nt) v.reset();
+        for(auto& v : shader_pixel_vc) v.reset();
+        for(auto& v : shader_pixel_alpha_vc) v.reset();
+        for(auto& v : shader_pixel_nt_vc) v.reset();
+        for(auto& v : shader_pixel_alpha_nt_vc) v.reset();
 
         state_rs_cull_none.reset();
         state_rs_cull_back.reset();
@@ -423,7 +400,7 @@ namespace core::Graphics
     ModelSharedComponent_D3D11::ModelSharedComponent_D3D11(GraphicsDevice* p_device)
         : m_device(p_device)
     {
-        if (!createResources())
+        if(!createResources())
             throw std::runtime_error("ModelSharedComponent_D3D11::ModelSharedComponent_D3D11");
         m_device->addEventListener(this);
     }
@@ -437,160 +414,147 @@ namespace core::Graphics
 {
     static void map_sampler_to_d3d11(tinygltf::Sampler& samp, D3D11_SAMPLER_DESC& desc)
     {
-    #define MAKE_FILTER(MIN, MAG_MIP) ((MAG_MIP << 16) | (MIN))
-        switch (MAKE_FILTER(samp.minFilter, samp.magFilter))
-        {
-        default:
-            desc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
-            break;
-        case MAKE_FILTER(TINYGLTF_TEXTURE_FILTER_NEAREST, TINYGLTF_TEXTURE_FILTER_NEAREST):
-            desc.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT;
-            desc.MinLOD = 0.0f;
-            desc.MaxLOD = 0.0f;
-            break;
-        case MAKE_FILTER(TINYGLTF_TEXTURE_FILTER_NEAREST, TINYGLTF_TEXTURE_FILTER_LINEAR):
-            desc.Filter = D3D11_FILTER_MIN_POINT_MAG_LINEAR_MIP_POINT;
-            desc.MinLOD = 0.0f;
-            desc.MaxLOD = 0.0f;
-            break;
-        case MAKE_FILTER(TINYGLTF_TEXTURE_FILTER_NEAREST, TINYGLTF_TEXTURE_FILTER_NEAREST_MIPMAP_NEAREST):
-            desc.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT;
-            break;
-        case MAKE_FILTER(TINYGLTF_TEXTURE_FILTER_NEAREST, TINYGLTF_TEXTURE_FILTER_LINEAR_MIPMAP_NEAREST):
-            desc.Filter = D3D11_FILTER_MIN_POINT_MAG_LINEAR_MIP_POINT;
-            break;
-        case MAKE_FILTER(TINYGLTF_TEXTURE_FILTER_NEAREST, TINYGLTF_TEXTURE_FILTER_NEAREST_MIPMAP_LINEAR):
-            desc.Filter = D3D11_FILTER_MIN_MAG_POINT_MIP_LINEAR;
-            break;
-        case MAKE_FILTER(TINYGLTF_TEXTURE_FILTER_NEAREST, TINYGLTF_TEXTURE_FILTER_LINEAR_MIPMAP_LINEAR):
-            desc.Filter = D3D11_FILTER_MIN_POINT_MAG_MIP_LINEAR;
-            break;
-        case MAKE_FILTER(TINYGLTF_TEXTURE_FILTER_LINEAR, TINYGLTF_TEXTURE_FILTER_NEAREST):
-            desc.Filter = D3D11_FILTER_MIN_LINEAR_MAG_MIP_POINT;
-            desc.MinLOD = 0.0f;
-            desc.MaxLOD = 0.0f;
-            break;
-        case MAKE_FILTER(TINYGLTF_TEXTURE_FILTER_LINEAR, TINYGLTF_TEXTURE_FILTER_LINEAR):
-            desc.Filter = D3D11_FILTER_MIN_MAG_LINEAR_MIP_POINT;
-            desc.MinLOD = 0.0f;
-            desc.MaxLOD = 0.0f;
-            break;
-        case MAKE_FILTER(TINYGLTF_TEXTURE_FILTER_LINEAR, TINYGLTF_TEXTURE_FILTER_NEAREST_MIPMAP_NEAREST):
-            desc.Filter = D3D11_FILTER_MIN_LINEAR_MAG_MIP_POINT;
-            break;
-        case MAKE_FILTER(TINYGLTF_TEXTURE_FILTER_LINEAR, TINYGLTF_TEXTURE_FILTER_LINEAR_MIPMAP_NEAREST):
-            desc.Filter = D3D11_FILTER_MIN_MAG_LINEAR_MIP_POINT;
-            break;
-        case MAKE_FILTER(TINYGLTF_TEXTURE_FILTER_LINEAR, TINYGLTF_TEXTURE_FILTER_NEAREST_MIPMAP_LINEAR):
-            desc.Filter = D3D11_FILTER_MIN_LINEAR_MAG_POINT_MIP_LINEAR;
-            break;
-        case MAKE_FILTER(TINYGLTF_TEXTURE_FILTER_LINEAR, TINYGLTF_TEXTURE_FILTER_LINEAR_MIPMAP_LINEAR):
-            desc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
-            break;
+#define MAKE_FILTER(MIN, MAG_MIP) ((MAG_MIP << 16) | (MIN))
+        switch(MAKE_FILTER(samp.minFilter, samp.magFilter)) {
+            default:
+                desc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+                break;
+            case MAKE_FILTER(TINYGLTF_TEXTURE_FILTER_NEAREST, TINYGLTF_TEXTURE_FILTER_NEAREST):
+                desc.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT;
+                desc.MinLOD = 0.0f;
+                desc.MaxLOD = 0.0f;
+                break;
+            case MAKE_FILTER(TINYGLTF_TEXTURE_FILTER_NEAREST, TINYGLTF_TEXTURE_FILTER_LINEAR):
+                desc.Filter = D3D11_FILTER_MIN_POINT_MAG_LINEAR_MIP_POINT;
+                desc.MinLOD = 0.0f;
+                desc.MaxLOD = 0.0f;
+                break;
+            case MAKE_FILTER(TINYGLTF_TEXTURE_FILTER_NEAREST, TINYGLTF_TEXTURE_FILTER_NEAREST_MIPMAP_NEAREST):
+                desc.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT;
+                break;
+            case MAKE_FILTER(TINYGLTF_TEXTURE_FILTER_NEAREST, TINYGLTF_TEXTURE_FILTER_LINEAR_MIPMAP_NEAREST):
+                desc.Filter = D3D11_FILTER_MIN_POINT_MAG_LINEAR_MIP_POINT;
+                break;
+            case MAKE_FILTER(TINYGLTF_TEXTURE_FILTER_NEAREST, TINYGLTF_TEXTURE_FILTER_NEAREST_MIPMAP_LINEAR):
+                desc.Filter = D3D11_FILTER_MIN_MAG_POINT_MIP_LINEAR;
+                break;
+            case MAKE_FILTER(TINYGLTF_TEXTURE_FILTER_NEAREST, TINYGLTF_TEXTURE_FILTER_LINEAR_MIPMAP_LINEAR):
+                desc.Filter = D3D11_FILTER_MIN_POINT_MAG_MIP_LINEAR;
+                break;
+            case MAKE_FILTER(TINYGLTF_TEXTURE_FILTER_LINEAR, TINYGLTF_TEXTURE_FILTER_NEAREST):
+                desc.Filter = D3D11_FILTER_MIN_LINEAR_MAG_MIP_POINT;
+                desc.MinLOD = 0.0f;
+                desc.MaxLOD = 0.0f;
+                break;
+            case MAKE_FILTER(TINYGLTF_TEXTURE_FILTER_LINEAR, TINYGLTF_TEXTURE_FILTER_LINEAR):
+                desc.Filter = D3D11_FILTER_MIN_MAG_LINEAR_MIP_POINT;
+                desc.MinLOD = 0.0f;
+                desc.MaxLOD = 0.0f;
+                break;
+            case MAKE_FILTER(TINYGLTF_TEXTURE_FILTER_LINEAR, TINYGLTF_TEXTURE_FILTER_NEAREST_MIPMAP_NEAREST):
+                desc.Filter = D3D11_FILTER_MIN_LINEAR_MAG_MIP_POINT;
+                break;
+            case MAKE_FILTER(TINYGLTF_TEXTURE_FILTER_LINEAR, TINYGLTF_TEXTURE_FILTER_LINEAR_MIPMAP_NEAREST):
+                desc.Filter = D3D11_FILTER_MIN_MAG_LINEAR_MIP_POINT;
+                break;
+            case MAKE_FILTER(TINYGLTF_TEXTURE_FILTER_LINEAR, TINYGLTF_TEXTURE_FILTER_NEAREST_MIPMAP_LINEAR):
+                desc.Filter = D3D11_FILTER_MIN_LINEAR_MAG_POINT_MIP_LINEAR;
+                break;
+            case MAKE_FILTER(TINYGLTF_TEXTURE_FILTER_LINEAR, TINYGLTF_TEXTURE_FILTER_LINEAR_MIPMAP_LINEAR):
+                desc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+                break;
         }
-    #undef MAKE_FILTER
-        switch (samp.wrapS)
-        {
-        default:
-            desc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
-            break;
-        case TINYGLTF_TEXTURE_WRAP_REPEAT:
-            desc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
-            break;
-        case TINYGLTF_TEXTURE_WRAP_CLAMP_TO_EDGE:
-            desc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
-            break;
-        case TINYGLTF_TEXTURE_WRAP_MIRRORED_REPEAT:
-            desc.AddressU = D3D11_TEXTURE_ADDRESS_MIRROR;
-            break;
+#undef MAKE_FILTER
+        switch(samp.wrapS) {
+            default:
+                desc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+                break;
+            case TINYGLTF_TEXTURE_WRAP_REPEAT:
+                desc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+                break;
+            case TINYGLTF_TEXTURE_WRAP_CLAMP_TO_EDGE:
+                desc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+                break;
+            case TINYGLTF_TEXTURE_WRAP_MIRRORED_REPEAT:
+                desc.AddressU = D3D11_TEXTURE_ADDRESS_MIRROR;
+                break;
         }
-        switch (samp.wrapT)
-        {
-        default:
-        case -1:
-            desc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
-            break;
-        case TINYGLTF_TEXTURE_WRAP_REPEAT:
-            desc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
-            break;
-        case TINYGLTF_TEXTURE_WRAP_CLAMP_TO_EDGE:
-            desc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
-            break;
-        case TINYGLTF_TEXTURE_WRAP_MIRRORED_REPEAT:
-            desc.AddressV = D3D11_TEXTURE_ADDRESS_MIRROR;
-            break;
+        switch(samp.wrapT) {
+            default:
+            case -1:
+                desc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+                break;
+            case TINYGLTF_TEXTURE_WRAP_REPEAT:
+                desc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+                break;
+            case TINYGLTF_TEXTURE_WRAP_CLAMP_TO_EDGE:
+                desc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+                break;
+            case TINYGLTF_TEXTURE_WRAP_MIRRORED_REPEAT:
+                desc.AddressV = D3D11_TEXTURE_ADDRESS_MIRROR;
+                break;
         }
     }
     static void map_primitive_topology_to_d3d11(tinygltf::Primitive& prim, D3D11_PRIMITIVE_TOPOLOGY& topo)
     {
-        switch (prim.mode)
-        {
-        default:
-            topo = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-            break;
-        case TINYGLTF_MODE_POINTS:
-            topo = D3D11_PRIMITIVE_TOPOLOGY_POINTLIST;
-            break;
-        case TINYGLTF_MODE_LINE:
-            topo = D3D11_PRIMITIVE_TOPOLOGY_LINELIST;
-            break;
-        case TINYGLTF_MODE_LINE_LOOP:
-            assert(false);
-            break;
-        case TINYGLTF_MODE_LINE_STRIP:
-            topo = D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP;
-            break;
-        case TINYGLTF_MODE_TRIANGLES:
-            topo = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-            break;
-        case TINYGLTF_MODE_TRIANGLE_STRIP:
-            topo = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP;
-            break;
-        case TINYGLTF_MODE_TRIANGLE_FAN:
-            assert(false);
-            break;
+        switch(prim.mode) {
+            default:
+                topo = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+                break;
+            case TINYGLTF_MODE_POINTS:
+                topo = D3D11_PRIMITIVE_TOPOLOGY_POINTLIST;
+                break;
+            case TINYGLTF_MODE_LINE:
+                topo = D3D11_PRIMITIVE_TOPOLOGY_LINELIST;
+                break;
+            case TINYGLTF_MODE_LINE_LOOP:
+                assert(false);
+                break;
+            case TINYGLTF_MODE_LINE_STRIP:
+                topo = D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP;
+                break;
+            case TINYGLTF_MODE_TRIANGLES:
+                topo = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+                break;
+            case TINYGLTF_MODE_TRIANGLE_STRIP:
+                topo = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP;
+                break;
+            case TINYGLTF_MODE_TRIANGLE_FAN:
+                assert(false);
+                break;
         }
     }
     static DirectX::XMMATRIX XM_CALLCONV get_local_transfrom_from_node(tinygltf::Node& node)
     {
-        if (!node.matrix.empty())
-        {
-        #pragma warning(disable:4244)
+        if(!node.matrix.empty()) {
+#pragma warning(disable : 4244)
             // [Potential Overflow]
             DirectX::XMFLOAT4X4 mM(
-                node.matrix[0], node.matrix[1], node.matrix[2], node.matrix[3],
-                node.matrix[4], node.matrix[5], node.matrix[6], node.matrix[7],
-                node.matrix[8], node.matrix[9], node.matrix[10], node.matrix[11],
-                node.matrix[12], node.matrix[13], node.matrix[14], node.matrix[15]);
-        #pragma warning(default:4244)
+                node.matrix[0], node.matrix[1], node.matrix[2], node.matrix[3], node.matrix[4], node.matrix[5], node.matrix[6], node.matrix[7], node.matrix[8], node.matrix[9], node.matrix[10], node.matrix[11], node.matrix[12], node.matrix[13], node.matrix[14], node.matrix[15]);
+#pragma warning(default : 4244)
             return DirectX::XMLoadFloat4x4(&mM);
-        }
-        else
-        {
+        } else {
             DirectX::XMMATRIX mS = DirectX::XMMatrixIdentity();
             DirectX::XMMATRIX mR = DirectX::XMMatrixIdentity();
             DirectX::XMMATRIX mT = DirectX::XMMatrixIdentity();
-            if (!node.scale.empty())
-            {
-            #pragma warning(disable:4244)
+            if(!node.scale.empty()) {
+#pragma warning(disable : 4244)
                 // [Potential Overflow]
                 mS = DirectX::XMMatrixScaling(node.scale[0], node.scale[1], node.scale[2]);
-            #pragma warning(default:4244)
+#pragma warning(default : 4244)
             }
-            if (!node.rotation.empty())
-            {
-            #pragma warning(disable:4244)
+            if(!node.rotation.empty()) {
+#pragma warning(disable : 4244)
                 // [Potential Overflow]
                 DirectX::XMFLOAT4 quat(node.rotation[0], node.rotation[1], node.rotation[2], node.rotation[3]);
-            #pragma warning(default:4244)
+#pragma warning(default : 4244)
                 mR = DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&quat));
             }
-            if (!node.translation.empty())
-            {
-            #pragma warning(disable:4244)
+            if(!node.translation.empty()) {
+#pragma warning(disable : 4244)
                 // [Potential Overflow]
                 mT = DirectX::XMMatrixTranslation(node.translation[0], node.translation[1], node.translation[2]);
-            #pragma warning(default:4244)
+#pragma warning(default : 4244)
             }
             return DirectX::XMMatrixMultiply(DirectX::XMMatrixMultiply(mS, mR), mT);
         }
@@ -600,59 +564,52 @@ namespace core::Graphics
         tinygltf::Accessor const& accessor,
         uint8_t*& output,
         size_t& total_size_in_bytes,
-        std::vector<uint8_t>& intermediate_buffer
-    ) {
+        std::vector<uint8_t>& intermediate_buffer)
+    {
         // buffer view
-        if (accessor.bufferView < 0 || accessor.bufferView >= model.bufferViews.size()) {
+        if(accessor.bufferView < 0 || accessor.bufferView >= model.bufferViews.size()) {
             Logger::error(
                 "[core] [Model] gltf 2.0 loader -- accessor (index = {}) buffer view index out of bound (value = {})",
                 &accessor - model.accessors.data(),
-                accessor.bufferView
-            );
+                accessor.bufferView);
         }
         const auto& buffer_view = model.bufferViews[accessor.bufferView];
         // buffer
-        if (buffer_view.buffer < 0 || buffer_view.buffer >= model.buffers.size()) {
+        if(buffer_view.buffer < 0 || buffer_view.buffer >= model.buffers.size()) {
             Logger::error(
                 "[core] [Model] gltf 2.0 loader -- buffer view (index = {}) buffer index out of bound (value = {})",
                 &buffer_view - model.bufferViews.data(),
-                buffer_view.buffer
-            );
+                buffer_view.buffer);
         }
         const auto& buffer = model.buffers[buffer_view.buffer];
         // total size
-        if (tinygltf::GetComponentSizeInBytes(accessor.componentType) < 0) {
+        if(tinygltf::GetComponentSizeInBytes(accessor.componentType) < 0) {
             Logger::error(
                 "[core] [Model] gltf 2.0 loader -- unknown accessor (index = {}) component type (value = {})",
                 &accessor - model.accessors.data(),
-                accessor.componentType
-            );
+                accessor.componentType);
             return false;
         }
-        if (tinygltf::GetNumComponentsInType(accessor.type) < 0) {
+        if(tinygltf::GetNumComponentsInType(accessor.type) < 0) {
             Logger::error(
                 "[core] [Model] gltf 2.0 loader -- unknown accessor (index = {}) type (value = {})",
                 &accessor - model.accessors.data(),
-                accessor.type
-            );
+                accessor.type);
             return false;
         }
-        total_size_in_bytes = static_cast<size_t>(tinygltf::GetComponentSizeInBytes(accessor.componentType))
-            * static_cast<size_t>(tinygltf::GetNumComponentsInType(accessor.type))
-            * accessor.count;
+        total_size_in_bytes = static_cast<size_t>(tinygltf::GetComponentSizeInBytes(accessor.componentType)) * static_cast<size_t>(tinygltf::GetNumComponentsInType(accessor.type)) * accessor.count;
         // no stride
-        if (buffer_view.byteStride == 0) {
+        if(buffer_view.byteStride == 0) {
             output = const_cast<uint8_t*>(buffer.data.data()) + buffer_view.byteOffset + accessor.byteOffset;
             return true;
         }
         // prepare intermediate buffer
         intermediate_buffer.resize(total_size_in_bytes);
         // copy data
-        const auto size = static_cast<size_t>(tinygltf::GetComponentSizeInBytes(accessor.componentType))
-            * static_cast<size_t>(tinygltf::GetNumComponentsInType(accessor.type));
+        const auto size = static_cast<size_t>(tinygltf::GetComponentSizeInBytes(accessor.componentType)) * static_cast<size_t>(tinygltf::GetNumComponentsInType(accessor.type));
         auto source = buffer.data.data() + buffer_view.byteOffset + accessor.byteOffset;
         auto target = intermediate_buffer.data();
-        for (size_t i = 0; i < accessor.count; i += 1) {
+        for(size_t i = 0; i < accessor.count; i += 1) {
             std::memcpy(target, source, size);
             source += buffer_view.byteStride;
             target += size;
@@ -699,12 +656,10 @@ namespace core::Graphics
         // gltf: create
 
         image.resize(model.images.size());
-        for (size_t idx = 0; idx < model.images.size(); idx += 1)
-        {
+        for(size_t idx = 0; idx < model.images.size(); idx += 1) {
             tinygltf::Image& img = model.images[idx];
 
-            if (img.width <= 0 || img.height <= 0)
-            {
+            if(img.width <= 0 || img.height <= 0) {
                 image[idx] = shared_->default_image; // 兄啊，你这纹理好怪哦
                 Logger::error("[core] [Model] load texture '{}' failed", img.name);
                 continue;
@@ -733,8 +688,7 @@ namespace core::Graphics
             };
             win32::com_ptr<ID3D11Texture2D> texture2d;
             hr = device->CreateTexture2D(&tex_def, mipmap ? NULL : &dat_def, texture2d.put());
-            if (FAILED(hr))
-            {
+            if(FAILED(hr)) {
                 assert(false);
                 return false;
             }
@@ -747,13 +701,11 @@ namespace core::Graphics
                 },
             };
             hr = device->CreateShaderResourceView(texture2d.get(), &srv_def, image[idx].put());
-            if (FAILED(hr))
-            {
+            if(FAILED(hr)) {
                 assert(false);
                 return false;
             }
-            if (mipmap)
-            {
+            if(mipmap) {
                 context->UpdateSubresource(texture2d.get(), 0, NULL, dat_def.pSysMem, dat_def.SysMemPitch, dat_def.SysMemSlicePitch);
                 context->GenerateMips(image[idx].get());
             }
@@ -770,8 +722,7 @@ namespace core::Graphics
         // gltf: create
 
         sampler.resize(model.samplers.size());
-        for (size_t idx = 0; idx < model.samplers.size(); idx += 1)
-        {
+        for(size_t idx = 0; idx < model.samplers.size(); idx += 1) {
             tinygltf::Sampler& samp = model.samplers[idx];
             D3D11_SAMPLER_DESC samp_def = {
                 .Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR,
@@ -788,8 +739,7 @@ namespace core::Graphics
             map_sampler_to_d3d11(samp, samp_def);
             samp_def.Filter = D3D11_FILTER_ANISOTROPIC; // TODO: better?
             hr = device->CreateSamplerState(&samp_def, sampler[idx].put());
-            if (FAILED(hr))
-            {
+            if(FAILED(hr)) {
                 assert(false);
                 return false;
             }
@@ -805,27 +755,23 @@ namespace core::Graphics
 
         DirectX::XMMATRIX mTRS = get_local_transfrom_from_node(node);
 
-        if (node.mesh >= 0)
-        {
+        if(node.mesh >= 0) {
             tinygltf::Mesh& mesh = model.meshes[node.mesh];
-            for (tinygltf::Primitive& prim : mesh.primitives)
-            {
+            for(tinygltf::Primitive& prim : mesh.primitives) {
                 ModelBlock mblock;
                 DirectX::XMMATRIX mTRSw = mTRS;
-                for (auto it = mTRS_stack.crbegin(); it != mTRS_stack.crend(); it++)
-                {
+                for(auto it = mTRS_stack.crbegin(); it != mTRS_stack.crend(); it++) {
                     mTRSw = DirectX::XMMatrixMultiply(mTRSw, *it);
                 }
                 mTRSw = DirectX::XMMatrixMultiply(mTRSw, DirectX::XMMatrixScaling(1.0f, 1.0f, -1.0f)); // to left-hand
                 DirectX::XMStoreFloat4x4(&mblock.local_matrix, mTRSw);
                 DirectX::XMStoreFloat4x4(&mblock.local_matrix_normal, DirectX::XMMatrixInverseTranspose(mTRSw)); // face normal
-                if (prim.attributes.contains("POSITION"))
-                {
+                if(prim.attributes.contains("POSITION")) {
                     tinygltf::Accessor& accessor = model.accessors[prim.attributes["POSITION"]];
                     uint8_t* buffer_ptr{};
                     size_t total_size_in_bytes{};
                     std::vector<uint8_t> intermediate_buffer;
-                    if (!getBufferFromAccessor(model, accessor, buffer_ptr, total_size_in_bytes, intermediate_buffer))
+                    if(!getBufferFromAccessor(model, accessor, buffer_ptr, total_size_in_bytes, intermediate_buffer))
                         return false;
 
                     D3D11_BUFFER_DESC vbo_def = {
@@ -842,21 +788,19 @@ namespace core::Graphics
                         .SysMemSlicePitch = 0,
                     };
                     hr = device->CreateBuffer(&vbo_def, &dat_def, mblock.vertex_buffer.put());
-                    if (FAILED(hr))
-                    {
+                    if(FAILED(hr)) {
                         assert(false);
                         return false;
                     }
 
                     mblock.draw_count = (UINT)accessor.count;
                 }
-                if (prim.attributes.contains("NORMAL"))
-                {
+                if(prim.attributes.contains("NORMAL")) {
                     tinygltf::Accessor& accessor = model.accessors[prim.attributes["NORMAL"]];
                     uint8_t* buffer_ptr{};
                     size_t total_size_in_bytes{};
                     std::vector<uint8_t> intermediate_buffer;
-                    if (!getBufferFromAccessor(model, accessor, buffer_ptr, total_size_in_bytes, intermediate_buffer))
+                    if(!getBufferFromAccessor(model, accessor, buffer_ptr, total_size_in_bytes, intermediate_buffer))
                         return false;
 
                     D3D11_BUFFER_DESC vbo_def = {
@@ -873,19 +817,17 @@ namespace core::Graphics
                         .SysMemSlicePitch = 0,
                     };
                     hr = device->CreateBuffer(&vbo_def, &dat_def, mblock.normal_buffer.put());
-                    if (FAILED(hr))
-                    {
+                    if(FAILED(hr)) {
                         assert(false);
                         return false;
                     }
                 }
-                if (prim.attributes.contains("COLOR_0"))
-                {
+                if(prim.attributes.contains("COLOR_0")) {
                     tinygltf::Accessor& accessor = model.accessors[prim.attributes["COLOR_0"]];
                     uint8_t* buffer_ptr{};
                     size_t total_size_in_bytes{};
                     std::vector<uint8_t> intermediate_buffer;
-                    if (!getBufferFromAccessor(model, accessor, buffer_ptr, total_size_in_bytes, intermediate_buffer))
+                    if(!getBufferFromAccessor(model, accessor, buffer_ptr, total_size_in_bytes, intermediate_buffer))
                         return false;
 
                     D3D11_BUFFER_DESC vbo_def = {
@@ -902,19 +844,17 @@ namespace core::Graphics
                         .SysMemSlicePitch = 0,
                     };
                     hr = device->CreateBuffer(&vbo_def, &dat_def, mblock.color_buffer.put());
-                    if (FAILED(hr))
-                    {
+                    if(FAILED(hr)) {
                         assert(false);
                         return false;
                     }
                 }
-                if (prim.attributes.contains("TEXCOORD_0"))
-                {
+                if(prim.attributes.contains("TEXCOORD_0")) {
                     tinygltf::Accessor& accessor = model.accessors[prim.attributes["TEXCOORD_0"]];
                     uint8_t* buffer_ptr{};
                     size_t total_size_in_bytes{};
                     std::vector<uint8_t> intermediate_buffer;
-                    if (!getBufferFromAccessor(model, accessor, buffer_ptr, total_size_in_bytes, intermediate_buffer))
+                    if(!getBufferFromAccessor(model, accessor, buffer_ptr, total_size_in_bytes, intermediate_buffer))
                         return false;
 
                     D3D11_BUFFER_DESC vbo_def = {
@@ -931,18 +871,16 @@ namespace core::Graphics
                         .SysMemSlicePitch = 0,
                     };
                     hr = device->CreateBuffer(&vbo_def, &dat_def, mblock.uv_buffer.put());
-                    if (FAILED(hr))
-                    {
+                    if(FAILED(hr)) {
                         assert(false);
                         return false;
                     }
                 }
-                if (prim.indices >= 0)
-                {
+                if(prim.indices >= 0) {
                     tinygltf::Accessor& accessor = model.accessors[prim.indices];
                     tinygltf::BufferView& bufferview = model.bufferViews[accessor.bufferView];
                     tinygltf::Buffer& buffer = model.buffers[bufferview.buffer];
-                    if (bufferview.byteStride > 0) {
+                    if(bufferview.byteStride > 0) {
                         std::ignore = nullptr;
                     }
 
@@ -962,12 +900,10 @@ namespace core::Graphics
 
                     int32_t index_size = tinygltf::GetComponentSizeInBytes(accessor.componentType);
                     std::vector<uint16_t> index_work;
-                    if (index_size == 1)
-                    {
+                    if(index_size == 1) {
                         index_work.resize(ibo_def.ByteWidth);
                         uint8_t* ptr = (uint8_t*)dat_def.pSysMem;
-                        for (size_t i = 0; i < ibo_def.ByteWidth; i += 1)
-                        {
+                        for(size_t i = 0; i < ibo_def.ByteWidth; i += 1) {
                             index_work[i] = ptr[i];
                         }
                         index_size = 2;
@@ -978,53 +914,42 @@ namespace core::Graphics
                     mblock.index_format = index_size == 2 ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT;
 
                     hr = device->CreateBuffer(&ibo_def, &dat_def, mblock.index_buffer.put());
-                    if (FAILED(hr))
-                    {
+                    if(FAILED(hr)) {
                         assert(false);
                         return false;
                     }
 
                     mblock.draw_count = (UINT)accessor.count;
                 }
-                if (prim.material >= 0)
-                {
+                if(prim.material >= 0) {
                     tinygltf::Material& material = model.materials[prim.material];
                     auto& bcc = material.pbrMetallicRoughness.baseColorFactor;
-                #pragma warning(disable:4244)
+#pragma warning(disable : 4244)
                     // [Potential Overflow]
                     mblock.base_color = DirectX::XMFLOAT4(bcc[0], bcc[1], bcc[2], bcc[3]);
-                #pragma warning(default:4244)
+#pragma warning(default : 4244)
                     tinygltf::TextureInfo& texture_info = material.pbrMetallicRoughness.baseColorTexture;
-                    if (texture_info.index >= 0)
-                    {
+                    if(texture_info.index >= 0) {
                         tinygltf::Texture& texture = model.textures[texture_info.index];
                         mblock.image = image[texture.source];
-                        if (texture.sampler >= 0)
-                        {
+                        if(texture.sampler >= 0) {
                             mblock.sampler = sampler[texture.sampler];
-                        }
-                        else
-                        {
+                        } else {
                             mblock.sampler = shared_->default_sampler;
                         }
-                    }
-                    else
-                    {
+                    } else {
                         //mblock.image = shared_->default_image;
                         mblock.sampler = shared_->default_sampler;
                     }
-                    if (material.alphaMode == "MASK")
-                    {
+                    if(material.alphaMode == "MASK") {
                         mblock.alpha_mask = TRUE;
-                    }
-                    else if (material.alphaMode == "BLEND")
-                    {
+                    } else if(material.alphaMode == "BLEND") {
                         mblock.alpha_blend = TRUE;
                     }
                     // [Potential Overflow]
-                #pragma warning(disable:4244)
+#pragma warning(disable : 4244)
                     mblock.alpha = material.alphaCutoff;
-                #pragma warning(default:4244)
+#pragma warning(default : 4244)
                     mblock.double_side = material.doubleSided;
                 }
                 map_primitive_topology_to_d3d11(prim, mblock.primitive_topology);
@@ -1033,12 +958,9 @@ namespace core::Graphics
         }
 
         mTRS_stack.push_back(mTRS);
-        if (!node.children.empty())
-        {
-            for (auto const& child_node_idx : node.children)
-            {
-                if (!processNode(model, model.nodes[child_node_idx]))
-                {
+        if(!node.children.empty()) {
+            for(auto const& child_node_idx : node.children) {
+                if(!processNode(model, model.nodes[child_node_idx])) {
                     return false;
                 }
             }
@@ -1050,13 +972,12 @@ namespace core::Graphics
     bool Model_D3D11::createModelBlock(tinygltf::Model& model)
     {
         int default_scene = model.defaultScene;
-        if (default_scene < 0) default_scene = 0;
+        if(default_scene < 0)
+            default_scene = 0;
         tinygltf::Scene& scene = model.scenes[default_scene];
-        for (int const& node_idx : scene.nodes)
-        {
+        for(int const& node_idx : scene.nodes) {
             tinygltf::Node& node = model.nodes[node_idx];
-            if (!processNode(model, node))
-            {
+            if(!processNode(model, node)) {
                 return false;
             }
         }
@@ -1075,8 +996,8 @@ namespace core::Graphics
             {
                 // TODO: no copy x2
                 SmartReference<IData> data;
-                if (!FileSystemManager::readFile(filepath, data.put())) {
-                    if (err) {
+                if(!FileSystemManager::readFile(filepath, data.put())) {
+                    if(err) {
                         (*err) += "File load error : " + filepath + "\n";
                     }
                     return false;
@@ -1085,7 +1006,8 @@ namespace core::Graphics
                 std::memcpy(out->data(), data->data(), data->size());
                 return true;
             }
-            static bool GetFileSizeInBytes(size_t* filesize_out, [[maybe_unused]] std::string* err, const std::string& abs_filename, void*) {
+            static bool GetFileSizeInBytes(size_t* filesize_out, [[maybe_unused]] std::string* err, const std::string& abs_filename, void*)
+            {
                 *filesize_out = FileSystemManager::getFileSize(abs_filename);
                 return *filesize_out > 0;
             }
@@ -1107,38 +1029,35 @@ namespace core::Graphics
         std::string err;
 
         bool ret = false;
-        if (gltf_path.ends_with(".gltf"))
-        {
+        if(gltf_path.ends_with(".gltf")) {
             ret = gltf_ctx.LoadASCIIFromFile(&model, &err, &warn, gltf_path.c_str());
-        }
-        else
-        {
+        } else {
             ret = gltf_ctx.LoadBinaryFromFile(&model, &err, &warn, gltf_path.c_str());
         }
-        if (!warn.empty())
-        {
+        if(!warn.empty()) {
             Logger::warn("[core] [Model] gltf model warning: {}", warn);
         }
-        if (!err.empty())
-        {
+        if(!err.empty()) {
             Logger::error("[core] [Model] gltf model error: {}", err);
         }
-        if (!ret)
-        {
+        if(!ret) {
             return false;
         }
 
         // load image to shader resource
 
-        if (!createImage(model)) return false;
+        if(!createImage(model))
+            return false;
 
         // create sampler state
 
-        if (!createSampler(model)) return false;
+        if(!createSampler(model))
+            return false;
 
         // create model block
 
-        if (!createModelBlock(model)) return false;
+        if(!createModelBlock(model))
+            return false;
 
         return true;
     }
@@ -1163,61 +1082,50 @@ namespace core::Graphics
         context->UpdateSubresource(shared_->cbo_light.get(), 0, NULL, &sunshine, 0, 0);
         DirectX::XMMATRIX const t_locwo_ = DirectX::XMMatrixMultiply(DirectX::XMMatrixMultiply(t_scale_, t_mbrot_), t_trans_);
 
-        auto set_state_matrix_from_block = [&](ModelBlock& mblock)
-        {
+        auto set_state_matrix_from_block = [&](ModelBlock& mblock) {
             // IA
 
-            if (mblock.color_buffer)
+            if(mblock.color_buffer)
                 context->IASetInputLayout(shared_->input_layout_vc.get());
             else
                 context->IASetInputLayout(shared_->input_layout.get());
 
             // VS
 
-            if (mblock.color_buffer)
+            if(mblock.color_buffer)
                 context->VSSetShader(shared_->shader_vertex_vc.get(), NULL, 0);
             else
                 context->VSSetShader(shared_->shader_vertex.get(), NULL, 0);
 
             // PS
 
-            if (!mblock.alpha_mask)
-            {
-                if (mblock.image)
-                {
-                    if (mblock.color_buffer)
+            if(!mblock.alpha_mask) {
+                if(mblock.image) {
+                    if(mblock.color_buffer)
                         context->PSSetShader(shared_->shader_pixel_vc[IDX(fog)].get(), NULL, 0);
                     else
                         context->PSSetShader(shared_->shader_pixel[IDX(fog)].get(), NULL, 0);
-                }
-                else
-                {
-                    if (mblock.color_buffer)
+                } else {
+                    if(mblock.color_buffer)
                         context->PSSetShader(shared_->shader_pixel_nt_vc[IDX(fog)].get(), NULL, 0);
                     else
                         context->PSSetShader(shared_->shader_pixel_nt[IDX(fog)].get(), NULL, 0);
                 }
-            }
-            else
-            {
-                if (mblock.image)
-                {
-                    if (mblock.color_buffer)
+            } else {
+                if(mblock.image) {
+                    if(mblock.color_buffer)
                         context->PSSetShader(shared_->shader_pixel_alpha_vc[IDX(fog)].get(), NULL, 0);
                     else
                         context->PSSetShader(shared_->shader_pixel_alpha[IDX(fog)].get(), NULL, 0);
-                }
-                else
-                {
-                    if (mblock.color_buffer)
+                } else {
+                    if(mblock.color_buffer)
                         context->PSSetShader(shared_->shader_pixel_alpha_nt_vc[IDX(fog)].get(), NULL, 0);
                     else
                         context->PSSetShader(shared_->shader_pixel_alpha_nt[IDX(fog)].get(), NULL, 0);
                 }
             }
         };
-        auto upload_local_world_matrix = [&](ModelBlock& mblock)
-        {
+        auto upload_local_world_matrix = [&](ModelBlock& mblock) {
             struct
             {
                 DirectX::XMFLOAT4X4 v1;
@@ -1228,13 +1136,18 @@ namespace core::Graphics
             DirectX::XMStoreFloat4x4(&v.v2, DirectX::XMMatrixInverseTranspose(t_total_));
             context->UpdateSubresource(shared_->cbo_mlw.get(), 0, NULL, &v, 0, 0);
         };
-        auto set_alpha_mode_opaque = [&](ModelBlock& mblock)
-        {
+        auto set_alpha_mode_opaque = [&](ModelBlock& mblock) {
             // PS
 
             FLOAT const alpha[8] = {
-                    mblock.base_color.x, mblock.base_color.y, mblock.base_color.z, mblock.base_color.w,
-                    0.5f, 0.0f, 0.0f, 0.0f,
+                mblock.base_color.x,
+                mblock.base_color.y,
+                mblock.base_color.z,
+                mblock.base_color.w,
+                0.5f,
+                0.0f,
+                0.0f,
+                0.0f,
             };
             context->UpdateSubresource(shared_->cbo_alpha.get(), 0, NULL, alpha, 0, 0);
             ID3D11Buffer* ps_cbo[2] = {
@@ -1248,13 +1161,18 @@ namespace core::Graphics
             FLOAT const blend_factor[4]{};
             context->OMSetBlendState(shared_->state_blend.get(), blend_factor, D3D11_DEFAULT_SAMPLE_MASK);
         };
-        auto set_alpha_mode_mask = [&](ModelBlock& mblock)
-        {
+        auto set_alpha_mode_mask = [&](ModelBlock& mblock) {
             // PS
 
             FLOAT const alpha[8] = {
-                    mblock.base_color.x, mblock.base_color.y, mblock.base_color.z, mblock.base_color.w,
-                    mblock.alpha, 0.0f, 0.0f, 0.0f,
+                mblock.base_color.x,
+                mblock.base_color.y,
+                mblock.base_color.z,
+                mblock.base_color.w,
+                mblock.alpha,
+                0.0f,
+                0.0f,
+                0.0f,
             };
             context->UpdateSubresource(shared_->cbo_alpha.get(), 0, NULL, alpha, 0, 0);
             ID3D11Buffer* ps_cbo[2] = {
@@ -1268,13 +1186,18 @@ namespace core::Graphics
             FLOAT const blend_factor[4]{};
             context->OMSetBlendState(shared_->state_blend.get(), blend_factor, D3D11_DEFAULT_SAMPLE_MASK);
         };
-        auto set_alpha_mode_mask_custom = [&](ModelBlock& mblock, float const value)
-        {
+        auto set_alpha_mode_mask_custom = [&](ModelBlock& mblock, float const value) {
             // PS
 
             FLOAT const alpha[8] = {
-                    mblock.base_color.x, mblock.base_color.y, mblock.base_color.z, mblock.base_color.w,
-                    value, 0.0f, 0.0f, 0.0f,
+                mblock.base_color.x,
+                mblock.base_color.y,
+                mblock.base_color.z,
+                mblock.base_color.w,
+                value,
+                0.0f,
+                0.0f,
+                0.0f,
             };
             context->UpdateSubresource(shared_->cbo_alpha.get(), 0, NULL, alpha, 0, 0);
             ID3D11Buffer* ps_cbo[2] = {
@@ -1283,16 +1206,13 @@ namespace core::Graphics
                 shared_->cbo_light.get(),
             };
             context->PSSetConstantBuffers(2, 2, ps_cbo);
-            if (mblock.image)
-            {
-                if (mblock.color_buffer)
+            if(mblock.image) {
+                if(mblock.color_buffer)
                     context->PSSetShader(shared_->shader_pixel_alpha_vc[IDX(fog)].get(), NULL, 0);
                 else
                     context->PSSetShader(shared_->shader_pixel_alpha[IDX(fog)].get(), NULL, 0);
-            }
-            else
-            {
-                if (mblock.color_buffer)
+            } else {
+                if(mblock.color_buffer)
                     context->PSSetShader(shared_->shader_pixel_alpha_nt_vc[IDX(fog)].get(), NULL, 0);
                 else
                     context->PSSetShader(shared_->shader_pixel_alpha_nt[IDX(fog)].get(), NULL, 0);
@@ -1302,13 +1222,18 @@ namespace core::Graphics
             FLOAT const blend_factor[4]{};
             context->OMSetBlendState(shared_->state_blend.get(), blend_factor, D3D11_DEFAULT_SAMPLE_MASK);
         };
-        auto set_alpha_mode_blend = [&](ModelBlock& mblock)
-        {
+        auto set_alpha_mode_blend = [&](ModelBlock& mblock) {
             // PS
 
             FLOAT const alpha[8] = {
-                    mblock.base_color.x, mblock.base_color.y, mblock.base_color.z, mblock.base_color.w,
-                    0.5f, 0.0f, 0.0f, 0.0f,
+                mblock.base_color.x,
+                mblock.base_color.y,
+                mblock.base_color.z,
+                mblock.base_color.w,
+                0.5f,
+                0.0f,
+                0.0f,
+                0.0f,
             };
             context->UpdateSubresource(shared_->cbo_alpha.get(), 0, NULL, alpha, 0, 0);
             ID3D11Buffer* ps_cbo[2] = {
@@ -1322,13 +1247,18 @@ namespace core::Graphics
             FLOAT const blend_factor[4]{};
             context->OMSetBlendState(shared_->state_blend_alpha.get(), blend_factor, D3D11_DEFAULT_SAMPLE_MASK);
         };
-        auto set_alpha_mode_blend_overlay = [&](ModelBlock& mblock, float const exclude_value)
-        {
+        auto set_alpha_mode_blend_overlay = [&](ModelBlock& mblock, float const exclude_value) {
             // PS
 
             FLOAT const alpha[8] = {
-                    mblock.base_color.x, mblock.base_color.y, mblock.base_color.z, mblock.base_color.w,
-                    exclude_value, 0.0f, 0.0f, 0.0f,
+                mblock.base_color.x,
+                mblock.base_color.y,
+                mblock.base_color.z,
+                mblock.base_color.w,
+                exclude_value,
+                0.0f,
+                0.0f,
+                0.0f,
             };
             context->UpdateSubresource(shared_->cbo_alpha.get(), 0, NULL, alpha, 0, 0);
             ID3D11Buffer* ps_cbo[2] = {
@@ -1337,16 +1267,13 @@ namespace core::Graphics
                 shared_->cbo_light.get(),
             };
             context->PSSetConstantBuffers(2, 2, ps_cbo);
-            if (mblock.image)
-            {
-                if (mblock.color_buffer)
+            if(mblock.image) {
+                if(mblock.color_buffer)
                     context->PSSetShader(shared_->shader_pixel_inv_alpha_vc[IDX(fog)].get(), NULL, 0);
                 else
                     context->PSSetShader(shared_->shader_pixel_inv_alpha[IDX(fog)].get(), NULL, 0);
-            }
-            else
-            {
-                if (mblock.color_buffer)
+            } else {
+                if(mblock.color_buffer)
                     context->PSSetShader(shared_->shader_pixel_inv_alpha_nt_vc[IDX(fog)].get(), NULL, 0);
                 else
                     context->PSSetShader(shared_->shader_pixel_inv_alpha_nt[IDX(fog)].get(), NULL, 0);
@@ -1357,13 +1284,18 @@ namespace core::Graphics
             FLOAT const blend_factor[4]{};
             context->OMSetBlendState(shared_->state_blend_alpha.get(), blend_factor, D3D11_DEFAULT_SAMPLE_MASK);
         };
-        auto set_alpha_mode_screen_door = [&](ModelBlock& mblock)
-        {
+        auto set_alpha_mode_screen_door = [&](ModelBlock& mblock) {
             // PS
 
             FLOAT const alpha[8] = {
-                    mblock.base_color.x, mblock.base_color.y, mblock.base_color.z, mblock.base_color.w,
-                    0.5f, 0.0f, 0.0f, 0.0f,
+                mblock.base_color.x,
+                mblock.base_color.y,
+                mblock.base_color.z,
+                mblock.base_color.w,
+                0.5f,
+                0.0f,
+                0.0f,
+                0.0f,
             };
             context->UpdateSubresource(shared_->cbo_alpha.get(), 0, NULL, alpha, 0, 0);
             ID3D11Buffer* ps_cbo[2] = {
@@ -1372,16 +1304,13 @@ namespace core::Graphics
                 shared_->cbo_light.get(),
             };
             context->PSSetConstantBuffers(2, 2, ps_cbo);
-            if (mblock.image)
-            {
-                if (mblock.color_buffer)
+            if(mblock.image) {
+                if(mblock.color_buffer)
                     context->PSSetShader(shared_->shader_pixel_sd_vc[IDX(fog)].get(), NULL, 0);
                 else
                     context->PSSetShader(shared_->shader_pixel_sd[IDX(fog)].get(), NULL, 0);
-            }
-            else
-            {
-                if (mblock.color_buffer)
+            } else {
+                if(mblock.color_buffer)
                     context->PSSetShader(shared_->shader_pixel_sd_nt_vc[IDX(fog)].get(), NULL, 0);
                 else
                     context->PSSetShader(shared_->shader_pixel_sd_nt[IDX(fog)].get(), NULL, 0);
@@ -1392,8 +1321,7 @@ namespace core::Graphics
             FLOAT const blend_factor[4]{};
             context->OMSetBlendState(shared_->state_blend.get(), blend_factor, D3D11_DEFAULT_SAMPLE_MASK);
         };
-        auto set_state_from_block = [&](ModelBlock& mblock)
-        {
+        auto set_state_from_block = [&](ModelBlock& mblock) {
             set_state_matrix_from_block(mblock);
 
             // IA
@@ -1416,12 +1344,9 @@ namespace core::Graphics
 
             // RS
 
-            if (mblock.double_side)
-            {
+            if(mblock.double_side) {
                 context->RSSetState(shared_->state_rs_cull_none.get());
-            }
-            else
-            {
+            } else {
                 context->RSSetState(shared_->state_rs_cull_back.get());
             }
 
@@ -1437,26 +1362,22 @@ namespace core::Graphics
             context->OMSetDepthStencilState(shared_->state_ds.get(), D3D11_DEFAULT_STENCIL_REFERENCE);
 
             // other
-            if (mblock.alpha_blend) {
+            if(mblock.alpha_blend) {
                 //set_alpha_mode_blend(mblock);
                 set_alpha_mode_screen_door(mblock);
-            }
-            else if (mblock.alpha_mask) {
+            } else if(mblock.alpha_mask) {
                 set_alpha_mode_mask(mblock);
-            }
-            else {
+            } else {
                 set_alpha_mode_opaque(mblock);
             }
         };
-        auto draw_block = [&](ModelBlock& mblock)
-        {
-            if (mblock.index_buffer)
+        auto draw_block = [&](ModelBlock& mblock) {
+            if(mblock.index_buffer)
                 m_device->getCommandbuffer()->drawIndexed(mblock.draw_count, 0, 0);
             else
                 m_device->getCommandbuffer()->draw(mblock.draw_count, 0);
         };
-        auto clear_state = [&]()
-        {
+        auto clear_state = [&]() {
             // IA
 
             ID3D11Buffer* vbo_null[4] = { NULL, NULL, NULL, NULL };
@@ -1482,10 +1403,8 @@ namespace core::Graphics
 
         // pass 1 opaque object
 
-        for (auto& mblock : model_block)
-        {
-            if (!mblock.alpha_mask && !mblock.alpha_blend)
-            {
+        for(auto& mblock : model_block) {
+            if(!mblock.alpha_mask && !mblock.alpha_blend) {
                 set_state_from_block(mblock);
                 draw_block(mblock);
             }
@@ -1493,10 +1412,8 @@ namespace core::Graphics
 
         // pass 2 alpha mask object
 
-        for (auto& mblock : model_block)
-        {
-            if (mblock.alpha_mask)
-            {
+        for(auto& mblock : model_block) {
+            if(mblock.alpha_mask) {
                 set_state_from_block(mblock);
                 draw_block(mblock);
             }
@@ -1504,29 +1421,25 @@ namespace core::Graphics
 
         // pass 3 alpha blend object
 
-        for (auto& mblock : model_block)
-        {
-            if (mblock.alpha_blend)
-            {
+        for(auto& mblock : model_block) {
+            if(mblock.alpha_blend) {
                 set_state_from_block(mblock);
                 draw_block(mblock);
             }
         }
-        
+
         // unbind
 
         clear_state();
     }
 
     Model_D3D11::Model_D3D11(GraphicsDevice* p_device, ModelSharedComponent_D3D11* p_model_shared, StringView path)
-        : m_device(p_device)
-        , shared_(p_model_shared)
-        , gltf_path(path)
+        : m_device(p_device), shared_(p_model_shared), gltf_path(path)
     {
         t_scale_ = DirectX::XMMatrixIdentity();
         t_trans_ = DirectX::XMMatrixIdentity();
         t_mbrot_ = DirectX::XMMatrixIdentity();
-        if (!createResources())
+        if(!createResources())
             throw std::runtime_error("Model_D3D11::Model_D3D11");
         m_device->addEventListener(this);
     }

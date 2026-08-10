@@ -3,23 +3,25 @@
 #include <vector>
 #include <string>
 
-namespace core {
-	class CommandLineArguments {
-	public:
-		// initialize
+namespace core
+{
+    class CommandLineArguments
+    {
+    public:
+        // initialize
 
-		static void initialize();
+        static void initialize();
 
-		// modify
+        // modify
 
-		static void clear();
-		static void add(std::string_view arg);
-		static void assign(std::vector<std::string> const& args);
+        static void clear();
+        static void add(std::string_view arg);
+        static void assign(std::vector<std::string> const& args);
 
-		// access
+        // access
 
-		static std::string_view at(size_t n);
-		static size_t size();
-		static std::vector<std::string> copy();
-	};
+        static std::string_view at(size_t n);
+        static size_t size();
+        static std::vector<std::string> copy();
+    };
 }

@@ -11,18 +11,21 @@ namespace luastg
     {
     private:
         std::function<void()> m_WhatToDo;
+
     public:
-        explicit Scope(std::function<void()> exitJob) : m_WhatToDo(std::move(exitJob)) {}
+        explicit Scope(std::function<void()> exitJob)
+            : m_WhatToDo(std::move(exitJob)) {}
         ~Scope() { m_WhatToDo(); }
     };
-    
+
     float TimerScope::operator()() const
     {
         LARGE_INTEGER time = {};
         ::QueryPerformanceCounter(&time);
         return float(double(time.QuadPart - _time) / double(_freq));
     }
-    TimerScope::TimerScope(float& inout) : _freq(0), _time(0), _out(inout)
+    TimerScope::TimerScope(float& inout)
+        : _freq(0), _time(0), _out(inout)
     {
         LARGE_INTEGER freq = {};
         ::QueryPerformanceFrequency(&freq);
@@ -38,15 +41,14 @@ namespace luastg
         ::QueryPerformanceCounter(&time);
         _out = float(double(time.QuadPart - _time) / double(_freq));
     }
-    
+
     CoInitializeScope::CoInitializeScope()
     {
         _result = SUCCEEDED(::CoInitializeEx(nullptr, COINIT_MULTITHREADED));
     }
     CoInitializeScope::~CoInitializeScope()
     {
-        if (_result)
-        {
+        if(_result) {
             ::CoUninitialize();
         }
     }

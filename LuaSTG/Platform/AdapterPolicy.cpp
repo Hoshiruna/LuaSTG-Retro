@@ -12,17 +12,17 @@ extern "C" __declspec(dllexport) uint32 AmdPowerXpressRequestHighPerformance = 0
 
 namespace Platform
 {
-	void AdapterPolicy::setAll(bool active)
-	{
-		setNVIDIA(active);
-		setAMD(active);
-	}
-	void AdapterPolicy::setNVIDIA(bool active)
-	{
-		NvOptimusEnablement = active ? 0x00000001 : 0x00000000;
-	}
-	void AdapterPolicy::setAMD(bool active)
-	{
-		AmdPowerXpressRequestHighPerformance = active ? 0x00000001 : 0x00000000;
-	}
+    void AdapterPolicy::setAll(bool active)
+    {
+        setNVIDIA(active);
+        setAMD(active);
+    }
+    void AdapterPolicy::setNVIDIA(bool active)
+    {
+        NvOptimusEnablement = active ? 0x00000001 : 0x00000000;
+    }
+    void AdapterPolicy::setAMD(bool active)
+    {
+        AmdPowerXpressRequestHighPerformance = active ? 0x00000001 : 0x00000000;
+    }
 }

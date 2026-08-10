@@ -68,7 +68,11 @@ namespace core
     };
 
     // UUID v5
-	// ns:URL
-	// https://www.luastg-sub.com/core.IApplicationModel
-	template<> constexpr InterfaceId getInterfaceId<IApplicationModel>() { return UUID::parse("42313368-4b16-511f-895f-ee43f0e10713"); }
+    // ns:URL
+    // https://www.luastg-sub.com/core.IApplicationModel
+    template<>
+    constexpr InterfaceId getInterfaceId<IApplicationModel>()
+    {
+        return UUID::parse("42313368-4b16-511f-895f-ee43f0e10713");
+    }
 }

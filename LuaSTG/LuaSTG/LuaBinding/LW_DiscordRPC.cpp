@@ -9,122 +9,118 @@
 namespace
 {
 #ifdef LUASTG_DISCORD_RPC_ENABLE
-	constexpr int presence_string_field_count = 10;
+    constexpr int presence_string_field_count = 10;
 
-	void get_string_field(lua_State* L, int idx, const char* key, const char*& value) noexcept
-	{
-		lua_getfield(L, idx, key);
-		if (!lua_isnil(L, -1))
-		{
-			value = luaL_checkstring(L, -1);
-		}
-	}
+    void get_string_field(lua_State* L, int idx, const char* key, const char*& value) noexcept
+    {
+        lua_getfield(L, idx, key);
+        if(!lua_isnil(L, -1)) {
+            value = luaL_checkstring(L, -1);
+        }
+    }
 
-	int get_int_field(lua_State* L, int idx, const char* key) noexcept
-	{
-		lua_getfield(L, idx, key);
-		int value = 0;
-		if (!lua_isnil(L, -1))
-		{
-			value = (int)luaL_checkinteger(L, -1);
-		}
-		lua_pop(L, 1);
-		return value;
-	}
+    int get_int_field(lua_State* L, int idx, const char* key) noexcept
+    {
+        lua_getfield(L, idx, key);
+        int value = 0;
+        if(!lua_isnil(L, -1)) {
+            value = (int)luaL_checkinteger(L, -1);
+        }
+        lua_pop(L, 1);
+        return value;
+    }
 
-	int64_t get_int64_field(lua_State* L, int idx, const char* key) noexcept
-	{
-		lua_getfield(L, idx, key);
-		int64_t value = 0;
-		if (!lua_isnil(L, -1))
-		{
-			value = (int64_t)luaL_checkinteger(L, -1);
-		}
-		lua_pop(L, 1);
-		return value;
-	}
+    int64_t get_int64_field(lua_State* L, int idx, const char* key) noexcept
+    {
+        lua_getfield(L, idx, key);
+        int64_t value = 0;
+        if(!lua_isnil(L, -1)) {
+            value = (int64_t)luaL_checkinteger(L, -1);
+        }
+        lua_pop(L, 1);
+        return value;
+    }
 
-	void pop_string_fields(lua_State* L) noexcept
-	{
-		lua_pop(L, presence_string_field_count);
-	}
+    void pop_string_fields(lua_State* L) noexcept
+    {
+        lua_pop(L, presence_string_field_count);
+    }
 #endif
 }
 
-void luastg::binding::DiscordRPC::Register(lua_State* L) noexcept
+void
+luastg::binding::DiscordRPC::Register(lua_State* L) noexcept
 {
-	struct Wrapper
-	{
-		static int IsEnabled(lua_State* L) noexcept
-		{
+    struct Wrapper
+    {
+        static int IsEnabled(lua_State* L) noexcept
+        {
 #ifdef LUASTG_DISCORD_RPC_ENABLE
-			lua_pushboolean(L, luastg::DiscordRPC::IsInitialized() ? 1 : 0);
+            lua_pushboolean(L, luastg::DiscordRPC::IsInitialized() ? 1 : 0);
 #else
-			lua_pushboolean(L, 0);
+            lua_pushboolean(L, 0);
 #endif
-			return 1;
-		}
+            return 1;
+        }
 
-		static int UpdatePresence(lua_State* L) noexcept
-		{
+        static int UpdatePresence(lua_State* L) noexcept
+        {
 #ifdef LUASTG_DISCORD_RPC_ENABLE
-			luaL_checktype(L, 1, LUA_TTABLE);
-			DiscordRichPresence presence{};
-			presence.startTimestamp = get_int64_field(L, 1, "startTimestamp");
-			presence.endTimestamp = get_int64_field(L, 1, "endTimestamp");
-			presence.partySize = get_int_field(L, 1, "partySize");
-			presence.partyMax = get_int_field(L, 1, "partyMax");
-			presence.partyPrivacy = get_int_field(L, 1, "partyPrivacy");
-			presence.instance = (int8_t)get_int_field(L, 1, "instance");
+            luaL_checktype(L, 1, LUA_TTABLE);
+            DiscordRichPresence presence{};
+            presence.startTimestamp = get_int64_field(L, 1, "startTimestamp");
+            presence.endTimestamp = get_int64_field(L, 1, "endTimestamp");
+            presence.partySize = get_int_field(L, 1, "partySize");
+            presence.partyMax = get_int_field(L, 1, "partyMax");
+            presence.partyPrivacy = get_int_field(L, 1, "partyPrivacy");
+            presence.instance = (int8_t)get_int_field(L, 1, "instance");
 
-			get_string_field(L, 1, "state", presence.state);
-			get_string_field(L, 1, "details", presence.details);
-			get_string_field(L, 1, "largeImageKey", presence.largeImageKey);
-			get_string_field(L, 1, "largeImageText", presence.largeImageText);
-			get_string_field(L, 1, "smallImageKey", presence.smallImageKey);
-			get_string_field(L, 1, "smallImageText", presence.smallImageText);
-			get_string_field(L, 1, "partyId", presence.partyId);
-			get_string_field(L, 1, "matchSecret", presence.matchSecret);
-			get_string_field(L, 1, "joinSecret", presence.joinSecret);
-			get_string_field(L, 1, "spectateSecret", presence.spectateSecret);
+            get_string_field(L, 1, "state", presence.state);
+            get_string_field(L, 1, "details", presence.details);
+            get_string_field(L, 1, "largeImageKey", presence.largeImageKey);
+            get_string_field(L, 1, "largeImageText", presence.largeImageText);
+            get_string_field(L, 1, "smallImageKey", presence.smallImageKey);
+            get_string_field(L, 1, "smallImageText", presence.smallImageText);
+            get_string_field(L, 1, "partyId", presence.partyId);
+            get_string_field(L, 1, "matchSecret", presence.matchSecret);
+            get_string_field(L, 1, "joinSecret", presence.joinSecret);
+            get_string_field(L, 1, "spectateSecret", presence.spectateSecret);
 
-			if (luastg::DiscordRPC::IsInitialized())
-			{
-				::Discord_UpdatePresence(&presence);
-			}
-			pop_string_fields(L);
+            if(luastg::DiscordRPC::IsInitialized()) {
+                ::Discord_UpdatePresence(&presence);
+            }
+            pop_string_fields(L);
 #else
-			(void)L;
+            (void)L;
 #endif
-			return 0;
-		}
+            return 0;
+        }
 
-		static int ClearPresence(lua_State* L) noexcept
-		{
+        static int ClearPresence(lua_State* L) noexcept
+        {
 #ifdef LUASTG_DISCORD_RPC_ENABLE
-			if (luastg::DiscordRPC::IsInitialized())
-			{
-				::Discord_ClearPresence();
-			}
+            if(luastg::DiscordRPC::IsInitialized()) {
+                ::Discord_ClearPresence();
+            }
 #else
-			(void)L;
+            (void)L;
 #endif
-			return 0;
-		}
-	};
+            return 0;
+        }
+    };
 
-	luaL_Reg lib[] = {
-		{ "IsEnabled", &Wrapper::IsEnabled },
-		{ "UpdatePresence", &Wrapper::UpdatePresence },
-		{ "ClearPresence", &Wrapper::ClearPresence },
-		{ NULL, NULL },
-	};
+    luaL_Reg lib[] = {
+        { "IsEnabled", &Wrapper::IsEnabled },
+        { "UpdatePresence", &Wrapper::UpdatePresence },
+        { "ClearPresence", &Wrapper::ClearPresence },
+        { NULL, NULL },
+    };
 
-	luaL_register(L, LUASTG_LUA_LIBNAME ".DiscordRPC", lib); // lib (also sets _G["lstg.DiscordRPC"])
-	lua_getglobal(L, LUASTG_LUA_LIBNAME);
-	lua_pushvalue(L, -2);
-	lua_setfield(L, -2, "DiscordRPC");                       // lib lstg
-	lua_pushvalue(L, -2);
-	lua_setfield(L, -2, "DiscordPRC");                       // lib lstg (lstg.DiscordPRC = lib)
-	lua_pop(L, 2);
+    luaL_register(L, LUASTG_LUA_LIBNAME ".DiscordRPC", lib); // lib (also sets _G["lstg.DiscordRPC"])
+    lua_getglobal(L, LUASTG_LUA_LIBNAME);
+    lua_pushvalue(L, -2);
+    lua_setfield(L, -2, "DiscordRPC"); // lib lstg
+    lua_pushvalue(L, -2);
+    lua_setfield(L, -2, "DiscordPRC"); // lib lstg (lstg.DiscordPRC = lib)
+    lua_pop(L, 2);
 }

@@ -4,8 +4,10 @@
 #include <string>
 #include <format>
 
-namespace core {
-    struct LoggingBuffer {
+namespace core
+{
+    struct LoggingBuffer
+    {
         std::vector<std::string> error;
     };
 }

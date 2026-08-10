@@ -8,14 +8,17 @@
 #include "windows/RuntimeLoader/DirectComposition.hpp"
 #include <wil/resource.h>
 
-namespace core {
-    enum class SwapChainModel : int8_t {
+namespace core
+{
+    enum class SwapChainModel : int8_t
+    {
         legacy,
         modern,
         composition,
     };
 
-    class SwapChain : public implement::ReferenceCounted<ISwapChain> , public IWindowEventListener , public IGraphicsDeviceEventListener {
+    class SwapChain : public implement::ReferenceCounted<ISwapChain>, public IWindowEventListener, public IGraphicsDeviceEventListener
+    {
     public:
         // ISwapChain
 
@@ -65,7 +68,8 @@ namespace core {
     private:
         // event dispatcher
 
-        enum class Event {
+        enum class Event
+        {
             create,
             destroy,
         };

@@ -8,6 +8,7 @@ doc/**
 LuaSTG/Shader/generated/**
 LuaSTG/LuaSTG/LuaBinding/generated/**
 engine/embedded-file-system/generated/**
+engine/graphics/d3d11/shader/**
 
 # Local build output
 build/**

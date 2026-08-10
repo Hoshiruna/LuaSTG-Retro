@@ -7,56 +7,63 @@
 #include <cassert>
 #include <format>
 
-namespace {
-    using std::string_view_literals::operator ""sv;
+namespace
+{
+    using std::string_view_literals::operator""sv;
 
     constexpr auto log_header{ "[core] [JpegImageFactory::createFromMemory]"sv };
     constexpr auto invalid_parameter_header{ "invalid parameter:"sv };
 
-    class ScopedJpegHandle {
+    class ScopedJpegHandle
+    {
     public:
-        explicit ScopedJpegHandle(tjhandle const jpeg) : m_jpeg(jpeg) {}
+        explicit ScopedJpegHandle(tjhandle const jpeg)
+            : m_jpeg(jpeg) {}
         ~ScopedJpegHandle() { tj3Destroy(m_jpeg); }
+
     private:
         tjhandle m_jpeg{};
     };
 
-    std::string_view getErrorMessage(const tjhandle handle) {
+    std::string_view getErrorMessage(const tjhandle handle)
+    {
         const auto message = tj3GetErrorStr(handle);
         return message ? std::string_view(message) : "unknown"sv;
     }
 }
 
-namespace core {
-    bool JpegImageFactory::createFromMemory(LoggingBuffer& log, const void* const data, const uint32_t size_in_bytes, IImage** const output_image) {
-        if (data == nullptr) {
+namespace core
+{
+    bool JpegImageFactory::createFromMemory(LoggingBuffer& log, const void* const data, const uint32_t size_in_bytes, IImage** const output_image)
+    {
+        if(data == nullptr) {
             L_ERROR("{} {} data is null pointer"sv, log_header, invalid_parameter_header);
             return false;
         }
-        if (size_in_bytes == 0) {
+        if(size_in_bytes == 0) {
             L_ERROR("{} {} size_in_bytes is 0"sv, log_header, invalid_parameter_header);
             return false;
         }
-        if (output_image == nullptr) {
+        if(output_image == nullptr) {
             L_ERROR("{} {} output_image is null pointer"sv, log_header, invalid_parameter_header);
             return false;
         }
 
         const tjhandle jpeg = tj3Init(TJINIT_DECOMPRESS);
-        if (jpeg == nullptr) {
+        if(jpeg == nullptr) {
             L_ERROR("{} tj3Init failed ({})"sv, log_header, getErrorMessage(jpeg));
             return false;
         }
         const ScopedJpegHandle scoped_jpeg(jpeg);
 
-        if (tj3DecompressHeader(jpeg, static_cast<const uint8_t*>(data), size_in_bytes) != 0) {
+        if(tj3DecompressHeader(jpeg, static_cast<const uint8_t*>(data), size_in_bytes) != 0) {
             L_ERROR("{} tj3DecompressHeader failed ({})"sv, log_header, getErrorMessage(jpeg));
             return false;
         }
 
         const auto width = tj3Get(jpeg, TJPARAM_JPEGWIDTH);
         const auto height = tj3Get(jpeg, TJPARAM_JPEGHEIGHT);
-        if (width <= 0 || width > 16384 || height <= 0 || height > 16384) {
+        if(width <= 0 || width > 16384 || height <= 0 || height > 16384) {
             L_ERROR("{} jpeg image too large ({}x{})"sv, log_header, width, height);
             return false;
         }
@@ -70,23 +77,24 @@ namespace core {
 
         SmartReference<Image> image;
         image.attach(new Image());
-        if (!image->initialize(description)) {
+        if(!image->initialize(description)) {
             L_ERROR("{} Image::initialize failed"sv, log_header);
             return false;
         }
 
         ScopedImageMappedBuffer buffer{};
-        if (!image->createScopedMap(buffer)) {
+        if(!image->createScopedMap(buffer)) {
             L_ERROR("{} Image::map failed"sv, log_header);
             return false;
         }
 
-        if (tj3Decompress8(
-            jpeg,
-            static_cast<const uint8_t*>(data), size_in_bytes,
-            static_cast<uint8_t*>(buffer.data), static_cast<int>(buffer.stride),
-            TJPF_BGRA
-        ) != 0) {
+        if(tj3Decompress8(
+               jpeg,
+               static_cast<const uint8_t*>(data),
+               size_in_bytes,
+               static_cast<uint8_t*>(buffer.data),
+               static_cast<int>(buffer.stride),
+               TJPF_BGRA) != 0) {
             L_ERROR("{} tj3Decompress8 failed ({})"sv, log_header, getErrorMessage(jpeg));
             return false;
         }

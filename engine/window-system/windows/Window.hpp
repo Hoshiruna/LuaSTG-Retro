@@ -9,14 +9,17 @@
 #include "windows/WindowSizeMoveController.hpp"
 #include "windows/ImmersiveTitleBarController.hpp"
 
-namespace core {
-    struct SetWindowedModeParameters {
+namespace core
+{
+    struct SetWindowedModeParameters
+    {
         Vector2U size;
         WindowFrameStyle style{ WindowFrameStyle::None };
         IDisplay* display{};
     };
 
-    class Window : public implement::ReferenceCounted<IWindow> {
+    class Window : public implement::ReferenceCounted<IWindow>
+    {
     private:
         WNDCLASSEXW win32_window_class{ sizeof(WNDCLASSEXW) };
         ATOM win32_window_class_atom{ 0 };
@@ -84,8 +87,8 @@ namespace core {
         void _setFullScreenMode(IDisplay* display);
 
     private:
-
-        enum class EventType {
+        enum class EventType
+        {
             WindowCreate,
             WindowDestroy,
 
@@ -103,7 +106,8 @@ namespace core {
             DeviceChange,
         };
 
-        union EventData {
+        union EventData
+        {
             Vector2U window_size;
             bool window_fullscreen_state;
         };
@@ -125,25 +129,24 @@ namespace core {
         char16_t m_text_input_last_high_surrogate{};
         bool m_text_input_enabled{ false };
 
-        void       textInput_updateBuffer();
-        void       textInput_addChar32(char32_t code);
-        void       textInput_handleChar32(char32_t code);
-        void       textInput_handleChar16(char16_t code);
+        void textInput_updateBuffer();
+        void textInput_addChar32(char32_t code);
+        void textInput_handleChar32(char32_t code);
+        void textInput_handleChar16(char16_t code);
 
     public:
-
         // IWindow
 
-        bool       textInput_isEnabled() override;
-        void       textInput_setEnabled(bool enabled) override;
+        bool textInput_isEnabled() override;
+        void textInput_setEnabled(bool enabled) override;
         StringView textInput_getBuffer() override;
-        void       textInput_clearBuffer() override;
-        uint32_t   textInput_getCursorPosition() override;
-        void       textInput_setCursorPosition(uint32_t code_point_index) override;
-        void       textInput_addCursorPosition(int32_t offset_by_code_point) override;
-        void       textInput_removeBufferRange(uint32_t code_point_index, uint32_t code_point_count) override;
-        void       textInput_insertBufferRange(uint32_t code_point_index, StringView str) override;
-        void       textInput_backspace(uint32_t code_point_count) override;
+        void textInput_clearBuffer() override;
+        uint32_t textInput_getCursorPosition() override;
+        void textInput_setCursorPosition(uint32_t code_point_index) override;
+        void textInput_addCursorPosition(int32_t offset_by_code_point) override;
+        void textInput_removeBufferRange(uint32_t code_point_index, uint32_t code_point_count) override;
+        void textInput_insertBufferRange(uint32_t code_point_index, StringView str) override;
+        void textInput_backspace(uint32_t code_point_count) override;
 
         void* getNativeHandle() override;
 

@@ -3,34 +3,40 @@
 
 namespace utility::path
 {
-    bool is_separator(char c) { return c == '/' || c == '\\'; }
-    bool is_separator(wchar_t c) { return c == L'/' || c == L'\\'; }
+    bool is_separator(char c)
+    {
+        return c == '/' || c == '\\';
+    }
+    bool is_separator(wchar_t c)
+    {
+        return c == L'/' || c == L'\\';
+    }
     void to_slash(std::string& utf8_string)
     {
-        for (auto& c : utf8_string)
-        {
-            if (c == '\\') c = '/';
+        for(auto& c : utf8_string) {
+            if(c == '\\')
+                c = '/';
         }
     }
     void to_slash(std::wstring& wide_string)
     {
-        for (auto& c : wide_string)
-        {
-            if (c == L'\\') c = L'/';
+        for(auto& c : wide_string) {
+            if(c == L'\\')
+                c = L'/';
         }
     }
     void to_backslash(std::string& utf8_string)
     {
-        for (auto& c : utf8_string)
-        {
-            if (c == '/') c = '\\';
+        for(auto& c : utf8_string) {
+            if(c == '/')
+                c = '\\';
         }
     }
     void to_backslash(std::wstring& wide_string)
     {
-        for (auto& c : wide_string)
-        {
-            if (c == L'/') c = L'\\';
+        for(auto& c : wide_string) {
+            if(c == L'/')
+                c = L'\\';
         }
     }
     void merge_separator(std::string& utf8_string)
@@ -38,27 +44,19 @@ namespace utility::path
         size_t const string_size = utf8_string.size();
         bool slash_section = false;
         size_t j = 0;
-        for (size_t i = 0; i < string_size; i += 1)
-        {
-            if (!slash_section)
-            {
-                if (is_separator(utf8_string[i]))
-                {
+        for(size_t i = 0; i < string_size; i += 1) {
+            if(!slash_section) {
+                if(is_separator(utf8_string[i])) {
                     slash_section = true;
                 }
-                if (j != i)
-                {
+                if(j != i) {
                     utf8_string[j] = utf8_string[i];
                 }
                 j += 1;
-            }
-            else
-            {
-                if (!is_separator(utf8_string[i]))
-                {
+            } else {
+                if(!is_separator(utf8_string[i])) {
                     slash_section = false;
-                    if (j != i)
-                    {
+                    if(j != i) {
                         utf8_string[j] = utf8_string[i];
                     }
                     j += 1;
@@ -72,27 +70,19 @@ namespace utility::path
         size_t const string_size = wide_string.size();
         bool slash_section = false;
         size_t j = 0;
-        for (size_t i = 0; i < string_size; i += 1)
-        {
-            if (!slash_section)
-            {
-                if (is_separator(wide_string[i]))
-                {
+        for(size_t i = 0; i < string_size; i += 1) {
+            if(!slash_section) {
+                if(is_separator(wide_string[i])) {
                     slash_section = true;
                 }
-                if (j != i)
-                {
+                if(j != i) {
                     wide_string[j] = wide_string[i];
                 }
                 j += 1;
-            }
-            else
-            {
-                if (!is_separator(wide_string[i]))
-                {
+            } else {
+                if(!is_separator(wide_string[i])) {
                     slash_section = false;
-                    if (j != i)
-                    {
+                    if(j != i) {
                         wide_string[j] = wide_string[i];
                     }
                     j += 1;
@@ -103,19 +93,14 @@ namespace utility::path
     }
     bool compare(std::string_view p1, std::string_view p2)
     {
-        if (p1.size() != p2.size()) return false;
-        for (size_t i = 0; i < p1.size(); i += 1)
-        {
-            if (is_separator(p1[i]) && is_separator(p2[i]))
-            {
+        if(p1.size() != p2.size())
+            return false;
+        for(size_t i = 0; i < p1.size(); i += 1) {
+            if(is_separator(p1[i]) && is_separator(p2[i])) {
                 // ok
-            }
-            else if (p1[i] == p2[i])
-            {
+            } else if(p1[i] == p2[i]) {
                 // ok
-            }
-            else
-            {
+            } else {
                 return false; // not equal
             }
         }
@@ -123,19 +108,14 @@ namespace utility::path
     }
     bool compare(std::wstring_view p1, std::wstring_view p2)
     {
-        if (p1.size() != p2.size()) return false;
-        for (size_t i = 0; i < p1.size(); i += 1)
-        {
-            if (is_separator(p1[i]) && is_separator(p2[i]))
-            {
+        if(p1.size() != p2.size())
+            return false;
+        for(size_t i = 0; i < p1.size(); i += 1) {
+            if(is_separator(p1[i]) && is_separator(p2[i])) {
                 // ok
-            }
-            else if (p1[i] == p2[i])
-            {
+            } else if(p1[i] == p2[i]) {
                 // ok
-            }
-            else
-            {
+            } else {
                 return false; // not equal
             }
         }

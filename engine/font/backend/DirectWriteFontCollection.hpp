@@ -7,8 +7,10 @@
 
 struct IDWriteFontCollection;
 
-namespace core {
-    class DirectWriteFontCollection final : public implement::ReferenceCounted<IFontCollection> {
+namespace core
+{
+    class DirectWriteFontCollection final : public implement::ReferenceCounted<IFontCollection>
+    {
     public:
         // IFontCollection
 
@@ -23,9 +25,11 @@ namespace core {
 
         bool findFont(
             StringView font_family_name,
-            FontWeight weight, FontStyle style, FontWidth width,
-            uint32_t& font_family_index, uint32_t& font_index
-        ) override;
+            FontWeight weight,
+            FontStyle style,
+            FontWidth width,
+            uint32_t& font_family_index,
+            uint32_t& font_index) override;
         uint32_t getFontCount(uint32_t font_family_index) override;
         bool getFontName(uint32_t font_family_index, uint32_t font_index, IImmutableString** output) override;
         FontWeight getFontWeight(uint32_t font_family_index, uint32_t font_index) override;
@@ -47,7 +51,7 @@ namespace core {
     private:
         core::SmartReference<core::implement::StringList> m_files;
         win32::com_ptr<IDWriteFontCollection> m_font_collection;
-        bool m_read_only{false};
-        bool m_dirty{true};
+        bool m_read_only{ false };
+        bool m_dirty{ true };
     };
 }

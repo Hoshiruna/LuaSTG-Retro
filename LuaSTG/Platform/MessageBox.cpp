@@ -8,19 +8,18 @@ namespace Platform
         std::wstring wide_title(std::move(to_wide(title)));
         std::wstring wide_message(std::move(to_wide(message)));
         UINT flags = 0;
-        switch (type)
-        {
-        case 1:
-            flags |= MB_ICONWARNING;
-            flags |= MB_OKCANCEL;
-            break;
-        case 2:
-            flags = MB_ICONERROR;
-            flags |= MB_OK;
-            break;
-        default:
-            assert(false);
-            break;
+        switch(type) {
+            case 1:
+                flags |= MB_ICONWARNING;
+                flags |= MB_OKCANCEL;
+                break;
+            case 2:
+                flags = MB_ICONERROR;
+                flags |= MB_OK;
+                break;
+            default:
+                assert(false);
+                break;
         }
         return IDOK == MessageBoxW(window, wide_message.c_str(), wide_title.c_str(), flags);
     }

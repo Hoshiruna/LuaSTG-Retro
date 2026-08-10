@@ -2,18 +2,21 @@
 #include "core/Logger.hpp"
 #include "d3d11/Texture2D.hpp"
 
-namespace core {
+namespace core
+{
     // IGraphicsDeviceEventListener
 
-    void RenderTarget::onGraphicsDeviceCreate() {
-        if (m_initialized) {
+    void RenderTarget::onGraphicsDeviceCreate()
+    {
+        if(m_initialized) {
             // 这里不能直接调用 texture 的 onDeviceCreate，因为要判断创建是否成功
-            if (static_cast<Texture2D*>(m_texture.get())->createResource()) {
+            if(static_cast<Texture2D*>(m_texture.get())->createResource()) {
                 createResource();
             }
         }
     }
-    void RenderTarget::onGraphicsDeviceDestroy() {
+    void RenderTarget::onGraphicsDeviceDestroy()
+    {
         m_view.reset();
 #ifdef LUASTG_ENABLE_DIRECT2D
         m_bitmap.reset();
@@ -24,51 +27,55 @@ namespace core {
     // RenderTarget
 
     RenderTarget::RenderTarget() = default;
-    RenderTarget::~RenderTarget() {
-        if (m_initialized && m_device) {
+    RenderTarget::~RenderTarget()
+    {
+        if(m_initialized && m_device) {
             m_device->removeEventListener(this);
         }
     }
 
-    bool RenderTarget::setSize(Vector2U const size) {
+    bool RenderTarget::setSize(Vector2U const size)
+    {
         m_view.reset();
 #ifdef LUASTG_ENABLE_DIRECT2D
         m_bitmap.reset();
 #endif
-        if (!m_texture->setSize(size)) {
+        if(!m_texture->setSize(size)) {
             return false;
         }
         return createResource();
     }
 
-    bool RenderTarget::initialize(IGraphicsDevice* const device, Vector2U const size) {
+    bool RenderTarget::initialize(IGraphicsDevice* const device, Vector2U const size)
+    {
         assert(device);
         assert(size.x > 0 && size.y > 0);
         m_device = device;
         m_texture.attach(new Texture2D);
-        if (!static_cast<Texture2D*>(m_texture.get())->initialize(device, size, true)) {
+        if(!static_cast<Texture2D*>(m_texture.get())->initialize(device, size, true)) {
             return false;
         }
-        if (!createResource()) {
+        if(!createResource()) {
             return false;
         }
         m_initialized = true;
         m_device->addEventListener(this);
         return true;
     }
-    bool RenderTarget::createResource() {
+    bool RenderTarget::createResource()
+    {
         HRESULT hr = S_OK;
 
         const auto d3d11_device = static_cast<ID3D11Device*>(m_device->getNativeDevice());
-        if (!d3d11_device)
+        if(!d3d11_device)
             return false;
         win32::com_ptr<ID3D11DeviceContext> d3d11_devctx;
         d3d11_device->GetImmediateContext(d3d11_devctx.put());
-        if (!d3d11_devctx)
+        if(!d3d11_devctx)
             return false;
 #ifdef LUASTG_ENABLE_DIRECT2D
         const auto d2d1_device_context = static_cast<ID2D1DeviceContext*>(m_device->getNativeRendererHandle());
-        if (!d2d1_device_context)
+        if(!d2d1_device_context)
             return false;
 #endif
 
@@ -86,10 +93,12 @@ namespace core {
             // TODO: sRGB
             //.Format = DXGI_FORMAT_B8G8R8A8_UNORM_SRGB,
             .ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D,
-            .Texture2D = D3D11_TEX2D_RTV{.MipSlice = 0,},
+            .Texture2D = D3D11_TEX2D_RTV{
+                .MipSlice = 0,
+            },
         };
         hr = gHR = d3d11_device->CreateRenderTargetView(texture, &rtvdef, m_view.put());
-        if (FAILED(hr)) {
+        if(FAILED(hr)) {
             Logger::error("Windows API failed: ID3D11Device::CreateRenderTargetView");
             return false;
         }
@@ -99,7 +108,7 @@ namespace core {
 #ifdef LUASTG_ENABLE_DIRECT2D
         win32::com_ptr<IDXGISurface> dxgi_surface;
         hr = gHR = texture->QueryInterface(dxgi_surface.put());
-        if (FAILED(hr)) {
+        if(FAILED(hr)) {
             Logger::error("Windows API failed: ID3D11Texture2D::QueryInterface -> IDXGISurface");
             return false;
         }
@@ -115,7 +124,7 @@ namespace core {
             .colorContext = nullptr,
         };
         hr = gHR = d2d1_device_context->CreateBitmapFromDxgiSurface(dxgi_surface.get(), &bitmap_info, m_bitmap.put());
-        if (FAILED(hr)) {
+        if(FAILED(hr)) {
             Logger::error("Windows API failed: ID3D11DeviceContext::CreateBitmapFromDxgiSurface");
             return false;
         }
@@ -127,12 +136,14 @@ namespace core {
 
 #include "d3d11/GraphicsDevice.hpp"
 
-namespace core {
-    bool GraphicsDevice::createRenderTarget(Vector2U const size, IRenderTarget** const pp_rt) {
+namespace core
+{
+    bool GraphicsDevice::createRenderTarget(Vector2U const size, IRenderTarget** const pp_rt)
+    {
         *pp_rt = nullptr;
         SmartReference<RenderTarget> buffer;
         buffer.attach(new RenderTarget);
-        if (!buffer->initialize(this, size)) {
+        if(!buffer->initialize(this, size)) {
             return false;
         }
         *pp_rt = buffer.detach();

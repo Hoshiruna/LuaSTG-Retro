@@ -23,27 +23,31 @@
 #include "gtest/gtest.h"
 #include <DirectXPackedVector.h>
 
-namespace {
-    using std::string_literals::operator ""s;
-    using std::string_view_literals::operator ""sv;
+namespace
+{
+    using std::string_literals::operator""s;
+    using std::string_view_literals::operator""sv;
 
 #ifdef LUASTG_IMAGE_WINDOWS_IMAGING_COMPONENT_ENABLE
-    void win32LoggerWriter(const std::string_view message) {
+    void win32LoggerWriter(const std::string_view message)
+    {
         core::Logger::error(message);
     }
 #endif
 
-    void setupLogger() {
-        if (!spdlog::get("test"s)) {
+    void setupLogger()
+    {
+        if(!spdlog::get("test"s)) {
             spdlog::set_default_logger(spdlog::stdout_color_mt("test"s));
         }
-    #ifdef LUASTG_IMAGE_WINDOWS_IMAGING_COMPONENT_ENABLE
+#ifdef LUASTG_IMAGE_WINDOWS_IMAGING_COMPONENT_ENABLE
         win32::set_logger_writer(&win32LoggerWriter);
-    #endif
+#endif
     }
 }
 
-TEST(Image, create) {
+TEST(Image, create)
+{
     setupLogger();
     using namespace core;
 
@@ -58,7 +62,8 @@ TEST(Image, create) {
     ASSERT_TRUE(ImageFactory::create(description, image.put()));
 }
 
-TEST(Image, create_with_nullptr) {
+TEST(Image, create_with_nullptr)
+{
     setupLogger();
     using namespace core;
 
@@ -72,7 +77,8 @@ TEST(Image, create_with_nullptr) {
     ASSERT_FALSE(ImageFactory::create(description, nullptr));
 }
 
-TEST(Image, create_with_wrong_size) {
+TEST(Image, create_with_wrong_size)
+{
     setupLogger();
     using namespace core;
 
@@ -100,7 +106,8 @@ TEST(Image, create_with_wrong_size) {
     ASSERT_FALSE(ImageFactory::create(description, image.put()));
 }
 
-TEST(Image, create_with_wrong_format) {
+TEST(Image, create_with_wrong_format)
+{
     setupLogger();
     using namespace core;
 
@@ -115,7 +122,8 @@ TEST(Image, create_with_wrong_format) {
     ASSERT_FALSE(ImageFactory::create(description, image.put()));
 }
 
-TEST(Image, create_with_wrong_color_space) {
+TEST(Image, create_with_wrong_color_space)
+{
     setupLogger();
     using namespace core;
 
@@ -128,9 +136,9 @@ TEST(Image, create_with_wrong_color_space) {
     SmartReference<IImage> image;
 
 #define I(FMT) static_cast<int32_t>(FMT)
-    for (int32_t i = I(ImageFormat::unknown) + 1; i < I(ImageFormat::count); i++) {
+    for(int32_t i = I(ImageFormat::unknown) + 1; i < I(ImageFormat::count); i++) {
         description.format = static_cast<ImageFormat>(i);
-        switch (description.format) {
+        switch(description.format) {
             case ImageFormat::r8g8b8a8_normalized:
             case ImageFormat::b8g8r8a8_normalized: {
                 ASSERT_TRUE(ImageFactory::create(description, image.put()));
@@ -145,7 +153,8 @@ TEST(Image, create_with_wrong_color_space) {
 #undef I
 }
 
-TEST(Image, map) {
+TEST(Image, map)
+{
     setupLogger();
     using namespace core;
 
@@ -164,7 +173,8 @@ TEST(Image, map) {
     image->unmap();
 }
 
-TEST(Image, r8g8b8a8_normalized_map_write_unmap_getPixel) {
+TEST(Image, r8g8b8a8_normalized_map_write_unmap_getPixel)
+{
     setupLogger();
     using namespace core;
 
@@ -190,7 +200,8 @@ TEST(Image, r8g8b8a8_normalized_map_write_unmap_getPixel) {
     const auto output_color = image->getPixel(0, 0);
     EXPECT_EQ(color, output_color);
 }
-TEST(Image, b8g8r8a8_normalized_map_write_unmap_getPixel) {
+TEST(Image, b8g8r8a8_normalized_map_write_unmap_getPixel)
+{
     setupLogger();
     using namespace core;
 
@@ -215,7 +226,8 @@ TEST(Image, b8g8r8a8_normalized_map_write_unmap_getPixel) {
     const auto output_color = image->getPixel(0, 0);
     EXPECT_EQ(color, output_color);
 }
-TEST(Image, r16g16b16a16_float_map_write_unmap_getPixel) {
+TEST(Image, r16g16b16a16_float_map_write_unmap_getPixel)
+{
     setupLogger();
     using namespace core;
 
@@ -243,7 +255,8 @@ TEST(Image, r16g16b16a16_float_map_write_unmap_getPixel) {
 
     EXPECT_EQ(color, image->getPixel(0, 0));
 }
-TEST(Image, r32g32b32a32_float_map_write_unmap_getPixel) {
+TEST(Image, r32g32b32a32_float_map_write_unmap_getPixel)
+{
     setupLogger();
     using namespace core;
 
@@ -267,7 +280,8 @@ TEST(Image, r32g32b32a32_float_map_write_unmap_getPixel) {
     EXPECT_EQ(color, image->getPixel(0, 0));
 }
 
-TEST(ImageFactory, createFromMemory_png) {
+TEST(ImageFactory, createFromMemory_png)
+{
     setupLogger();
     using namespace core;
 
@@ -276,7 +290,8 @@ TEST(ImageFactory, createFromMemory_png) {
     const auto size = image->getSize();
     EXPECT_TRUE(size.x == 256u && size.y == 32u);
 }
-TEST(ImageFactory, createFromMemory_webp) {
+TEST(ImageFactory, createFromMemory_webp)
+{
     setupLogger();
     using namespace core;
 
@@ -285,7 +300,8 @@ TEST(ImageFactory, createFromMemory_webp) {
     const auto size = image->getSize();
     EXPECT_TRUE(size.x == 256u && size.y == 32u);
 }
-TEST(ImageFactory, createFromMemory_jpeg) {
+TEST(ImageFactory, createFromMemory_jpeg)
+{
     setupLogger();
     using namespace core;
 
@@ -294,7 +310,8 @@ TEST(ImageFactory, createFromMemory_jpeg) {
     const auto size = image->getSize();
     EXPECT_TRUE(size.x == 256u && size.y == 32u);
 }
-TEST(ImageFactory, createFromMemory_wtf) {
+TEST(ImageFactory, createFromMemory_wtf)
+{
     setupLogger();
     using namespace core;
 
@@ -303,7 +320,8 @@ TEST(ImageFactory, createFromMemory_wtf) {
 }
 
 #ifdef LUASTG_IMAGE_JPEG_ENABLE
-TEST(JpegImageFactory, createFromMemory) {
+TEST(JpegImageFactory, createFromMemory)
+{
     setupLogger();
     using namespace core;
 
@@ -316,7 +334,7 @@ TEST(JpegImageFactory, createFromMemory) {
     };
 
     LoggingBuffer log;
-    for (const auto file : files) {
+    for(const auto file : files) {
         ASSERT_TRUE(FileSystemManager::readFile(file, data.put()));
         EXPECT_TRUE(JpegImageFactory::createFromMemory(log, data->data(), static_cast<uint32_t>(data->size()), image.put()));
     }
@@ -324,7 +342,8 @@ TEST(JpegImageFactory, createFromMemory) {
 #endif // LUASTG_IMAGE_JPEG_ENABLE
 
 #ifdef LUASTG_IMAGE_PNG_ENABLE
-TEST(PngImageFactory, createFromMemory) {
+TEST(PngImageFactory, createFromMemory)
+{
     setupLogger();
     using namespace core;
 
@@ -337,7 +356,7 @@ TEST(PngImageFactory, createFromMemory) {
     };
 
     LoggingBuffer log;
-    for (const auto file : files) {
+    for(const auto file : files) {
         ASSERT_TRUE(FileSystemManager::readFile(file, data.put()));
         EXPECT_TRUE(PngImageFactory::createFromMemory(log, data->data(), static_cast<uint32_t>(data->size()), image.put()));
     }
@@ -345,7 +364,8 @@ TEST(PngImageFactory, createFromMemory) {
 #endif // LUASTG_IMAGE_PNG_ENABLE
 
 #ifdef LUASTG_IMAGE_WEBP_ENABLE
-TEST(WebpImageFactory, createFromMemory) {
+TEST(WebpImageFactory, createFromMemory)
+{
     setupLogger();
     using namespace core;
 
@@ -360,7 +380,7 @@ TEST(WebpImageFactory, createFromMemory) {
     };
 
     LoggingBuffer log;
-    for (const auto file : files) {
+    for(const auto file : files) {
         ASSERT_TRUE(FileSystemManager::readFile(file, data.put()));
         EXPECT_TRUE(WebpImageFactory::createFromMemory(log, data->data(), static_cast<uint32_t>(data->size()), image.put()));
     }

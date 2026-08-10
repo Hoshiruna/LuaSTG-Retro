@@ -1,8 +1,10 @@
 #pragma once
 #include "core/ReferenceCounted.hpp"
 
-namespace core {
-    CORE_INTERFACE IGraphicsBuffer : IReferenceCounted {
+namespace core
+{
+    CORE_INTERFACE IGraphicsBuffer : IReferenceCounted
+    {
         virtual void* getNativeResource() const = 0;
         virtual void* getNativeView() const = 0;
 

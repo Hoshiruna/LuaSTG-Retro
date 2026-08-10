@@ -3,10 +3,11 @@
 #include "LuaWrapper.hpp"
 #include "AppFrame.h"
 
-using std::string_view_literals::operator ""sv;
+using std::string_view_literals::operator""sv;
 
-namespace {
-	constexpr auto embedded_script = R"(--- Luastg Retro built-in script
+namespace
+{
+    constexpr auto embedded_script = R"(--- Luastg Retro built-in script
 local Mesh = require("lstg.Mesh")
 --- High-level Mesh data operation
 function Mesh:createVertexWriter()
@@ -207,309 +208,326 @@ end
 )"sv;
 }
 
-namespace {
-	// for legacy lstg.Mesh (experiment)
-	core::Color4B toColor4B(lua_State* vm, int const idx) {
-		// ReSharper disable once CppTooWideScopeInitStatement
-		lua::stack_t const ctx(vm);
-		if (ctx.is_number(idx)) {
-			return core::Color4B(ctx.get_value<uint32_t>(idx));
-		}
-		return *luastg::binding::Color::Cast(vm, idx);
-	}
+namespace
+{
+    // for legacy lstg.Mesh (experiment)
+    core::Color4B toColor4B(lua_State* vm, int const idx)
+    {
+        // ReSharper disable once CppTooWideScopeInitStatement
+        lua::stack_t const ctx(vm);
+        if(ctx.is_number(idx)) {
+            return core::Color4B(ctx.get_value<uint32_t>(idx));
+        }
+        return *luastg::binding::Color::Cast(vm, idx);
+    }
 }
 
-namespace luastg::binding {
-	std::string_view Mesh::class_name{ "lstg.Mesh" };
+namespace luastg::binding
+{
+    std::string_view Mesh::class_name{ "lstg.Mesh" };
 
-	struct MeshBinding : Mesh {
-		// meta methods
+    struct MeshBinding : Mesh
+    {
+        // meta methods
 
-		// NOLINTBEGIN(*-reserved-identifier)
+        // NOLINTBEGIN(*-reserved-identifier)
 
-		static int __gc(lua_State* vm) {
-			if (auto const self = as(vm, 1); self->data) {
-				self->data->release();
-				self->data = nullptr;
-			}
-			return 0;
-		}
-		static int __tostring(lua_State* vm) {
-			lua::stack_t const ctx(vm);
-			[[maybe_unused]] auto const self = as(vm, 1);
-			ctx.push_value(class_name);
-			return 1;
-		}
-		static int __eq(lua_State* vm) {
-			lua::stack_t const ctx(vm);
-			auto const self = as(vm, 1);
-			if (is(vm, 2)) {
-				auto const other = as(vm, 2);
-				ctx.push_value(self->data == other->data);
-			}
-			else {
-				ctx.push_value(false);
-			}
-			return 1;
-		}
+        static int __gc(lua_State* vm)
+        {
+            if(auto const self = as(vm, 1); self->data) {
+                self->data->release();
+                self->data = nullptr;
+            }
+            return 0;
+        }
+        static int __tostring(lua_State* vm)
+        {
+            lua::stack_t const ctx(vm);
+            [[maybe_unused]] auto const self = as(vm, 1);
+            ctx.push_value(class_name);
+            return 1;
+        }
+        static int __eq(lua_State* vm)
+        {
+            lua::stack_t const ctx(vm);
+            auto const self = as(vm, 1);
+            if(is(vm, 2)) {
+                auto const other = as(vm, 2);
+                ctx.push_value(self->data == other->data);
+            } else {
+                ctx.push_value(false);
+            }
+            return 1;
+        }
 
-		// NOLINTEND(*-reserved-identifier)
+        // NOLINTEND(*-reserved-identifier)
 
-		// method
+        // method
 
-		static int getVertexCount(lua_State* vm) {
-			lua::stack_t const ctx(vm);
-			auto const self = as(vm, 1);
-			ctx.push_value(self->data->getVertexCount());
-			return 1;
-		}
-		static int getIndexCount(lua_State* vm) {
-			lua::stack_t const ctx(vm);
-			auto const self = as(vm, 1);
-			ctx.push_value(self->data->getIndexCount());
-			return 1;
-		}
-		static int getPrimitiveTopology(lua_State* vm) {
-			lua::stack_t const ctx(vm);
-			auto const self = as(vm, 1);
-			ctx.push_value(static_cast<int32_t>(self->data->getPrimitiveTopology()));
-			return 1;
-		}
-		static int isReadOnly(lua_State* vm) {
-			lua::stack_t const ctx(vm);
-			auto const self = as(vm, 1);
-			ctx.push_value(self->data->isReadOnly());
-			return 1;
-		}
+        static int getVertexCount(lua_State* vm)
+        {
+            lua::stack_t const ctx(vm);
+            auto const self = as(vm, 1);
+            ctx.push_value(self->data->getVertexCount());
+            return 1;
+        }
+        static int getIndexCount(lua_State* vm)
+        {
+            lua::stack_t const ctx(vm);
+            auto const self = as(vm, 1);
+            ctx.push_value(self->data->getIndexCount());
+            return 1;
+        }
+        static int getPrimitiveTopology(lua_State* vm)
+        {
+            lua::stack_t const ctx(vm);
+            auto const self = as(vm, 1);
+            ctx.push_value(static_cast<int32_t>(self->data->getPrimitiveTopology()));
+            return 1;
+        }
+        static int isReadOnly(lua_State* vm)
+        {
+            lua::stack_t const ctx(vm);
+            auto const self = as(vm, 1);
+            ctx.push_value(self->data->isReadOnly());
+            return 1;
+        }
 
-		static int setVertex(lua_State* vm) {
-			lua::stack_t const ctx(vm);
-			auto const self = as(vm, 1);
+        static int setVertex(lua_State* vm)
+        {
+            lua::stack_t const ctx(vm);
+            auto const self = as(vm, 1);
 
-			auto const vertex_index = ctx.get_value<uint32_t>(1 + 1);
-			auto const x = ctx.get_value<float>(1 + 2);
-			auto const y = ctx.get_value<float>(1 + 3);
+            auto const vertex_index = ctx.get_value<uint32_t>(1 + 1);
+            auto const x = ctx.get_value<float>(1 + 2);
+            auto const y = ctx.get_value<float>(1 + 3);
 
-			if (ctx.index_of_top() >= 1 + 10) {
-				auto const z = ctx.get_value<float>(1 + 4);
-				auto const u = ctx.get_value<float>(1 + 5);
-				auto const v = ctx.get_value<float>(1 + 6);
-				auto const r = ctx.get_value<float>(1 + 7);
-				auto const g = ctx.get_value<float>(1 + 8);
-				auto const b = ctx.get_value<float>(1 + 9);
-				auto const a = ctx.get_value<float>(1 + 10);
-				self->data->setVertex(vertex_index, core::Vector3F(x, y, z), core::Vector2F(u, v), core::Vector4F(r, g, b, a));
-			}
-			else if (ctx.index_of_top() >= 1 + 9) {
-				auto const u = ctx.get_value<float>(1 + 4);
-				auto const v = ctx.get_value<float>(1 + 5);
-				auto const r = ctx.get_value<float>(1 + 6);
-				auto const g = ctx.get_value<float>(1 + 7);
-				auto const b = ctx.get_value<float>(1 + 8);
-				auto const a = ctx.get_value<float>(1 + 9);
-				self->data->setVertex(vertex_index, core::Vector2F(x, y), core::Vector2F(u, v), core::Vector4F(r, g, b, a));
-			}
-			else if (ctx.index_of_top() >= 1 + 7) {
-				auto const z = ctx.get_value<float>(1 + 4);
-				auto const u = ctx.get_value<float>(1 + 5);
-				auto const v = ctx.get_value<float>(1 + 6);
-				auto const color = toColor4B(vm, 1 + 7);
-				self->data->setVertex(vertex_index, core::Vector3F(x, y, z), core::Vector2F(u, v), color);
-			}
-			else /* if (ctx.index_of_top() == 1 + 6) */ {
-				auto const u = ctx.get_value<float>(1 + 4);
-				auto const v = ctx.get_value<float>(1 + 5);
-				auto const color = toColor4B(vm, 1 + 6);
-				self->data->setVertex(vertex_index, core::Vector2F(x, y), core::Vector2F(u, v), color);
-			}
+            if(ctx.index_of_top() >= 1 + 10) {
+                auto const z = ctx.get_value<float>(1 + 4);
+                auto const u = ctx.get_value<float>(1 + 5);
+                auto const v = ctx.get_value<float>(1 + 6);
+                auto const r = ctx.get_value<float>(1 + 7);
+                auto const g = ctx.get_value<float>(1 + 8);
+                auto const b = ctx.get_value<float>(1 + 9);
+                auto const a = ctx.get_value<float>(1 + 10);
+                self->data->setVertex(vertex_index, core::Vector3F(x, y, z), core::Vector2F(u, v), core::Vector4F(r, g, b, a));
+            } else if(ctx.index_of_top() >= 1 + 9) {
+                auto const u = ctx.get_value<float>(1 + 4);
+                auto const v = ctx.get_value<float>(1 + 5);
+                auto const r = ctx.get_value<float>(1 + 6);
+                auto const g = ctx.get_value<float>(1 + 7);
+                auto const b = ctx.get_value<float>(1 + 8);
+                auto const a = ctx.get_value<float>(1 + 9);
+                self->data->setVertex(vertex_index, core::Vector2F(x, y), core::Vector2F(u, v), core::Vector4F(r, g, b, a));
+            } else if(ctx.index_of_top() >= 1 + 7) {
+                auto const z = ctx.get_value<float>(1 + 4);
+                auto const u = ctx.get_value<float>(1 + 5);
+                auto const v = ctx.get_value<float>(1 + 6);
+                auto const color = toColor4B(vm, 1 + 7);
+                self->data->setVertex(vertex_index, core::Vector3F(x, y, z), core::Vector2F(u, v), color);
+            } else /* if (ctx.index_of_top() == 1 + 6) */ {
+                auto const u = ctx.get_value<float>(1 + 4);
+                auto const v = ctx.get_value<float>(1 + 5);
+                auto const color = toColor4B(vm, 1 + 6);
+                self->data->setVertex(vertex_index, core::Vector2F(x, y), core::Vector2F(u, v), color);
+            }
 
-			ctx.push_value(lua::stack_index_t(1)); // return self
-			return 1;
-		}
-		static int setPosition(lua_State* vm) {
-			lua::stack_t const ctx(vm);
-			auto const self = as(vm, 1);
+            ctx.push_value(lua::stack_index_t(1)); // return self
+            return 1;
+        }
+        static int setPosition(lua_State* vm)
+        {
+            lua::stack_t const ctx(vm);
+            auto const self = as(vm, 1);
 
-			auto const vertex_index = ctx.get_value<uint32_t>(1 + 1);
-			auto const x = ctx.get_value<float>(1 + 2);
-			auto const y = ctx.get_value<float>(1 + 3);
-			if (ctx.index_of_top() >= 1 + 4) {
-				auto const z = ctx.get_value<float>(1 + 4);
-				self->data->setPosition(vertex_index, core::Vector3F(x, y, z));
-			}
-			else {
-				self->data->setPosition(vertex_index, core::Vector2F(x, y));
-			}
+            auto const vertex_index = ctx.get_value<uint32_t>(1 + 1);
+            auto const x = ctx.get_value<float>(1 + 2);
+            auto const y = ctx.get_value<float>(1 + 3);
+            if(ctx.index_of_top() >= 1 + 4) {
+                auto const z = ctx.get_value<float>(1 + 4);
+                self->data->setPosition(vertex_index, core::Vector3F(x, y, z));
+            } else {
+                self->data->setPosition(vertex_index, core::Vector2F(x, y));
+            }
 
-			ctx.push_value(lua::stack_index_t(1)); // return self
-			return 1;
-		}
-		static int setUv(lua_State* vm) {
-			lua::stack_t const ctx(vm);
-			auto const self = as(vm, 1);
+            ctx.push_value(lua::stack_index_t(1)); // return self
+            return 1;
+        }
+        static int setUv(lua_State* vm)
+        {
+            lua::stack_t const ctx(vm);
+            auto const self = as(vm, 1);
 
-			auto const vertex_index = ctx.get_value<uint32_t>(1 + 1);
-			auto const u = ctx.get_value<float>(1 + 2);
-			auto const v = ctx.get_value<float>(1 + 3);
-			self->data->setUv(vertex_index, core::Vector2F(u, v));
+            auto const vertex_index = ctx.get_value<uint32_t>(1 + 1);
+            auto const u = ctx.get_value<float>(1 + 2);
+            auto const v = ctx.get_value<float>(1 + 3);
+            self->data->setUv(vertex_index, core::Vector2F(u, v));
 
-			ctx.push_value(lua::stack_index_t(1)); // return self
-			return 1;
-		}
-		static int setColor(lua_State* vm) {
-			lua::stack_t const ctx(vm);
-			auto const self = as(vm, 1);
+            ctx.push_value(lua::stack_index_t(1)); // return self
+            return 1;
+        }
+        static int setColor(lua_State* vm)
+        {
+            lua::stack_t const ctx(vm);
+            auto const self = as(vm, 1);
 
-			auto const vertex_index = ctx.get_value<uint32_t>(1 + 1);
-			if (ctx.index_of_top() >= 1 + 5) {
-				auto const r = ctx.get_value<float>(1 + 2);
-				auto const g = ctx.get_value<float>(1 + 3);
-				auto const b = ctx.get_value<float>(1 + 4);
-				auto const a = ctx.get_value<float>(1 + 5);
-				self->data->setColor(vertex_index, core::Vector4F(r, g, b, a));
-			}
-			else {
-				auto const color = toColor4B(vm, 1 + 2);
-				self->data->setColor(vertex_index, color);
-			}
+            auto const vertex_index = ctx.get_value<uint32_t>(1 + 1);
+            if(ctx.index_of_top() >= 1 + 5) {
+                auto const r = ctx.get_value<float>(1 + 2);
+                auto const g = ctx.get_value<float>(1 + 3);
+                auto const b = ctx.get_value<float>(1 + 4);
+                auto const a = ctx.get_value<float>(1 + 5);
+                self->data->setColor(vertex_index, core::Vector4F(r, g, b, a));
+            } else {
+                auto const color = toColor4B(vm, 1 + 2);
+                self->data->setColor(vertex_index, color);
+            }
 
-			ctx.push_value(lua::stack_index_t(1)); // return self
-			return 1;
-		}
+            ctx.push_value(lua::stack_index_t(1)); // return self
+            return 1;
+        }
 
-		static int setIndex(lua_State* vm) {
-			lua::stack_t const ctx(vm);
-			auto const self = as(vm, 1);
+        static int setIndex(lua_State* vm)
+        {
+            lua::stack_t const ctx(vm);
+            auto const self = as(vm, 1);
 
-			auto const index_index = ctx.get_value<uint32_t>(1 + 1);
-			auto const vertex_index = ctx.get_value<uint32_t>(2 + 1);
-			self->data->setIndex(index_index, vertex_index);
+            auto const index_index = ctx.get_value<uint32_t>(1 + 1);
+            auto const vertex_index = ctx.get_value<uint32_t>(2 + 1);
+            self->data->setIndex(index_index, vertex_index);
 
-			ctx.push_value(lua::stack_index_t(1)); // return self
-			return 1;
-		}
+            ctx.push_value(lua::stack_index_t(1)); // return self
+            return 1;
+        }
 
-		static int commit(lua_State* vm) {
-			lua::stack_t const ctx(vm);
-			auto const self = as(vm, 1);
+        static int commit(lua_State* vm)
+        {
+            lua::stack_t const ctx(vm);
+            auto const self = as(vm, 1);
 
-			auto const result = self->data->commit();
+            auto const result = self->data->commit();
 
-			ctx.push_value(result);
-			return 1;
-		}
-		static int setReadOnly(lua_State* vm) {
-			auto const self = as(vm, 1);
-			self->data->setReadOnly();
-			return 0;
-		}
+            ctx.push_value(result);
+            return 1;
+        }
+        static int setReadOnly(lua_State* vm)
+        {
+            auto const self = as(vm, 1);
+            self->data->setReadOnly();
+            return 0;
+        }
 
-		// static method
+        // static method
 
-		static int create(lua_State* vm) {
-			lua::stack_t const ctx(vm);
+        static int create(lua_State* vm)
+        {
+            lua::stack_t const ctx(vm);
 
-			constexpr lua::stack_index_t options_table(1);
-			core::Graphics::MeshOptions options;
+            constexpr lua::stack_index_t options_table(1);
+            core::Graphics::MeshOptions options;
 
-			options.vertex_count = ctx.get_map_value<uint32_t>(options_table, "vertex_count");
+            options.vertex_count = ctx.get_map_value<uint32_t>(options_table, "vertex_count");
 
-			ctx.push_map_value(options_table, "index_count");
-			if (auto const top_index = ctx.index_of_top();  ctx.is_number(top_index)) {
-				options.index_count = ctx.get_value<uint32_t>(top_index);
-			}
-			ctx.pop_value();
+            ctx.push_map_value(options_table, "index_count");
+            if(auto const top_index = ctx.index_of_top(); ctx.is_number(top_index)) {
+                options.index_count = ctx.get_value<uint32_t>(top_index);
+            }
+            ctx.pop_value();
 
-			ctx.push_map_value(options_table, "vertex_position_no_z");
-			if (auto const top_index = ctx.index_of_top(); ctx.is_boolean(top_index)) {
-				options.vertex_position_no_z = ctx.get_value<bool>(top_index);
-			}
-			ctx.pop_value();
+            ctx.push_map_value(options_table, "vertex_position_no_z");
+            if(auto const top_index = ctx.index_of_top(); ctx.is_boolean(top_index)) {
+                options.vertex_position_no_z = ctx.get_value<bool>(top_index);
+            }
+            ctx.pop_value();
 
-			ctx.push_map_value(options_table, "vertex_index_compression");
-			if (auto const top_index = ctx.index_of_top(); ctx.is_boolean(top_index)) {
-				options.vertex_index_compression = ctx.get_value<bool>(top_index);
-			}
-			ctx.pop_value();
+            ctx.push_map_value(options_table, "vertex_index_compression");
+            if(auto const top_index = ctx.index_of_top(); ctx.is_boolean(top_index)) {
+                options.vertex_index_compression = ctx.get_value<bool>(top_index);
+            }
+            ctx.pop_value();
 
-			ctx.push_map_value(options_table, "vertex_color_compression");
-			if (auto const top_index = ctx.index_of_top(); ctx.is_boolean(top_index)) {
-				options.vertex_color_compression = ctx.get_value<bool>(top_index);
-			}
-			ctx.pop_value();
+            ctx.push_map_value(options_table, "vertex_color_compression");
+            if(auto const top_index = ctx.index_of_top(); ctx.is_boolean(top_index)) {
+                options.vertex_color_compression = ctx.get_value<bool>(top_index);
+            }
+            ctx.pop_value();
 
-			ctx.push_map_value(options_table, "primitive_topology");
-			if (auto const top_index = ctx.index_of_top(); ctx.is_number(top_index)) {
-				options.primitive_topology = static_cast<core::Graphics::PrimitiveTopology>(ctx.get_value<int32_t>(top_index));
-			}
-			ctx.pop_value();
+            ctx.push_map_value(options_table, "primitive_topology");
+            if(auto const top_index = ctx.index_of_top(); ctx.is_number(top_index)) {
+                options.primitive_topology = static_cast<core::Graphics::PrimitiveTopology>(ctx.get_value<int32_t>(top_index));
+            }
+            ctx.pop_value();
 
-			auto const device = LAPP.GetAppModel()->getDevice();
-			auto const self = Mesh::create(vm);
-			if (!core::Graphics::IMesh::create(device, options, &self->data)) {
-				return luaL_error(vm, "create Mesh failed.");
-			}
+            auto const device = LAPP.GetAppModel()->getDevice();
+            auto const self = Mesh::create(vm);
+            if(!core::Graphics::IMesh::create(device, options, &self->data)) {
+                return luaL_error(vm, "create Mesh failed.");
+            }
 
-			return 1;
-		}
-	};
+            return 1;
+        }
+    };
 
-	bool Mesh::is(lua_State* vm, int const index) {
-		lua::stack_t const ctx(vm);
-		return ctx.is_metatable(index, class_name);
-	}
-	Mesh* Mesh::as(lua_State* vm, int const index) {
-		lua::stack_t const ctx(vm);
-		return ctx.as_userdata<Mesh>(index);
-	}
-	Mesh* Mesh::create(lua_State* vm) {
-		lua::stack_t const ctx(vm);
-		auto const self = ctx.create_userdata<Mesh>();
-		auto const self_index = ctx.index_of_top();
-		ctx.set_metatable(self_index, class_name);
-		self->data = nullptr;
-		return self;
-	}
-	void Mesh::registerClass(lua_State* vm) {
-		[[maybe_unused]] lua::stack_balancer_t stack_balancer(vm);
-		lua::stack_t const ctx(vm);
+    bool Mesh::is(lua_State* vm, int const index)
+    {
+        lua::stack_t const ctx(vm);
+        return ctx.is_metatable(index, class_name);
+    }
+    Mesh* Mesh::as(lua_State* vm, int const index)
+    {
+        lua::stack_t const ctx(vm);
+        return ctx.as_userdata<Mesh>(index);
+    }
+    Mesh* Mesh::create(lua_State* vm)
+    {
+        lua::stack_t const ctx(vm);
+        auto const self = ctx.create_userdata<Mesh>();
+        auto const self_index = ctx.index_of_top();
+        ctx.set_metatable(self_index, class_name);
+        self->data = nullptr;
+        return self;
+    }
+    void Mesh::registerClass(lua_State* vm)
+    {
+        [[maybe_unused]] lua::stack_balancer_t stack_balancer(vm);
+        lua::stack_t const ctx(vm);
 
-		// lstg.Window.FrameStyle
+        // lstg.Window.FrameStyle
 
-		{
-			auto const e = ctx.create_module("lstg.PrimitiveTopology");
-			ctx.set_map_value(e, "triangle_list", static_cast<int32_t>(core::Graphics::PrimitiveTopology::triangle_list));
-			ctx.set_map_value(e, "triangle_strip", static_cast<int32_t>(core::Graphics::PrimitiveTopology::triangle_strip));
-		}
+        {
+            auto const e = ctx.create_module("lstg.PrimitiveTopology");
+            ctx.set_map_value(e, "triangle_list", static_cast<int32_t>(core::Graphics::PrimitiveTopology::triangle_list));
+            ctx.set_map_value(e, "triangle_strip", static_cast<int32_t>(core::Graphics::PrimitiveTopology::triangle_strip));
+        }
 
-		// method
+        // method
 
-		auto const method_table = ctx.create_module(class_name);
-		ctx.set_map_value(method_table, "getVertexCount", &MeshBinding::getVertexCount);
-		ctx.set_map_value(method_table, "getIndexCount", &MeshBinding::getIndexCount);
-		ctx.set_map_value(method_table, "getPrimitiveTopology", &MeshBinding::getPrimitiveTopology);
-		ctx.set_map_value(method_table, "isReadOnly", &MeshBinding::isReadOnly);
-		ctx.set_map_value(method_table, "setVertex", &MeshBinding::setVertex);
-		ctx.set_map_value(method_table, "setPosition", &MeshBinding::setPosition);
-		ctx.set_map_value(method_table, "setUv", &MeshBinding::setUv);
-		ctx.set_map_value(method_table, "setColor", &MeshBinding::setColor);
-		ctx.set_map_value(method_table, "setIndex", &MeshBinding::setIndex);
-		ctx.set_map_value(method_table, "commit", &MeshBinding::commit);
-		ctx.set_map_value(method_table, "setReadOnly", &MeshBinding::setReadOnly);
-		ctx.set_map_value(method_table, "create", &MeshBinding::create);
+        auto const method_table = ctx.create_module(class_name);
+        ctx.set_map_value(method_table, "getVertexCount", &MeshBinding::getVertexCount);
+        ctx.set_map_value(method_table, "getIndexCount", &MeshBinding::getIndexCount);
+        ctx.set_map_value(method_table, "getPrimitiveTopology", &MeshBinding::getPrimitiveTopology);
+        ctx.set_map_value(method_table, "isReadOnly", &MeshBinding::isReadOnly);
+        ctx.set_map_value(method_table, "setVertex", &MeshBinding::setVertex);
+        ctx.set_map_value(method_table, "setPosition", &MeshBinding::setPosition);
+        ctx.set_map_value(method_table, "setUv", &MeshBinding::setUv);
+        ctx.set_map_value(method_table, "setColor", &MeshBinding::setColor);
+        ctx.set_map_value(method_table, "setIndex", &MeshBinding::setIndex);
+        ctx.set_map_value(method_table, "commit", &MeshBinding::commit);
+        ctx.set_map_value(method_table, "setReadOnly", &MeshBinding::setReadOnly);
+        ctx.set_map_value(method_table, "create", &MeshBinding::create);
 
-		// metatable
+        // metatable
 
-		auto const metatable = ctx.create_metatable(class_name);
-		ctx.set_map_value(metatable, "__gc", &MeshBinding::__gc);
-		ctx.set_map_value(metatable, "__tostring", &MeshBinding::__tostring);
-		ctx.set_map_value(metatable, "__eq", &MeshBinding::__eq);
-		ctx.set_map_value(metatable, "__index", method_table);
+        auto const metatable = ctx.create_metatable(class_name);
+        ctx.set_map_value(metatable, "__gc", &MeshBinding::__gc);
+        ctx.set_map_value(metatable, "__tostring", &MeshBinding::__tostring);
+        ctx.set_map_value(metatable, "__eq", &MeshBinding::__eq);
+        ctx.set_map_value(metatable, "__index", method_table);
 
-		// embedded script
+        // embedded script
 
-		if (LUA_OK == luaL_loadbuffer(vm, embedded_script.data(), embedded_script.size(), "lstg/Mesh.lua")) {
-			lua_call(vm, 0, 0);
-		}
-	}
+        if(LUA_OK == luaL_loadbuffer(vm, embedded_script.data(), embedded_script.size(), "lstg/Mesh.lua")) {
+            lua_call(vm, 0, 0);
+        }
+    }
 }

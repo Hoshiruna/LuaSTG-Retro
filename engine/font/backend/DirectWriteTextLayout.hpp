@@ -7,8 +7,10 @@
 struct IDWriteTextFormat;
 struct IDWriteTextLayout;
 
-namespace core {
-    class DirectWriteTextLayout final : public implement::ReferenceCounted<ITextLayout> {
+namespace core
+{
+    class DirectWriteTextLayout final : public implement::ReferenceCounted<ITextLayout>
+    {
     public:
         // ITextLayout
 

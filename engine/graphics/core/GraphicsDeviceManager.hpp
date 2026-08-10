@@ -5,12 +5,15 @@
 #undef log
 #endif
 
-namespace core {
-    enum class GraphicsSystemFeature {
+namespace core
+{
+    enum class GraphicsSystemFeature
+    {
         windows_dxgi_present_allow_tearing,
     };
 
-    class GraphicsDeviceManager {
+    class GraphicsDeviceManager
+    {
     public:
         static bool refresh();
         static bool isFeatureSupported(GraphicsSystemFeature feature);

@@ -2,8 +2,10 @@
 #include "core/FrameRateController.hpp"
 #include <array>
 
-namespace core {
-    class FrameRateController : public IFrameRateController {
+namespace core
+{
+    class FrameRateController : public IFrameRateController
+    {
     public:
         // IFrameRateController
 

@@ -2,8 +2,10 @@
 #include "core/ReferenceCounted.hpp"
 #include "core/Vector2.hpp"
 
-namespace core {
-    CORE_INTERFACE IDepthStencilBuffer : IReferenceCounted {
+namespace core
+{
+    CORE_INTERFACE IDepthStencilBuffer : IReferenceCounted
+    {
         virtual void* getNativeResource() const noexcept = 0;
         virtual void* getNativeView() const noexcept = 0;
 

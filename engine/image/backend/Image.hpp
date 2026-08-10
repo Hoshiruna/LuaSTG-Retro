@@ -2,8 +2,10 @@
 #include "core/Image.hpp"
 #include "core/implement/ReferenceCounted.hpp"
 
-namespace core {
-    class Image final : public implement::ReferenceCounted<IImage> {
+namespace core
+{
+    class Image final : public implement::ReferenceCounted<IImage>
+    {
     public:
         // IImage
 

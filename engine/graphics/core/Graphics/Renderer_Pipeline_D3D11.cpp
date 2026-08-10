@@ -1,7 +1,10 @@
 #include "core/Graphics/Renderer_D3D11.hpp"
 #include "core/Logger.hpp"
 
-namespace { namespace shader {
+namespace
+{
+    namespace shader
+    {
 #include "d3d11/shader/renderer/vertex_shader_fog.h"
 #include "d3d11/shader/renderer/vertex_shader_normal.h"
 #include "d3d11/shader/renderer/pixel_shader_add_exp2_premul.h"
@@ -36,10 +39,16 @@ namespace { namespace shader {
 #include "d3d11/shader/renderer/pixel_shader_zero_linear_straight.h"
 #include "d3d11/shader/renderer/pixel_shader_zero_none_premul.h"
 #include "d3d11/shader/renderer/pixel_shader_zero_none_straight.h"
-}}
+    }
+}
 
-namespace {
-#define MAKE_SPAN(NAME) const std::span NAME{shader::NAME, sizeof(shader::NAME)}
+namespace
+{
+#define MAKE_SPAN(NAME)                    \
+    const std::span NAME                   \
+    {                                      \
+        shader::NAME, sizeof(shader::NAME) \
+    }
     MAKE_SPAN(vertex_shader_fog);
     MAKE_SPAN(vertex_shader_normal);
     MAKE_SPAN(pixel_shader_add_exp2_premul);
@@ -77,38 +86,44 @@ namespace {
 #undef MAKE_SPAN
 }
 
-namespace {
-    void applyVertexShader(core::GraphicsPipelineState& info, const core::Graphics::IRenderer::FogState state) {
+namespace
+{
+    void applyVertexShader(core::GraphicsPipelineState& info, const core::Graphics::IRenderer::FogState state)
+    {
         auto& s = info.vertex_shader;
 
         using FogState = core::Graphics::IRenderer::FogState;
 
-        switch (state) {
-        case FogState::Disable:
-            s.data = vertex_shader_normal.data();
-            s.size = vertex_shader_normal.size();
-            break;
-        case FogState::Linear:
-        case FogState::Exp:
-        case FogState::Exp2:
-            s.data = vertex_shader_fog.data();
-            s.size = vertex_shader_fog.size();
-            break;
+        switch(state) {
+            case FogState::Disable:
+                s.data = vertex_shader_normal.data();
+                s.size = vertex_shader_normal.size();
+                break;
+            case FogState::Linear:
+            case FogState::Exp:
+            case FogState::Exp2:
+                s.data = vertex_shader_fog.data();
+                s.size = vertex_shader_fog.size();
+                break;
         }
     }
     void applyPixelShader(
         core::GraphicsPipelineState& info,
         const core::Graphics::IRenderer::VertexColorBlendState vertex_color_blend_state,
         const core::Graphics::IRenderer::FogState fog_state,
-        const core::Graphics::IRenderer::TextureAlphaType texture_alpha_mode
-    ) {
+        const core::Graphics::IRenderer::TextureAlphaType texture_alpha_mode)
+    {
         auto& s = info.pixel_shader;
 
         using VertexColorBlendState = core::Graphics::IRenderer::VertexColorBlendState;
         using FogState = core::Graphics::IRenderer::FogState;
         using TextureAlphaType = core::Graphics::IRenderer::TextureAlphaType;
 
-    #define LOAD(A, B, C, NAME) if (A == vertex_color_blend_state && B == fog_state && C == texture_alpha_mode) { s.data = pixel_shader_##NAME.data(); s.size = pixel_shader_##NAME.size(); }
+#define LOAD(A, B, C, NAME)                                                          \
+    if(A == vertex_color_blend_state && B == fog_state && C == texture_alpha_mode) { \
+        s.data = pixel_shader_##NAME.data();                                         \
+        s.size = pixel_shader_##NAME.size();                                         \
+    }
 
         LOAD(VertexColorBlendState::Zero, FogState::Disable, TextureAlphaType::Normal, zero_none_straight);
         LOAD(VertexColorBlendState::One, FogState::Disable, TextureAlphaType::Normal, one_none_straight);
@@ -150,9 +165,10 @@ namespace {
         LOAD(VertexColorBlendState::Add, FogState::Exp2, TextureAlphaType::PremulAlpha, add_exp2_premul);
         LOAD(VertexColorBlendState::Mul, FogState::Exp2, TextureAlphaType::PremulAlpha, mul_exp2_premul);
 
-    #undef LOAD
+#undef LOAD
     }
-    void applyDepthState(core::GraphicsPipelineState& info, const core::Graphics::IRenderer::DepthState state) {
+    void applyDepthState(core::GraphicsPipelineState& info, const core::Graphics::IRenderer::DepthState state)
+    {
         auto& s = info.depth_stencil_state;
 
         s.depth_test_enable = (state == core::Graphics::IRenderer::DepthState::Enable);
@@ -171,120 +187,123 @@ namespace {
         s.back_face.pass_method = core::GraphicsStencilMethod::keep;
         s.back_face.compare_method = core::GraphicsCompareMethod::always;
     }
-    void applyBlendState(core::GraphicsPipelineState& info, const core::Graphics::IRenderer::BlendState state) {
+    void applyBlendState(core::GraphicsPipelineState& info, const core::Graphics::IRenderer::BlendState state)
+    {
         auto& s = info.blend_state;
 
         using BlendState = core::Graphics::IRenderer::BlendState;
 
-        switch (state) {
-        case BlendState::Disable:
-            s.blend_enable = false;
-            s.src_color_blend_factor = core::GraphicsBlendFactor::one;
-            s.dest_color_blend_factor = core::GraphicsBlendFactor::zero;
-            s.color_blend_method = core::GraphicsBlendMethod::add;
-            s.src_alpha_blend_factor = core::GraphicsBlendFactor::one;
-            s.dest_alpha_blend_factor = core::GraphicsBlendFactor::zero;
-            s.alpha_blend_method = core::GraphicsBlendMethod::add;
-            break;
-        case BlendState::Alpha:
-            s.blend_enable = true;
-            s.src_color_blend_factor = core::GraphicsBlendFactor::one;
-            s.dest_color_blend_factor = core::GraphicsBlendFactor::one_minus_src_alpha;
-            s.color_blend_method = core::GraphicsBlendMethod::add;
-            s.src_alpha_blend_factor = core::GraphicsBlendFactor::one;
-            s.dest_alpha_blend_factor = core::GraphicsBlendFactor::one_minus_src_alpha;
-            s.alpha_blend_method = core::GraphicsBlendMethod::add;
-            break;
-        case BlendState::One:
-            s.blend_enable = true;
-            s.src_color_blend_factor = core::GraphicsBlendFactor::one;
-            s.dest_color_blend_factor = core::GraphicsBlendFactor::zero;
-            s.color_blend_method = core::GraphicsBlendMethod::add;
-            s.src_alpha_blend_factor = core::GraphicsBlendFactor::one;
-            s.dest_alpha_blend_factor = core::GraphicsBlendFactor::zero;
-            s.alpha_blend_method = core::GraphicsBlendMethod::add;
-            break;
-        case BlendState::Min:
-            s.blend_enable = true;
-            s.src_color_blend_factor = core::GraphicsBlendFactor::one;
-            s.dest_color_blend_factor = core::GraphicsBlendFactor::one;
-            s.color_blend_method = core::GraphicsBlendMethod::min;
-            s.src_alpha_blend_factor = core::GraphicsBlendFactor::one;
-            s.dest_alpha_blend_factor = core::GraphicsBlendFactor::one;
-            s.alpha_blend_method = core::GraphicsBlendMethod::min;
-            break;
-        case BlendState::Max:
-            s.blend_enable = true;
-            s.src_color_blend_factor = core::GraphicsBlendFactor::one;
-            s.dest_color_blend_factor = core::GraphicsBlendFactor::one;
-            s.color_blend_method = core::GraphicsBlendMethod::max;
-            s.src_alpha_blend_factor = core::GraphicsBlendFactor::one;
-            s.dest_alpha_blend_factor = core::GraphicsBlendFactor::one;
-            s.alpha_blend_method = core::GraphicsBlendMethod::max;
-            break;
-        case BlendState::Mul:
-            s.blend_enable = true;
-            s.src_color_blend_factor = core::GraphicsBlendFactor::dest_color;
-            s.dest_color_blend_factor = core::GraphicsBlendFactor::zero;
-            s.color_blend_method = core::GraphicsBlendMethod::add;
-            s.src_alpha_blend_factor = core::GraphicsBlendFactor::one;
-            s.dest_alpha_blend_factor = core::GraphicsBlendFactor::one_minus_src_alpha;
-            s.alpha_blend_method = core::GraphicsBlendMethod::add;
-            break;
-        case BlendState::Screen:
-            s.blend_enable = true;
-            s.src_color_blend_factor = core::GraphicsBlendFactor::one;
-            s.dest_color_blend_factor = core::GraphicsBlendFactor::one_minus_src_color;
-            s.color_blend_method = core::GraphicsBlendMethod::add;
-            s.src_alpha_blend_factor = core::GraphicsBlendFactor::one;
-            s.dest_alpha_blend_factor = core::GraphicsBlendFactor::one_minus_src_alpha;
-            s.alpha_blend_method = core::GraphicsBlendMethod::add;
-            break;
-        case BlendState::Add:
-            s.blend_enable = true;
-            s.src_color_blend_factor = core::GraphicsBlendFactor::one;
-            s.dest_color_blend_factor = core::GraphicsBlendFactor::one;
-            s.color_blend_method = core::GraphicsBlendMethod::add;
-            s.src_alpha_blend_factor = core::GraphicsBlendFactor::one;
-            s.dest_alpha_blend_factor = core::GraphicsBlendFactor::one_minus_src_alpha;
-            s.alpha_blend_method = core::GraphicsBlendMethod::add;
-            break;
-        case BlendState::Sub:
-            s.blend_enable = true;
-            s.src_color_blend_factor = core::GraphicsBlendFactor::one;
-            s.dest_color_blend_factor = core::GraphicsBlendFactor::one;
-            s.color_blend_method = core::GraphicsBlendMethod::subtract;
-            s.src_alpha_blend_factor = core::GraphicsBlendFactor::one;
-            s.dest_alpha_blend_factor = core::GraphicsBlendFactor::one_minus_src_alpha;
-            s.alpha_blend_method = core::GraphicsBlendMethod::add;
-            break;
-        case BlendState::RevSub:
-            s.blend_enable = true;
-            s.src_color_blend_factor = core::GraphicsBlendFactor::one;
-            s.dest_color_blend_factor = core::GraphicsBlendFactor::one;
-            s.color_blend_method = core::GraphicsBlendMethod::reverse_subtract;
-            s.src_alpha_blend_factor = core::GraphicsBlendFactor::one;
-            s.dest_alpha_blend_factor = core::GraphicsBlendFactor::one_minus_src_alpha;
-            s.alpha_blend_method = core::GraphicsBlendMethod::add;
-            break;
-        case BlendState::Inv:
-            s.blend_enable = true;
-            s.src_color_blend_factor = core::GraphicsBlendFactor::one_minus_dest_color;
-            s.dest_color_blend_factor = core::GraphicsBlendFactor::one_minus_src_color;
-            s.color_blend_method = core::GraphicsBlendMethod::add;
-            s.src_alpha_blend_factor = core::GraphicsBlendFactor::zero;
-            s.dest_alpha_blend_factor = core::GraphicsBlendFactor::one;
-            s.alpha_blend_method = core::GraphicsBlendMethod::add;
-            break;
+        switch(state) {
+            case BlendState::Disable:
+                s.blend_enable = false;
+                s.src_color_blend_factor = core::GraphicsBlendFactor::one;
+                s.dest_color_blend_factor = core::GraphicsBlendFactor::zero;
+                s.color_blend_method = core::GraphicsBlendMethod::add;
+                s.src_alpha_blend_factor = core::GraphicsBlendFactor::one;
+                s.dest_alpha_blend_factor = core::GraphicsBlendFactor::zero;
+                s.alpha_blend_method = core::GraphicsBlendMethod::add;
+                break;
+            case BlendState::Alpha:
+                s.blend_enable = true;
+                s.src_color_blend_factor = core::GraphicsBlendFactor::one;
+                s.dest_color_blend_factor = core::GraphicsBlendFactor::one_minus_src_alpha;
+                s.color_blend_method = core::GraphicsBlendMethod::add;
+                s.src_alpha_blend_factor = core::GraphicsBlendFactor::one;
+                s.dest_alpha_blend_factor = core::GraphicsBlendFactor::one_minus_src_alpha;
+                s.alpha_blend_method = core::GraphicsBlendMethod::add;
+                break;
+            case BlendState::One:
+                s.blend_enable = true;
+                s.src_color_blend_factor = core::GraphicsBlendFactor::one;
+                s.dest_color_blend_factor = core::GraphicsBlendFactor::zero;
+                s.color_blend_method = core::GraphicsBlendMethod::add;
+                s.src_alpha_blend_factor = core::GraphicsBlendFactor::one;
+                s.dest_alpha_blend_factor = core::GraphicsBlendFactor::zero;
+                s.alpha_blend_method = core::GraphicsBlendMethod::add;
+                break;
+            case BlendState::Min:
+                s.blend_enable = true;
+                s.src_color_blend_factor = core::GraphicsBlendFactor::one;
+                s.dest_color_blend_factor = core::GraphicsBlendFactor::one;
+                s.color_blend_method = core::GraphicsBlendMethod::min;
+                s.src_alpha_blend_factor = core::GraphicsBlendFactor::one;
+                s.dest_alpha_blend_factor = core::GraphicsBlendFactor::one;
+                s.alpha_blend_method = core::GraphicsBlendMethod::min;
+                break;
+            case BlendState::Max:
+                s.blend_enable = true;
+                s.src_color_blend_factor = core::GraphicsBlendFactor::one;
+                s.dest_color_blend_factor = core::GraphicsBlendFactor::one;
+                s.color_blend_method = core::GraphicsBlendMethod::max;
+                s.src_alpha_blend_factor = core::GraphicsBlendFactor::one;
+                s.dest_alpha_blend_factor = core::GraphicsBlendFactor::one;
+                s.alpha_blend_method = core::GraphicsBlendMethod::max;
+                break;
+            case BlendState::Mul:
+                s.blend_enable = true;
+                s.src_color_blend_factor = core::GraphicsBlendFactor::dest_color;
+                s.dest_color_blend_factor = core::GraphicsBlendFactor::zero;
+                s.color_blend_method = core::GraphicsBlendMethod::add;
+                s.src_alpha_blend_factor = core::GraphicsBlendFactor::one;
+                s.dest_alpha_blend_factor = core::GraphicsBlendFactor::one_minus_src_alpha;
+                s.alpha_blend_method = core::GraphicsBlendMethod::add;
+                break;
+            case BlendState::Screen:
+                s.blend_enable = true;
+                s.src_color_blend_factor = core::GraphicsBlendFactor::one;
+                s.dest_color_blend_factor = core::GraphicsBlendFactor::one_minus_src_color;
+                s.color_blend_method = core::GraphicsBlendMethod::add;
+                s.src_alpha_blend_factor = core::GraphicsBlendFactor::one;
+                s.dest_alpha_blend_factor = core::GraphicsBlendFactor::one_minus_src_alpha;
+                s.alpha_blend_method = core::GraphicsBlendMethod::add;
+                break;
+            case BlendState::Add:
+                s.blend_enable = true;
+                s.src_color_blend_factor = core::GraphicsBlendFactor::one;
+                s.dest_color_blend_factor = core::GraphicsBlendFactor::one;
+                s.color_blend_method = core::GraphicsBlendMethod::add;
+                s.src_alpha_blend_factor = core::GraphicsBlendFactor::one;
+                s.dest_alpha_blend_factor = core::GraphicsBlendFactor::one_minus_src_alpha;
+                s.alpha_blend_method = core::GraphicsBlendMethod::add;
+                break;
+            case BlendState::Sub:
+                s.blend_enable = true;
+                s.src_color_blend_factor = core::GraphicsBlendFactor::one;
+                s.dest_color_blend_factor = core::GraphicsBlendFactor::one;
+                s.color_blend_method = core::GraphicsBlendMethod::subtract;
+                s.src_alpha_blend_factor = core::GraphicsBlendFactor::one;
+                s.dest_alpha_blend_factor = core::GraphicsBlendFactor::one_minus_src_alpha;
+                s.alpha_blend_method = core::GraphicsBlendMethod::add;
+                break;
+            case BlendState::RevSub:
+                s.blend_enable = true;
+                s.src_color_blend_factor = core::GraphicsBlendFactor::one;
+                s.dest_color_blend_factor = core::GraphicsBlendFactor::one;
+                s.color_blend_method = core::GraphicsBlendMethod::reverse_subtract;
+                s.src_alpha_blend_factor = core::GraphicsBlendFactor::one;
+                s.dest_alpha_blend_factor = core::GraphicsBlendFactor::one_minus_src_alpha;
+                s.alpha_blend_method = core::GraphicsBlendMethod::add;
+                break;
+            case BlendState::Inv:
+                s.blend_enable = true;
+                s.src_color_blend_factor = core::GraphicsBlendFactor::one_minus_dest_color;
+                s.dest_color_blend_factor = core::GraphicsBlendFactor::one_minus_src_color;
+                s.color_blend_method = core::GraphicsBlendMethod::add;
+                s.src_alpha_blend_factor = core::GraphicsBlendFactor::zero;
+                s.dest_alpha_blend_factor = core::GraphicsBlendFactor::one;
+                s.alpha_blend_method = core::GraphicsBlendMethod::add;
+                break;
         }
     }
 }
 
-namespace core::Graphics {
-    bool Renderer_D3D11::createGraphicsPipelines() {
+namespace core::Graphics
+{
+    bool Renderer_D3D11::createGraphicsPipelines()
+    {
         GraphicsPipelineState info{};
 
-        #pragma region vertex input state
+#pragma region vertex input state
 
         GraphicsVertexInputBuffer vertex_buffer{};
         vertex_buffer.slot = 0;
@@ -318,16 +337,16 @@ namespace core::Graphics {
         info.vertex_input_state.elements = vertex_elements;
         info.vertex_input_state.element_count = 3;
 
-        #pragma endregion
+#pragma endregion
 
         info.primitive_type = core::GraphicsPrimitiveType::triangle_list;
 
-        #pragma region rasterizer state
+#pragma region rasterizer state
 
         info.rasterizer_state.cull_mode = GraphicsCullMode::none; // 2D 图片精灵可能有负缩放
         info.rasterizer_state.front_face = GraphicsFrontFace::clockwise;
 
-        #pragma endregion
+#pragma endregion
 
         constexpr VertexColorBlendState vertex_color_blend_state_list[]{
             VertexColorBlendState::Zero,
@@ -367,11 +386,11 @@ namespace core::Graphics {
             BlendState::Inv,
         };
 
-        for (const auto vertex_color_blend_state : vertex_color_blend_state_list) {
-            for (const auto fog_state : fog_state_list) {
-                for (const auto texture_alpha_mode : texture_alpha_mode_list) {
-                    for (const auto depth_state : depth_state_list) {
-                        for (const auto blend_state : blend_state_list) {
+        for(const auto vertex_color_blend_state : vertex_color_blend_state_list) {
+            for(const auto fog_state : fog_state_list) {
+                for(const auto texture_alpha_mode : texture_alpha_mode_list) {
+                    for(const auto depth_state : depth_state_list) {
+                        for(const auto blend_state : blend_state_list) {
                             applyVertexShader(info, fog_state);
                             applyPixelShader(info, vertex_color_blend_state, fog_state, texture_alpha_mode);
                             applyDepthState(info, depth_state);
@@ -382,7 +401,7 @@ namespace core::Graphics {
                                 [static_cast<size_t>(texture_alpha_mode)]
                                 [static_cast<size_t>(depth_state)]
                                 [static_cast<size_t>(blend_state)];
-                            if (!m_device->createGraphicsPipeline(&info, graphics_pipeline.put())) {
+                            if(!m_device->createGraphicsPipeline(&info, graphics_pipeline.put())) {
                                 return false;
                             }
                         }

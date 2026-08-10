@@ -2,8 +2,10 @@
 #include "core/Vector2.hpp"
 #include "d3d11/pch.h"
 
-namespace core {
-    class SecondarySwapChain {
+namespace core
+{
+    class SecondarySwapChain
+    {
     public:
         IDXGISwapChain1* getSwapChain1() { return dxgi_swap_chain.get(); }
         ID2D1Bitmap1* getBitmap1() { return d2d1_bitmap.get(); }

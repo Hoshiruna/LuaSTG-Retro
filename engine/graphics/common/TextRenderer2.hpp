@@ -5,8 +5,10 @@
 #include "core/implement/ReferenceCounted.hpp"
 #include "core/TextLayout.hpp"
 
-namespace core {
-    class TextRenderer2 final : public core::implement::ReferenceCounted<Graphics::ITextRenderer2> {
+namespace core
+{
+    class TextRenderer2 final : public core::implement::ReferenceCounted<Graphics::ITextRenderer2>
+    {
     public:
         // ITextRenderer2
 

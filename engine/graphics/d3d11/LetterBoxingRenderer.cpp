@@ -3,10 +3,16 @@
 
 #define HRNew HRESULT hr = S_OK;
 #define HRGet hr
-#define HRCheckCallReturnBool(x) if (FAILED(hr)) { core::Logger::error("Windows API failed: " x); return false; }
+#define HRCheckCallReturnBool(x)                       \
+    if(FAILED(hr)) {                                   \
+        core::Logger::error("Windows API failed: " x); \
+        return false;                                  \
+    }
 
-namespace {
-    bool GetTexture2DInfoFromView(ID3D11View* view, D3D11_TEXTURE2D_DESC& info) {
+namespace
+{
+    bool GetTexture2DInfoFromView(ID3D11View* view, D3D11_TEXTURE2D_DESC& info)
+    {
         assert(view);
         HRNew;
         win32::com_ptr<ID3D11Resource> resource;
@@ -19,24 +25,29 @@ namespace {
     }
 }
 
-namespace d3d11 {
+namespace d3d11
+{
     LetterBoxingRenderer::LetterBoxingRenderer() = default;
-    LetterBoxingRenderer::~LetterBoxingRenderer() {
+    LetterBoxingRenderer::~LetterBoxingRenderer()
+    {
         DetachDevice();
     }
 
-    bool LetterBoxingRenderer::AttachDevice(ID3D11Device* const device) {
+    bool LetterBoxingRenderer::AttachDevice(ID3D11Device* const device)
+    {
         assert(device);
         d3d11_device = device;
         d3d11_device->GetImmediateContext(d3d11_device_context.put());
         return CreateResource();
     }
-    void LetterBoxingRenderer::DetachDevice() {
+    void LetterBoxingRenderer::DetachDevice()
+    {
         DestroyResource();
         d3d11_device.reset();
         d3d11_device_context.reset();
     }
-    bool LetterBoxingRenderer::UpdateTransform(ID3D11ShaderResourceView* const srv, ID3D11RenderTargetView* const rtv, const bool stretch) {
+    bool LetterBoxingRenderer::UpdateTransform(ID3D11ShaderResourceView* const srv, ID3D11RenderTargetView* const rtv, const bool stretch)
+    {
         assert(srv);
         assert(rtv);
         assert(d3d11_device_context);
@@ -48,16 +59,18 @@ namespace d3d11 {
         // info
 
         D3D11_TEXTURE2D_DESC srv_res_tex_info{};
-        if (!GetTexture2DInfoFromView(srv, srv_res_tex_info)) return false;
+        if(!GetTexture2DInfoFromView(srv, srv_res_tex_info))
+            return false;
         D3D11_TEXTURE2D_DESC rtv_res_tex_info = {};
-        if (!GetTexture2DInfoFromView(rtv, rtv_res_tex_info)) return false;
+        if(!GetTexture2DInfoFromView(rtv, rtv_res_tex_info))
+            return false;
 
         // vertex buffer
 
         float const window_w = float(rtv_res_tex_info.Width);
         float const window_h = float(rtv_res_tex_info.Height);
 
-        if (stretch) {
+        if(stretch) {
             // stretch
 
             float const _ = 0.0f;
@@ -66,8 +79,7 @@ namespace d3d11 {
             vertex_buffer[1] = { window_w, window_h, 1.0f, 0.0f };
             vertex_buffer[2] = { window_w, 0.0f + _, 1.0f, 1.0f };
             vertex_buffer[3] = { 0.0f + _, 0.0f + _, 0.0f, 1.0f };
-        }
-        else {
+        } else {
             // letter boxing
 
             float const ______ = 0.0f;
@@ -102,10 +114,7 @@ namespace d3d11 {
             &transform_buffer.mvp,
             DirectX::XMMatrixTranspose(
                 DirectX::XMMatrixOrthographicOffCenterLH(
-                    0.0f, window_w, 0.0f, window_h, 0.0f, 1.0f
-                )
-            )
-        );
+                    0.0f, window_w, 0.0f, window_h, 0.0f, 1.0f)));
 
         D3D11_MAPPED_SUBRESOURCE constant_data_range = {};
         HRGet = d3d11_device_context->Map(d3d11_constant_buffer.get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &constant_data_range);
@@ -115,30 +124,29 @@ namespace d3d11 {
 
         // state
 
-        d3d11_viewport = { 0.0f, 0.0f, window_w , window_h ,0.0f, 1.0f };
+        d3d11_viewport = { 0.0f, 0.0f, window_w, window_h, 0.0f, 1.0f };
         d3d11_scissor_rect = { 0, 0, static_cast<LONG>(rtv_res_tex_info.Width), static_cast<LONG>(rtv_res_tex_info.Height) };
 
         return true;
     }
-    bool LetterBoxingRenderer::Draw(ID3D11ShaderResourceView* const srv, ID3D11RenderTargetView* const rtv, const bool clear_rtv) {
+    bool LetterBoxingRenderer::Draw(ID3D11ShaderResourceView* const srv, ID3D11RenderTargetView* const rtv, const bool clear_rtv)
+    {
         assert(srv);
         assert(rtv);
         assert(d3d11_device_context);
 
         D3D11_TEXTURE2D_DESC srv_res_tex_info{};
-        if (!GetTexture2DInfoFromView(srv, srv_res_tex_info)) return false;
+        if(!GetTexture2DInfoFromView(srv, srv_res_tex_info))
+            return false;
         D3D11_TEXTURE2D_DESC rtv_res_tex_info{};
-        if (!GetTexture2DInfoFromView(rtv, rtv_res_tex_info)) return false;
+        if(!GetTexture2DInfoFromView(rtv, rtv_res_tex_info))
+            return false;
 
-        bool const is_width_or_heigth_equal = false
-            || (srv_res_tex_info.Width == rtv_res_tex_info.Width && srv_res_tex_info.Height <= rtv_res_tex_info.Height)
-            || (srv_res_tex_info.Width <= rtv_res_tex_info.Width && srv_res_tex_info.Height == rtv_res_tex_info.Height);
-        bool const is_width_or_heigth_not_equal = false
-            || srv_res_tex_info.Width != rtv_res_tex_info.Width
-            || srv_res_tex_info.Height != rtv_res_tex_info.Height;
+        bool const is_width_or_heigth_equal = false || (srv_res_tex_info.Width == rtv_res_tex_info.Width && srv_res_tex_info.Height <= rtv_res_tex_info.Height) || (srv_res_tex_info.Width <= rtv_res_tex_info.Width && srv_res_tex_info.Height == rtv_res_tex_info.Height);
+        bool const is_width_or_heigth_not_equal = false || srv_res_tex_info.Width != rtv_res_tex_info.Width || srv_res_tex_info.Height != rtv_res_tex_info.Height;
 
-        if (is_width_or_heigth_equal) {
-            if (is_width_or_heigth_not_equal && clear_rtv) {
+        if(is_width_or_heigth_equal) {
+            if(is_width_or_heigth_not_equal && clear_rtv) {
                 const FLOAT clear_color[4]{ 0.0f, 0.0f, 0.0f, 1.0f };
                 d3d11_device_context->ClearRenderTargetView(rtv, clear_color);
             }
@@ -149,8 +157,7 @@ namespace d3d11 {
             UINT const dx = (rtv_res_tex_info.Width - srv_res_tex_info.Width) / 2;
             UINT const dy = (rtv_res_tex_info.Height - srv_res_tex_info.Height) / 2;
             d3d11_device_context->CopySubresourceRegion(
-                rtv_res.get(), 0, dx, dy, 0,
-                srv_res.get(), 0, NULL);
+                rtv_res.get(), 0, dx, dy, 0, srv_res.get(), 0, NULL);
             return true;
         }
 
@@ -202,7 +209,7 @@ namespace d3d11 {
         ID3D11RenderTargetView* render_target_view_list[1]{ rtv };
         d3d11_device_context->OMSetRenderTargets(1, render_target_view_list, NULL);
 
-        if (clear_rtv) {
+        if(clear_rtv) {
             const FLOAT clear_color[4]{ 0.0f, 0.0f, 0.0f, 1.0f };
             d3d11_device_context->ClearRenderTargetView(rtv, clear_color);
         }
@@ -211,7 +218,8 @@ namespace d3d11 {
         return true;
     }
 
-    bool LetterBoxingRenderer::CreateResource() {
+    bool LetterBoxingRenderer::CreateResource()
+    {
         assert(d3d11_device);
         assert(d3d11_device_context);
 
@@ -398,7 +406,8 @@ namespace d3d11 {
 
         return true;
     }
-    void LetterBoxingRenderer::DestroyResource() {
+    void LetterBoxingRenderer::DestroyResource()
+    {
         d3d11_input_layout.reset();
         d3d11_vertex_buffer.reset();
         d3d11_index_buffer.reset();

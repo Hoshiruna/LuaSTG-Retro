@@ -11,36 +11,38 @@ namespace
     Platform::Keyboard g_Keyboard;
     Platform::Keyboard::State g_KeyboardState;
 
-    struct InputEventListener : public core::Graphics::IWindowEventListener {
-        NativeWindowMessageResult onNativeWindowMessage(void* window, uint32_t message, uintptr_t arg1, intptr_t arg2) {
-            switch (message) {
-            case WM_ACTIVATE:
-            case WM_ACTIVATEAPP:
-            case WM_KEYDOWN:
-            case WM_SYSKEYDOWN:
-            case WM_KEYUP:
-            case WM_SYSKEYUP:
-                g_Keyboard.ProcessMessage((HWND)window, message, arg1, arg2);
-                break;
+    struct InputEventListener : public core::Graphics::IWindowEventListener
+    {
+        NativeWindowMessageResult onNativeWindowMessage(void* window, uint32_t message, uintptr_t arg1, intptr_t arg2)
+        {
+            switch(message) {
+                case WM_ACTIVATE:
+                case WM_ACTIVATEAPP:
+                case WM_KEYDOWN:
+                case WM_SYSKEYDOWN:
+                case WM_KEYUP:
+                case WM_SYSKEYUP:
+                    g_Keyboard.ProcessMessage((HWND)window, message, arg1, arg2);
+                    break;
             }
 
-            switch (message) {
-            case WM_ACTIVATE:
-            case WM_ACTIVATEAPP:
-            case WM_INPUT:
-            case WM_MOUSEMOVE:
-            case WM_LBUTTONDOWN:
-            case WM_LBUTTONUP:
-            case WM_RBUTTONDOWN:
-            case WM_RBUTTONUP:
-            case WM_MBUTTONDOWN:
-            case WM_MBUTTONUP:
-            case WM_MOUSEWHEEL:
-            case WM_XBUTTONDOWN:
-            case WM_XBUTTONUP:
-            case WM_MOUSEHOVER:
-                DirectX::Mouse::ProcessMessage(message, arg1, arg2);
-                break;
+            switch(message) {
+                case WM_ACTIVATE:
+                case WM_ACTIVATEAPP:
+                case WM_INPUT:
+                case WM_MOUSEMOVE:
+                case WM_LBUTTONDOWN:
+                case WM_LBUTTONUP:
+                case WM_RBUTTONDOWN:
+                case WM_RBUTTONUP:
+                case WM_MBUTTONDOWN:
+                case WM_MBUTTONUP:
+                case WM_MOUSEWHEEL:
+                case WM_XBUTTONDOWN:
+                case WM_XBUTTONUP:
+                case WM_MOUSEHOVER:
+                    DirectX::Mouse::ProcessMessage(message, arg1, arg2);
+                    break;
             }
 
             return {};
@@ -69,13 +71,10 @@ namespace luastg
     void AppFrame::UpdateInput()
     {
         g_Keyboard.GetState(g_KeyboardState, true);
-        if (Mouse)
-        {
+        if(Mouse) {
             MouseState = Mouse->GetState();
             Mouse->ResetScrollWheelValue();
-        }
-        else
-        {
+        } else {
             ZeroMemory(&MouseState, sizeof(MouseState));
         }
     }
@@ -88,16 +87,16 @@ namespace luastg
         ZeroMemory(&MouseState, sizeof(MouseState));
     }
 
-    bool AppFrame::GetKeyState(int VKCode)noexcept
+    bool AppFrame::GetKeyState(int VKCode) noexcept
     {
         return g_KeyboardState.IsKeyDown((Platform::Keyboard::Key)VKCode);
     }
-    
-    int AppFrame::GetLastKey()noexcept
+
+    int AppFrame::GetLastKey() noexcept
     {
         return (int)g_KeyboardState.LastKeyDown;
     }
-    
+
     inline core::Vector2F MapLetterBoxingPosition(core::Vector2U isize, core::Vector2U osize, core::Vector2I pos)
     {
         float const hscale = (float)osize.x / (float)isize.x;
@@ -114,57 +113,54 @@ namespace luastg
         return core::Vector2F(x2, y2);
     }
 
-    bool AppFrame::GetMouseState_legacy(int button)noexcept
+    bool AppFrame::GetMouseState_legacy(int button) noexcept
     {
-        switch (button)
-        {
-        case 0:
-            return MouseState.leftButton;
-        case 1:
-            return MouseState.middleButton;
-        case 2:
-            return MouseState.rightButton;
-        case 3:
-            return MouseState.xButton1;
-        case 4:
-            return MouseState.xButton2;
-        default:
-            return false;
+        switch(button) {
+            case 0:
+                return MouseState.leftButton;
+            case 1:
+                return MouseState.middleButton;
+            case 2:
+                return MouseState.rightButton;
+            case 3:
+                return MouseState.xButton1;
+            case 4:
+                return MouseState.xButton2;
+            default:
+                return false;
         }
     }
-    bool AppFrame::GetMouseState(int button)noexcept
+    bool AppFrame::GetMouseState(int button) noexcept
     {
-        switch (button)
-        {
-        case VK_LBUTTON:
-            return MouseState.leftButton;
-        case VK_MBUTTON:
-            return MouseState.middleButton;
-        case VK_RBUTTON:
-            return MouseState.rightButton;
-        case VK_XBUTTON1:
-            return MouseState.xButton1;
-        case VK_XBUTTON2:
-            return MouseState.xButton2;
-        default:
-            return false;
+        switch(button) {
+            case VK_LBUTTON:
+                return MouseState.leftButton;
+            case VK_MBUTTON:
+                return MouseState.middleButton;
+            case VK_RBUTTON:
+                return MouseState.rightButton;
+            case VK_XBUTTON1:
+                return MouseState.xButton1;
+            case VK_XBUTTON2:
+                return MouseState.xButton2;
+            default:
+                return false;
         }
     }
-    core::Vector2F AppFrame::GetMousePosition(bool no_flip)noexcept
+    core::Vector2F AppFrame::GetMousePosition(bool no_flip) noexcept
     {
         auto const c_size = GetAppModel()->getSwapChain()->getCanvasSize();
         auto const transform = GetMousePositionTransformF();
         auto pos = core::Vector2F(
             ((float)MouseState.x + transform.x) * transform.z,
             ((float)MouseState.y + transform.y) * transform.w);
-        if (!no_flip)
+        if(!no_flip)
             pos.y = (float)c_size.y - pos.y;
         return pos;
     }
     core::Vector2F AppFrame::GetCurrentWindowSizeF()
     {
-        if (m_win32_window_size.x == 0 || m_win32_window_size.y == 0)
-        {
+        if(m_win32_window_size.x == 0 || m_win32_window_size.y == 0) {
             RECT rc = {};
             GetClientRect((HWND)GetAppModel()->getWindow()->getNativeHandle(), &rc);
             m_win32_window_size = core::Vector2U((uint32_t)(rc.right - rc.left), (uint32_t)(rc.bottom - rc.top));
@@ -174,8 +170,7 @@ namespace luastg
     }
     core::Vector4F AppFrame::GetMousePositionTransformF()
     {
-        if (m_win32_window_size.x == 0 || m_win32_window_size.y == 0)
-        {
+        if(m_win32_window_size.x == 0 || m_win32_window_size.y == 0) {
             RECT rc = {};
             GetClientRect((HWND)GetAppModel()->getWindow()->getNativeHandle(), &rc);
             m_win32_window_size = core::Vector2U((uint32_t)(rc.right - rc.left), (uint32_t)(rc.bottom - rc.top));
@@ -184,8 +179,7 @@ namespace luastg
         auto const c_size = GetAppModel()->getSwapChain()->getCanvasSize();
 
         auto const scaling_mode = GetAppModel()->getSwapChain()->getScalingMode();
-        if (scaling_mode == core::Graphics::SwapChainScalingMode::Stretch)
-        {
+        if(scaling_mode == core::Graphics::SwapChainScalingMode::Stretch) {
             return core::Vector4F(
                 0.0f,
                 0.0f,
@@ -196,8 +190,7 @@ namespace luastg
         float scale = std::min(
             (float)w_size.x / (float)c_size.x,
             (float)w_size.y / (float)c_size.y);
-        if (scaling_mode == core::Graphics::SwapChainScalingMode::IntegerAspectRatio && scale >= 1.0f)
-        {
+        if(scaling_mode == core::Graphics::SwapChainScalingMode::IntegerAspectRatio && scale >= 1.0f) {
             scale = (float)(uint32_t)scale;
         }
 
@@ -207,7 +200,7 @@ namespace luastg
         float const dy = ((float)w_size.y - sizeh) * 0.5f;
         return core::Vector4F(-dx, -dy, 1.0f / scale, 1.0f / scale);
     }
-    int32_t AppFrame::GetMouseWheelDelta()noexcept
+    int32_t AppFrame::GetMouseWheelDelta() noexcept
     {
         return MouseState.scrollWheelValue;
     }
