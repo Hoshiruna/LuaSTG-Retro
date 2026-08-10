@@ -18,9 +18,9 @@ jobs:
         with:
           path: |
             build/packages
-          key: cache-cpp-all
+          key: windows-arm64-cpm-${{ hashFiles('cmake/import/*.cmake', 'cmake/build/*.cmake', 'cmake/packages.lua.cmake') }}
           restore-keys: |
-            cache-cpp-all
+            windows-arm64-cpm-
       
       - if: ${{ steps.cache-cpp.outputs.cache-hit != 'true' }}
         name: Report cache state

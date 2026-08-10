@@ -10,23 +10,15 @@ luastg_target_common_options(${lib_name})
 luastg_target_more_warning(${lib_name})
 target_include_directories(${lib_name} PUBLIC .)
 target_sources(${lib_name} PRIVATE ${lib_src})
-target_link_libraries(${lib_name} PRIVATE options_compile_utf8)
-set(audio_public_libs
-    Core.ReferenceCounted
-    Core.Configuration
-    Core.FileSystem
+target_link_libraries(${lib_name}
+PRIVATE
+    options_compile_utf8
     Core.Logging
-    dr_libs
-    Ogg::ogg
-    Vorbis::vorbis
-    Vorbis::vorbisfile
-    FLAC::FLAC
-    Microsoft.XAudio2.Redist
-    win32
-    xmath
+    miniaudio
+PUBLIC
+    Core.ReferenceCounted
+    Core.FileSystem
 )
-
-target_link_libraries(${lib_name} PUBLIC ${audio_public_libs})
 
 set_target_properties(${lib_name} PROPERTIES FOLDER engine)
 
@@ -43,11 +35,6 @@ target_link_libraries(${test_name} PRIVATE
     options_compile_utf8
     ${lib_name}
     #GTest::gtest_main
-)
-
-add_custom_command(TARGET ${test_name} POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Microsoft.XAudio2.Redist> $<TARGET_FILE_DIR:${test_name}>
-    VERBATIM
 )
 
 set_target_properties(${test_name} PROPERTIES FOLDER engine/test)

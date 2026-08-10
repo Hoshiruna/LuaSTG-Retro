@@ -21,7 +21,7 @@ You can download from [Releases Page](https://github.com/Hoshiruna/LuaSTG-Retro/
 ## Major Migration Content
 
 * Graphic API: Direct3D 9 to Direct3D 11
-* Audio API: DirectSound to XAudio2
+* Audio API: DirectSound/XAudio2 to miniaudio
 
 ## Features
 
@@ -33,7 +33,7 @@ You can download from [Releases Page](https://github.com/Hoshiruna/LuaSTG-Retro/
 
 * Operating System: Windows 7 SP1 with platform update ([KB2670838](https://www.microsoft.com/en-us/download/details.aspx?id=36805)) or above
 * Graphics Card: compatible with Direct3D11, Direct3D feature level is D3D_FEATURE_LEVEL_10_0 or above
-* Audio Card: compatible with XAudio2
+* Audio Card: a working system playback device (WASAPI on Windows)
 
 ## Build Projects
 
@@ -84,13 +84,13 @@ LuaSTG Retro 基于 [LuaSTG Sub](https://github.com/Legacy-LuaSTG-Engine/LuaSTG-
 ## 主要迁移内容  
 
 * 图形 API：从 Direct3D 9 迁移到 Direct3D 11  
-* 音频 API：从 DirectSound 迁移到 XAudio2  
+* 音频 API：从 DirectSound/XAudio2 迁移到 miniaudio
 
 ## 配置要求  
 
 * 系统要求：最低为 Windows 7 SP1 且安装平台更新（[KB2670838](https://www.microsoft.com/en-us/download/details.aspx?id=36805)）  
 * 显卡需求：支持 Direct3D 11 且 Direct3D 功能级别至少为 D3D_FEATURE_LEVEL_10_0  
-* 声卡需求：支持 XAudio2  
+* 声卡需求：具有可用的系统播放设备（Windows 上使用 WASAPI）
 
 ## 编译项目  
 

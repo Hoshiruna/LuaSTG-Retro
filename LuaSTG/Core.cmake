@@ -101,7 +101,6 @@ target_link_libraries(Core PUBLIC
     dxguid.lib
     dxgi.lib
     d3d11.lib
-    #Microsoft.XAudio2.Redist
     Microsoft.Windows.ImplementationLibrary
     DirectX::TextureMini
     libqoi
@@ -111,12 +110,6 @@ target_link_libraries(Core PUBLIC
     Freetype::Freetype
     # model
     tinygltf
-    # audio
-    dr_libs
-    Ogg::ogg
-    Vorbis::vorbis
-    Vorbis::vorbisfile
-    FLAC::FLAC
     # database
     nlohmann_json
     Core.Math

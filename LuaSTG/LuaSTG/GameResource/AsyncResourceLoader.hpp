@@ -1,6 +1,5 @@
 #pragma once
 #include "GameResource/ResourceManager.h"
-#include "core/AudioDecoder.hpp"
 #include "core/Data.hpp"
 #include "core/SmartReference.hpp"
 #include "core/VideoDecoder.hpp"
@@ -71,8 +70,8 @@ namespace luastg
         double h{};
         double a{};
         double b{};
-        double loop_start{};
-        double loop_end{};
+        uint64_t loop_start_frame{};
+        uint64_t loop_end_frame{};
         float font_width{};
         float font_height{};
         int columns{};
@@ -81,7 +80,6 @@ namespace luastg
         bool mipmap{ true };
         bool loop{};
         bool rect{};
-        bool once_decode{};
         bool has_texture_path{};
         bool has_particle_info{};
         bool animation_uses_sprite_list{};
@@ -135,7 +133,6 @@ namespace luastg
 
         core::SmartReference<core::IData> m_data;
         core::SmartReference<core::IData> m_texture_data;
-        core::SmartReference<core::IAudioDecoder> m_audio_decoder;
         hgeParticleSystemInfo m_particle_info{};
         std::vector<core::SmartReference<core::IData>> m_font_data;
     };

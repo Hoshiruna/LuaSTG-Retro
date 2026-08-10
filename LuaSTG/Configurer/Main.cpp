@@ -72,6 +72,7 @@ static std::unordered_map<std::string_view, std::string_view> i18n_map[2] = {
         { "config-graphics-system-fullscreen", "全屏显示" },
         { "config-graphics-system-vsync", "垂直同步（防止画面撕裂）" },
         { "config-audio-system", "音频" },
+        { "config-audio-system-master-volume", "主音量" },
         { "config-audio-system-sound-effect-volume", "音效音量" },
         { "config-audio-system-music-volume", "背景音乐音量" },
     },
@@ -127,6 +128,7 @@ static std::unordered_map<std::string_view, std::string_view> i18n_map[2] = {
         { "config-graphics-system-fullscreen", "Fullscreen" },
         { "config-graphics-system-vsync", "VSync (prevent screen tearing)" },
         { "config-audio-system", "Audio" },
+        { "config-audio-system-master-volume", "Master volume" },
         { "config-audio-system-sound-effect-volume", "Sound effect volume" },
         { "config-audio-system-music-volume", "Music volume" },
     },
@@ -659,7 +661,8 @@ struct Window
     }
     void LayoutAudioSystemTab()
     {
-        // TODO: "/audio_system/preferred_endpoint_name"_json_pointer
+        // TODO: "/audio_system/preferred_output_name"_json_pointer and max voice count.
+        showNumberSliderEdit(config_json, "/audio_system/master_volume"_json_pointer, "config-audio-system-master-volume"sv, 1.0);
         showNumberSliderEdit(config_json, "/audio_system/sound_effect_volume"_json_pointer, "config-audio-system-sound-effect-volume"sv, 1.0);
         showNumberSliderEdit(config_json, "/audio_system/music_volume"_json_pointer, "config-audio-system-music-volume"sv, 1.0);
     }

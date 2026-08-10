@@ -82,10 +82,6 @@ $BinaryFilesAMD64 = @(
     @{
         Source = [System.IO.Path]::Join($BinaryRootAMD64, "d3dcompiler_47.dll")
         Destination = [System.IO.Path]::Join($ReleaseRoot, "d3dcompiler_47.dll")
-    },
-    @{
-        Source = [System.IO.Path]::Join($BinaryRootAMD64, "xaudio2_9redist.dll")
-        Destination = [System.IO.Path]::Join($ReleaseRoot, "xaudio2_9redist.dll")
     }
 )
 
@@ -105,10 +101,6 @@ $BinaryFilesX86 = @(
     @{
         Source = [System.IO.Path]::Join($BinaryRootX86, "d3dcompiler_47.dll")
         Destination = [System.IO.Path]::Join($Release32Root, "d3dcompiler_47.dll")
-    },
-    @{
-        Source = [System.IO.Path]::Join($BinaryRootX86, "xaudio2_9redist.dll")
-        Destination = [System.IO.Path]::Join($Release32Root, "xaudio2_9redist.dll")
     }
 )
 

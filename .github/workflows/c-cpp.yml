@@ -20,8 +20,9 @@ jobs:
         uses: actions/cache@v6
         with:
           path: build/packages
-          key: cache-cpp-all
-          restore-keys: cache-cpp-all
+          key: windows-x86-cpm-${{ hashFiles('cmake/import/*.cmake', 'cmake/build/*.cmake', 'cmake/packages.lua.cmake') }}
+          restore-keys: |
+            windows-x86-cpm-
 
       - name: CMake workflow
         run: cmake --workflow --preset windows-x86-release

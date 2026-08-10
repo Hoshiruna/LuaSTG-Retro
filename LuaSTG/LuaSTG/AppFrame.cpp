@@ -38,42 +38,6 @@ AppFrame::SetFPS(uint32_t v) noexcept
     m_target_fps = std::max(1u, v); // FPS must be at least 1
 }
 void
-AppFrame::SetSEVolume(float v)
-{
-    if(m_audio_engine) {
-        m_audio_engine->setMixingChannelVolume(core::AudioMixingChannel::sound_effect, v);
-    } else {
-        core::ConfigurationLoader::getInstance().getAudioSystemRef().setSoundEffectVolume(v);
-    }
-}
-void
-AppFrame::SetBGMVolume(float v)
-{
-    if(m_audio_engine) {
-        m_audio_engine->setMixingChannelVolume(core::AudioMixingChannel::music, v);
-    } else {
-        core::ConfigurationLoader::getInstance().getAudioSystemRef().setMusicVolume(v);
-    }
-}
-float
-AppFrame::GetSEVolume()
-{
-    if(m_audio_engine) {
-        return m_audio_engine->getMixingChannelVolume(core::AudioMixingChannel::sound_effect);
-    } else {
-        return core::ConfigurationLoader::getInstance().getAudioSystem().getSoundEffectVolume();
-    }
-}
-float
-AppFrame::GetBGMVolume()
-{
-    if(m_audio_engine) {
-        return m_audio_engine->getMixingChannelVolume(core::AudioMixingChannel::music);
-    } else {
-        return core::ConfigurationLoader::getInstance().getAudioSystem().getMusicVolume();
-    }
-}
-void
 AppFrame::SetTitle(const char* v) noexcept
 {
     if(m_pAppModel) {
@@ -201,7 +165,7 @@ AppFrame::Init() noexcept
 
         if(!core::IApplicationModel::create(this, m_pAppModel.put()))
             return false;
-        if(!core::IAudioEngine::create(m_audio_engine.put()))
+        if(!core::IAudioSystem::create(m_audio_engine.put()))
             return false;
         if(!core::Graphics::ITextRenderer::create(m_pAppModel->getRenderer(), m_pTextRenderer.put()))
             return false;
@@ -407,6 +371,7 @@ AppFrame::onUpdate()
         if(window_active_changed & 0x4) {
             if(m_DirectInput)
                 m_DirectInput->refresh();
+            (void)m_audio_engine->refreshAudioDevices();
         }
 
         UpdateInput();
@@ -433,7 +398,7 @@ AppFrame::onUpdate()
         lua_pop(L, 1);
         if(tAbort)
             m_pAppModel->requestExit();
-        m_ResourceMgr.UpdateSound();
+        m_audio_engine->update();
         double const video_update_time = m_pAppModel->getFrameRateController()->getTotalTime();
         double video_delta_time = video_update_time - m_last_video_update_time;
         if(m_last_video_update_time <= 0.0 || video_delta_time < 0.0 || video_delta_time > 1.0) {

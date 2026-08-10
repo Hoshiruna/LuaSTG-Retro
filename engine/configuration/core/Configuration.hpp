@@ -223,14 +223,18 @@ namespace core
         class AudioSystem
         {
         public:
-            GetterSetterString(AudioSystem, preferred_endpoint_name, PreferredEndpointName);
+            GetterSetterString(AudioSystem, preferred_output_name, PreferredOutputName);
+            GetterSetterPrimitive(AudioSystem, float, master_volume, MasterVolume);
             GetterSetterPrimitive(AudioSystem, float, sound_effect_volume, SoundEffectVolume);
             GetterSetterPrimitive(AudioSystem, float, music_volume, MusicVolume);
+            GetterSetterPrimitive(AudioSystem, uint32_t, max_sound_effect_voices, MaxSoundEffectVoices);
 
         private:
-            std::string preferred_endpoint_name;
+            std::string preferred_output_name;
+            float master_volume{ 1.0f };
             float sound_effect_volume{ 1.0f };
             float music_volume{ 1.0f };
+            uint32_t max_sound_effect_voices{ 256 };
         };
 
     public:
