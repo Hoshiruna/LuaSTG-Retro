@@ -4,6 +4,7 @@ CPMAddPackage(
     NAME miniaudio
     VERSION 0.11.25
     GITHUB_REPOSITORY mackron/miniaudio
+    GIT_TAG 0.11.25
     DOWNLOAD_ONLY YES
 )
 
