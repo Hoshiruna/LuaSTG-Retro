@@ -466,36 +466,6 @@ namespace core
                 }
             }
 
-            if(root.contains("audio_system"sv)) {
-                auto const& audio_system = root.at("audio_system"sv);
-                assert_type_is_object(audio_system, "/audio_system"sv);
-                if(audio_system.contains("preferred_endpoint_name"sv)) {
-                    auto const& preferred_endpoint_name = audio_system.at("preferred_endpoint_name"sv);
-                    assert_type_is_string(preferred_endpoint_name, "/audio_system/preferred_endpoint_name"sv);
-                    loader.audio_system.setPreferredEndpointName(preferred_endpoint_name.get_ref<std::string const&>());
-                }
-                if(audio_system.contains("sound_effect_volume"sv)) {
-                    auto const& sound_effect_volume = audio_system.at("sound_effect_volume"sv);
-                    assert_type_is_number(sound_effect_volume, "/audio_system/sound_effect_volume"sv);
-                    auto const v = sound_effect_volume.get<float>();
-                    if(v < 0.0f || v > 1.0f) {
-                        error_callback("[/audio_system/sound_effect_volume] out of range [0.0, 1.0]"sv);
-                        return false;
-                    }
-                    loader.audio_system.setSoundEffectVolume(v);
-                }
-                if(audio_system.contains("music_volume"sv)) {
-                    auto const& music_volume = audio_system.at("music_volume"sv);
-                    assert_type_is_number(music_volume, "/audio_system/music_volume"sv);
-                    auto const v = music_volume.get<float>();
-                    if(v < 0.0f || v > 1.0f) {
-                        error_callback("[/audio_system/music_volume] out of range [0.0, 1.0]"sv);
-                        return false;
-                    }
-                    loader.audio_system.setMusicVolume(v);
-                }
-            }
-
             // compatibility
             // - debug
             if(root.contains("debug_track_window_focus"sv)) {
