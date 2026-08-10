@@ -416,6 +416,67 @@ namespace core
                 }
             }
 
+            if(root.contains("graphics_system"sv)) {
+                auto const& graphics_system = root.at("graphics_system"sv);
+                assert_type_is_object(graphics_system, "/graphics_system"sv);
+                if(graphics_system.contains("preferred_device_name"sv)) {
+                    auto const& preferred_device_name = graphics_system.at("preferred_device_name"sv);
+                    assert_type_is_string(preferred_device_name, "/graphics_system/preferred_device_name"sv);
+                    loader.graphics_system.setPreferredDeviceName(preferred_device_name.get_ref<std::string const&>());
+                }
+                if(graphics_system.contains("width"sv)) {
+                    auto const& width = graphics_system.at("width"sv);
+                    assert_type_is_unsigned_integer(width, "/graphics_system/width"sv);
+                    auto const v = width.get<uint32_t>();
+                    if(width == 0) {
+                        error_callback("[/graphics_system/width] width must be greater than zero"sv);
+                        return false;
+                    }
+                    loader.graphics_system.setWidth(v);
+                }
+                if(graphics_system.contains("height"sv)) {
+                    auto const& height = graphics_system.at("height"sv);
+                    assert_type_is_unsigned_integer(height, "/graphics_system/height"sv);
+                    auto const v = height.get<uint32_t>();
+                    if(height == 0) {
+                        error_callback("[/graphics_system/height] width must be greater than zero"sv);
+                        return false;
+                    }
+                    loader.graphics_system.setHeight(v);
+                }
+                if(graphics_system.contains("fullscreen"sv)) {
+                    auto const& fullscreen = graphics_system.at("fullscreen"sv);
+                    assert_type_is_boolean(fullscreen, "/graphics_system/fullscreen"sv);
+                    loader.graphics_system.setFullscreen(fullscreen.get<bool>());
+                }
+                if(graphics_system.contains("vsync"sv)) {
+                    auto const& vsync = graphics_system.at("vsync"sv);
+                    assert_type_is_boolean(vsync, "/graphics_system/vsync"sv);
+                    loader.graphics_system.setVsync(vsync.get<bool>());
+                }
+                if(graphics_system.contains("allow_software_device"sv)) {
+                    auto const& allow_software_device = graphics_system.at("allow_software_device"sv);
+                    assert_type_is_boolean(allow_software_device, "/graphics_system/allow_software_device"sv);
+                    loader.graphics_system.setAllowSoftwareDevice(allow_software_device.get<bool>());
+                }
+                if(graphics_system.contains("allow_exclusive_fullscreen"sv)) {
+                    auto const& allow_exclusive_fullscreen = graphics_system.at("allow_exclusive_fullscreen"sv);
+                    assert_type_is_boolean(allow_exclusive_fullscreen, "/graphics_system/allow_exclusive_fullscreen"sv);
+                    loader.graphics_system.setAllowExclusiveFullscreen(allow_exclusive_fullscreen.get<bool>());
+                }
+                if(graphics_system.contains("allow_modern_swap_chain"sv)) {
+                    auto const& allow_modern_swap_chain = graphics_system.at("allow_modern_swap_chain"sv);
+                    assert_type_is_boolean(allow_modern_swap_chain, "/graphics_system/allow_modern_swap_chain"sv);
+                    loader.graphics_system.setAllowModernSwapChain(allow_modern_swap_chain.get<bool>());
+                }
+                if(graphics_system.contains("allow_direct_composition"sv)) {
+                    auto const& allow_direct_composition = graphics_system.at("allow_direct_composition"sv);
+                    assert_type_is_boolean(allow_direct_composition, "/graphics_system/allow_direct_composition"sv);
+                    loader.graphics_system.setAllowDirectComposition(allow_direct_composition.get<bool>());
+                }
+                // TODO: display
+            }
+
             if(root.contains("audio_system"sv)) {
                 auto const& audio_system = root.at("audio_system"sv);
                 assert_type_is_object(audio_system, "/audio_system"sv);
