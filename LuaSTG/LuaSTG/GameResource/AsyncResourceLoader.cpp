@@ -401,27 +401,13 @@ namespace luastg
                 }
                 break;
 
-<<<<<<< HEAD
-		case AsyncResourceRequestType::Sound:
-		case AsyncResourceRequestType::Music:
-			if (!readFile(request.path, job.m_data, error)) {
-				job.fail(error);
-				return;
-			}
-			break;
-=======
             case AsyncResourceRequestType::Sound:
             case AsyncResourceRequestType::Music:
                 if(!readFile(request.path, job.m_data, error)) {
                     job.fail(error);
                     return;
                 }
-                if(!core::IAudioDecoder::create(job.m_data.get(), job.m_audio_decoder.put())) {
-                    job.fail("failed to decode audio");
-                    return;
-                }
                 break;
->>>>>>> origin/master
 
             case AsyncResourceRequestType::Particle:
                 if(!request.has_particle_info) {
@@ -613,36 +599,19 @@ namespace luastg
                 }
                 break;
 
-<<<<<<< HEAD
-		case AsyncResourceRequestType::Sound:
-			if (!pool->LoadSoundEffect(request.name.c_str(), job.m_data.get(), request.path.c_str())) {
-				job.fail("failed to load sound");
-				return false;
-			}
-			break;
-
-		case AsyncResourceRequestType::Music:
-			if (!pool->LoadMusic(request.name.c_str(), job.m_data.get(), request.path.c_str(),
-				{ request.loop_start_frame, request.loop_end_frame })) {
-				job.fail("failed to load music");
-				return false;
-			}
-			break;
-=======
             case AsyncResourceRequestType::Sound:
-                if(!pool->LoadSoundEffect(request.name.c_str(), job.m_audio_decoder.get(), request.path.c_str())) {
+                if(!pool->LoadSoundEffect(request.name.c_str(), job.m_data.get(), request.path.c_str())) {
                     job.fail("failed to load sound");
                     return false;
                 }
                 break;
 
             case AsyncResourceRequestType::Music:
-                if(!pool->LoadMusic(request.name.c_str(), job.m_audio_decoder.get(), request.path.c_str(), request.loop_start, request.loop_end, request.once_decode)) {
+                if(!pool->LoadMusic(request.name.c_str(), job.m_data.get(), request.path.c_str(), { request.loop_start_frame, request.loop_end_frame })) {
                     job.fail("failed to load music");
                     return false;
                 }
                 break;
->>>>>>> origin/master
 
             case AsyncResourceRequestType::SpriteFont:
                 if(request.has_texture_path) {

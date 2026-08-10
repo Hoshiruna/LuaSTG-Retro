@@ -473,171 +473,45 @@ namespace luastg
 
     bool ResourcePool::LoadMusic(const char* name, const char* path, core::AudioFrameRange loop_range) noexcept
     {
-<<<<<<< HEAD
         core::SmartReference<core::IData> data;
-        if (!core::FileSystemManager::readFile(path, data.put()))
-        {
+        if(!core::FileSystemManager::readFile(path, data.put())) {
             spdlog::error("[luastg] LoadMusic: 无法读取文件 '{}' (资源池 '{}')", path, getResourcePoolName());
             return false;
         }
         return LoadMusic(name, data.get(), path, loop_range);
-=======
-        if(m_MusicPool.find(std::string_view(name)) != m_MusicPool.end()) {
-            if(ResourceMgr::GetResourceLoadingLog()) {
-                spdlog::warn("[luastg] LoadMusic: 音乐 '{}' 已存在，创建操作已取消 (资源池 '{}')", name, getResourcePoolName());
-            }
-            //m_MusicPool.find(name)->second->Stop(); // 注：以前确实不判断同名资源是否存在，但是 emplace 失败了，所以没有打断旧 BGM
-            return true;
-        }
-
-        using namespace core;
-
-        // 创建解码器
-        SmartReference<IAudioDecoder> p_decoder;
-        if(!IAudioDecoder::create(path, p_decoder.put())) {
-            spdlog::error("[luastg] LoadMusic: 无法解码文件 '{}'，要求文件格式为 WAV/OGG/FLAC (资源池 '{}')", path, getResourcePoolName());
-            return false;
-        }
-        auto to_sample = [&p_decoder](double t) -> uint32_t {
-            return (uint32_t)(t * (double)p_decoder->getSampleRate());
-        };
-
-        // 检查循环节
-        if(0 == to_sample(start) && to_sample(start) == to_sample(end)) {
-            end = (double)p_decoder->getFrameCount() / (double)p_decoder->getSampleRate();
-            spdlog::info("[luastg] LoadMusic: 音乐 '{}' 的循环节范围设置为整首背景音乐 (start = {}, end = {}) (资源池 '{}')", name, start, end, getResourcePoolName());
-        }
-        if(to_sample(start) >= to_sample(end)) {
-            spdlog::error("[luastg] LoadMusic: 音乐 '{}' 的循环节范围格式错误，结束位置不能等于或先于开始位置 (start = {}, end = {}) (资源池 '{}')", name, start, end, getResourcePoolName());
-            return false;
-        }
-
-        // 创建播放器
-        SmartReference<IAudioPlayer> p_player;
-        if(!once_decode) {
-            // 流式播放器
-            if(!LAPP.getAudioEngine()->createStreamAudioPlayer(p_decoder.get(), AudioMixingChannel::music, p_player.put())) {
-                spdlog::error("[luastg] LoadMusic: 无法为音乐 '{}' 创建音频播放器 (资源池 '{}')", name, getResourcePoolName());
-                return false;
-            }
-        } else {
-            // 一次性解码的播放器
-            if(!LAPP.getAudioEngine()->createAudioPlayer(p_decoder.get(), AudioMixingChannel::music, p_player.put())) {
-                spdlog::error("[luastg] LoadMusic: 无法为音乐 '{}' 创建音频播放器 (资源池 '{}')", name, getResourcePoolName());
-                return false;
-            }
-        }
-        p_player->setLoop(true, start, end - start);
-
-        try {
-            //存入资源池
-            core::SmartReference<IResourceMusic> tRes;
-            tRes.attach(new ResourceMusicImpl(name, p_decoder.get(), p_player.get()));
-            m_MusicPool.emplace(name, tRes);
-        } catch(std::exception const& e) {
-            spdlog::error("[luastg] LoadMusic: 加载音乐 '{}' 失败 ({}) (资源池 '{}')", name, e.what(), getResourcePoolName());
-            return false;
-        }
-
-        if(ResourceMgr::GetResourceLoadingLog()) {
-            spdlog::info("[luastg] LoadMusic: 已从 '{}' 加载音乐 '{}'{} (资源池 '{}')", path, name, once_decode ? " 并一次性解码" : "", getResourcePoolName());
-        }
-
-        return true;
->>>>>>> origin/master
     }
 
     bool ResourcePool::LoadMusic(const char* name, core::IData* data, const char* path, core::AudioFrameRange loop_range) noexcept
     {
-<<<<<<< HEAD
-        if (m_MusicPool.find(std::string_view(name)) != m_MusicPool.end())
-        {
-            if (ResourceMgr::GetResourceLoadingLog())
+        if(m_MusicPool.find(std::string_view(name)) != m_MusicPool.end()) {
+            if(ResourceMgr::GetResourceLoadingLog())
                 spdlog::warn("[luastg] LoadMusic: 音乐 '{}' 已存在，加载操作已取消 (资源池 '{}')", name, getResourcePoolName());
             return false;
         }
 
         core::SmartReference<core::IAudioAsset> asset;
-        if (!LAPP.getAudioSystem()->createAudioAsset(path, data, core::AudioLoadMode::streaming, core::AudioBus::music, asset.put()))
-        {
-=======
-        if(m_MusicPool.find(std::string_view(name)) != m_MusicPool.end()) {
-            if(ResourceMgr::GetResourceLoadingLog()) {
-                spdlog::warn("[luastg] LoadMusic: 音乐 '{}' 已存在，创建操作已取消 (资源池 '{}')", name, getResourcePoolName());
-            }
-            return false;
-        }
-
-        if(!decoder) {
->>>>>>> origin/master
+        if(!LAPP.getAudioSystem()->createAudioAsset(path, data, core::AudioLoadMode::streaming, core::AudioBus::music, asset.put())) {
             spdlog::error("[luastg] LoadMusic: 无法解码文件 '{}'，要求文件格式为 WAV/OGG/FLAC (资源池 '{}')", path, getResourcePoolName());
             return false;
         }
 
-<<<<<<< HEAD
-        if (loop_range.begin == 0 && loop_range.end == 0)
+        if(loop_range.begin == 0 && loop_range.end == 0)
             loop_range.end = asset->getFrameCount();
-        if (loop_range.begin >= loop_range.end || loop_range.end > asset->getFrameCount())
-        {
+        if(loop_range.begin >= loop_range.end || loop_range.end > asset->getFrameCount()) {
             spdlog::error("[luastg] LoadMusic: 音乐 '{}' 的循环节范围无效 (start_frame = {}, end_frame = {}) (资源池 '{}')", name, loop_range.begin, loop_range.end, getResourcePoolName());
             return false;
         }
 
-        try
-        {
+        try {
             core::SmartReference<IResourceMusic> resource;
             resource.attach(new ResourceMusicImpl(name, asset.get(), loop_range));
             m_MusicPool.emplace(name, resource);
-        }
-        catch (std::exception const& e)
-        {
-            spdlog::error("[luastg] LoadMusic: 加载音乐 '{}' 失败 ({}) (资源池 '{}')", name, e.what(), getResourcePoolName());
-            return false;
-        }
-        if (ResourceMgr::GetResourceLoadingLog())
-            spdlog::info("[luastg] LoadMusic: 已从 '{}' 加载音乐 '{}' (资源池 '{}')", path, name, getResourcePoolName());
-=======
-        auto to_sample = [decoder](double t) -> uint32_t {
-            return (uint32_t)(t * (double)decoder->getSampleRate());
-        };
-
-        if(0 == to_sample(start) && to_sample(start) == to_sample(end)) {
-            end = (double)decoder->getFrameCount() / (double)decoder->getSampleRate();
-            spdlog::info("[luastg] LoadMusic: 音乐 '{}' 的循环节范围设置为整首背景音乐 (start = {}, end = {}) (资源池 '{}')", name, start, end, getResourcePoolName());
-        }
-        if(to_sample(start) >= to_sample(end)) {
-            spdlog::error("[luastg] LoadMusic: 音乐 '{}' 的循环节范围格式错误，结束位置不能等于或先于开始位置 (start = {}, end = {}) (资源池 '{}')", name, start, end, getResourcePoolName());
-            return false;
-        }
-
-        core::SmartReference<core::IAudioPlayer> p_player;
-        if(!once_decode) {
-            if(!LAPP.getAudioEngine()->createStreamAudioPlayer(decoder, core::AudioMixingChannel::music, p_player.put())) {
-                spdlog::error("[luastg] LoadMusic: 无法为音乐 '{}' 创建音频播放器 (资源池 '{}')", name, getResourcePoolName());
-                return false;
-            }
-        } else {
-            if(!LAPP.getAudioEngine()->createAudioPlayer(decoder, core::AudioMixingChannel::music, p_player.put())) {
-                spdlog::error("[luastg] LoadMusic: 无法为音乐 '{}' 创建音频播放器 (资源池 '{}')", name, getResourcePoolName());
-                return false;
-            }
-        }
-        p_player->setLoop(true, start, end - start);
-
-        try {
-            core::SmartReference<IResourceMusic> tRes;
-            tRes.attach(new ResourceMusicImpl(name, decoder, p_player.get()));
-            m_MusicPool.emplace(name, tRes);
         } catch(std::exception const& e) {
             spdlog::error("[luastg] LoadMusic: 加载音乐 '{}' 失败 ({}) (资源池 '{}')", name, e.what(), getResourcePoolName());
             return false;
         }
-
-        if(ResourceMgr::GetResourceLoadingLog()) {
-            spdlog::info("[luastg] LoadMusic: 已从 '{}' 加载音乐 '{}'{} (资源池 '{}')", path, name, once_decode ? " 并一次性解码" : "", getResourcePoolName());
-        }
-
->>>>>>> origin/master
+        if(ResourceMgr::GetResourceLoadingLog())
+            spdlog::info("[luastg] LoadMusic: 已从 '{}' 加载音乐 '{}' (资源池 '{}')", path, name, getResourcePoolName());
         return true;
     }
 
@@ -652,46 +526,12 @@ namespace luastg
             return false;
         }
 
-<<<<<<< HEAD
         core::SmartReference<core::IData> data;
-        if (!core::FileSystemManager::readFile(path, data.put()))
-        {
+        if(!core::FileSystemManager::readFile(path, data.put())) {
             spdlog::error("[luastg] LoadSoundEffect: 无法读取文件 '{}' (资源池 '{}')", path, getResourcePoolName());
             return false;
         }
         return LoadSoundEffect(name, data.get(), path);
-=======
-        using namespace core;
-
-        // 创建解码器
-        SmartReference<IAudioDecoder> p_decoder;
-        if(!IAudioDecoder::create(path, p_decoder.put())) {
-            spdlog::error("[luastg] LoadSoundEffect: 无法解码文件 '{}'，要求文件格式为 WAV/OGG/FLAC (资源池 '{}')", path, getResourcePoolName());
-            return false;
-        }
-
-        // 创建播放器
-        SmartReference<IAudioPlayer> p_player;
-        if(!LAPP.getAudioEngine()->createAudioPlayer(p_decoder.get(), AudioMixingChannel::sound_effect, p_player.put())) {
-            spdlog::error("[luastg] LoadSoundEffect: 无法为音效 '{}' 创建音频播放器 (资源池 '{}')", name, getResourcePoolName());
-            return false;
-        }
-
-        try {
-            core::SmartReference<IResourceSoundEffect> tRes;
-            tRes.attach(new ResourceSoundEffectImpl(name, p_player.get()));
-            m_SoundSpritePool.emplace(name, tRes);
-        } catch(std::exception const& e) {
-            spdlog::error("[luastg] LoadSoundEffect: 加载音效 '{}' 失败 ({}) (资源池 '{}')", name, e.what(), getResourcePoolName());
-            return false;
-        }
-
-        if(ResourceMgr::GetResourceLoadingLog()) {
-            spdlog::info("[luastg] LoadSoundEffect: 已从 '{}' 加载音效 '{}' (资源池 '{}')", path, name, getResourcePoolName());
-        }
-
-        return true;
->>>>>>> origin/master
     }
 
     bool ResourcePool::LoadSoundEffect(const char* name, core::IData* data, const char* path) noexcept
@@ -703,29 +543,13 @@ namespace luastg
             return false;
         }
 
-<<<<<<< HEAD
         core::SmartReference<core::IAudioAsset> asset;
-        if (!LAPP.getAudioSystem()->createAudioAsset(path, data, core::AudioLoadMode::decoded, core::AudioBus::sound_effect, asset.put()))
-        {
-=======
-        if(!decoder) {
->>>>>>> origin/master
+        if(!LAPP.getAudioSystem()->createAudioAsset(path, data, core::AudioLoadMode::decoded, core::AudioBus::sound_effect, asset.put())) {
             spdlog::error("[luastg] LoadSoundEffect: 无法解码文件 '{}'，要求文件格式为 WAV/OGG/FLAC (资源池 '{}')", path, getResourcePoolName());
             return false;
         }
 
-<<<<<<< HEAD
-        try
-        {
-=======
-        core::SmartReference<core::IAudioPlayer> p_player;
-        if(!LAPP.getAudioEngine()->createAudioPlayer(decoder, core::AudioMixingChannel::sound_effect, p_player.put())) {
-            spdlog::error("[luastg] LoadSoundEffect: 无法为音效 '{}' 创建音频播放器 (资源池 '{}')", name, getResourcePoolName());
-            return false;
-        }
-
         try {
->>>>>>> origin/master
             core::SmartReference<IResourceSoundEffect> tRes;
             tRes.attach(new ResourceSoundEffectImpl(name, asset.get()));
             m_SoundSpritePool.emplace(name, tRes);

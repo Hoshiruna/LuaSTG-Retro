@@ -282,30 +282,12 @@ namespace luastg
             spdlog::error("[luastg] CacheTTFFontString: 缓存字形时未找到指定字体'{}'", name);
     }
 
-<<<<<<< HEAD
-	void ResourceMgr::UpdateVideo(double const delta_seconds)
-	{
-		for (auto& pool : m_resourcePools) {
-			pool.second->UpdateVideo(delta_seconds);
-		}
-	}
-=======
-    void ResourceMgr::UpdateSound()
-    {
-        for(auto& pool : m_resourcePools) {
-            for(auto& sound : pool.second->m_SoundSpritePool) {
-                sound.second->FlushCommand();
-            }
-        }
-    }
-
     void ResourceMgr::UpdateVideo(double const delta_seconds)
     {
         for(auto& pool : m_resourcePools) {
             pool.second->UpdateVideo(delta_seconds);
         }
     }
->>>>>>> origin/master
 
     // 其他
 

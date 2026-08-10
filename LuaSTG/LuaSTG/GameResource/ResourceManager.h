@@ -98,19 +98,10 @@ namespace luastg
         bool LoadMusic(const char* name, core::IData* data, const char* path, core::AudioFrameRange loop_range) noexcept;
         // 音效
         bool LoadSoundEffect(const char* name, const char* path) noexcept;
-<<<<<<< HEAD
         bool LoadSoundEffect(const char* name, core::IData* data, const char* path) noexcept;
-        // 粒子特效(HGE)
-        bool LoadParticle(const char* name, const hgeParticleSystemInfo& info, IResourceSprite* sprite,
-                          double a, double b, bool rect = false, bool _nolog = false) noexcept;
-        bool LoadParticle(const char* name, const char* path, IResourceSprite* sprite,
-                          double a, double b, bool rect = false) noexcept;
-=======
-        bool LoadSoundEffect(const char* name, core::IAudioDecoder* decoder, const char* path) noexcept;
         // 粒子特效(HGE)
         bool LoadParticle(const char* name, const hgeParticleSystemInfo& info, IResourceSprite* sprite, double a, double b, bool rect = false, bool _nolog = false) noexcept;
         bool LoadParticle(const char* name, const char* path, IResourceSprite* sprite, double a, double b, bool rect = false) noexcept;
->>>>>>> origin/master
         // 装载纹理字体(HGE)
         bool LoadSpriteFont(const char* name, const char* path, bool mipmaps = true) noexcept;
         bool LoadSpriteFont(const char* name, core::IData* font_data, const char* path, core::IData* texture_data, const char* texture_path, bool mipmaps = true) noexcept;
