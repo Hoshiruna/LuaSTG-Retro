@@ -1,0 +1,67 @@
+name: Clang format
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - "**/*.c"
+      - "**/*.cc"
+      - "**/*.cpp"
+      - "**/*.cxx"
+      - "**/*.h"
+      - "**/*.hh"
+      - "**/*.hpp"
+      - "**/*.hxx"
+      - ".clang-format"
+      - ".clang-format-ignore"
+      - ".github/workflows/clang-format.yml"
+  pull_request:
+    paths:
+      - "**/*.c"
+      - "**/*.cc"
+      - "**/*.cpp"
+      - "**/*.cxx"
+      - "**/*.h"
+      - "**/*.hh"
+      - "**/*.hpp"
+      - "**/*.hxx"
+      - ".clang-format"
+      - ".clang-format-ignore"
+      - ".github/workflows/clang-format.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: clang-format-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Check C/C++ formatting
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Install clang-format
+        run: sudo apt-get update && sudo apt-get install --yes clang-format
+
+      - name: Check formatting
+        shell: bash
+        run: |
+          mapfile -d '' files < <(
+            git ls-files -z -- \
+              '*.c' '*.cc' '*.cpp' '*.cxx' \
+              '*.h' '*.hh' '*.hpp' '*.hxx' |
+              grep -zvE '^(external|imgui)/'
+          )
+
+          if (( ${#files[@]} == 0 )); then
+            echo "No C or C++ files found."
+            exit 0
+          fi
+
+          clang-format --dry-run --Werror "${files[@]}"
