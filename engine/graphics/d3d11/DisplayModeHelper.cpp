@@ -110,13 +110,13 @@ namespace
 
 namespace d3d11
 {
-    bool getSwapChainNearestOutputFromWindow(IDXGISwapChain* const swap_chain, const HWND window, IDXGIOutput** const out_output)
+    bool getSwapChainNearestOutputFromDisplay(IDXGISwapChain* const swap_chain, const HMONITOR display, IDXGIOutput** const out_output)
     {
         if(swap_chain == nullptr) {
             assert(false);
             return false;
         }
-        if(window == nullptr) {
+        if(display == nullptr) {
             assert(false);
             return false;
         }
@@ -125,16 +125,9 @@ namespace d3d11
             return false;
         }
 
-        const auto monitor = MonitorFromWindow(window, MONITOR_DEFAULTTONEAREST);
-        if(monitor == nullptr) {
-            core::Logger::error("[core] MonitorFromWindow (MONITOR_DEFAULT_TO_NEAREST) failed"); // unlikely
-            assert(false);
-            return false;
-        }
-
         MONITORINFOEXW monitor_info{};
         monitor_info.cbSize = sizeof(MONITORINFOEXW);
-        if(!GetMonitorInfoW(monitor, &monitor_info)) {
+        if(!GetMonitorInfoW(display, &monitor_info)) {
             core::Logger::error("[core] GetMonitorInfoW failed"); // unlikely
             assert(false);
             return false;
@@ -178,13 +171,13 @@ namespace d3d11
         return false;
     }
 
-    bool findBestDisplayMode(IDXGISwapChain1* const swap_chain, const HWND window, const UINT target_width, const UINT target_height, DXGI_MODE_DESC1& mode)
+    bool findBestDisplayMode(IDXGISwapChain1* const swap_chain, const HMONITOR display, const UINT target_width, const UINT target_height, DXGI_MODE_DESC1& mode)
     {
         if(swap_chain == nullptr) {
             assert(false);
             return false;
         }
-        if(window == nullptr) {
+        if(display == nullptr) {
             assert(false);
             return false;
         }
@@ -197,7 +190,7 @@ namespace d3d11
         if(!win32::check_hresult_as_boolean(
                swap_chain->GetContainingOutput(output.put()),
                "IDXGISwapChain1::GetContainingOutput"sv)) {
-            if(!d3d11::getSwapChainNearestOutputFromWindow(swap_chain, window, output.put())) {
+            if(!d3d11::getSwapChainNearestOutputFromDisplay(swap_chain, display, output.put())) {
                 return false;
             }
         }

@@ -1,5 +1,4 @@
 #include "d3d11/SwapChain.hpp"
-#include "windows/Window.hpp"
 #include "core/Configuration.hpp"
 #include "core/Logger.hpp"
 #include "core/Application.hpp"
@@ -14,6 +13,7 @@
 #include "utf8.hpp"
 
 #include "ScreenGrab11.h"
+#include <SDL3/SDL.h>
 
 //#define LOG_INFO(x) core::Logger::info(x)
 #define LOG_INFO(x)
@@ -60,6 +60,45 @@ namespace
 
     constexpr DXGI_FORMAT const COLOR_BUFFER_FORMAT = DXGI_FORMAT_B8G8R8A8_UNORM;
     constexpr DXGI_FORMAT const DEPTH_BUFFER_FORMAT = DXGI_FORMAT_D24_UNORM_S8_UINT;
+
+    HWND getWindowHandle(core::IWindow* const window)
+    {
+        const SDL_PropertiesID properties = SDL_GetWindowProperties(window->getSDLWindow());
+        if(properties == 0) {
+            core::Logger::error("[d3d11] SDL_GetWindowProperties failed: {}", SDL_GetError());
+            return nullptr;
+        }
+        const auto handle = static_cast<HWND>(SDL_GetPointerProperty(properties, SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr));
+        if(handle == nullptr) {
+            core::Logger::error("[d3d11] SDL window does not expose an HWND: {}", SDL_GetError());
+        }
+        return handle;
+    }
+
+    HMONITOR getDisplayHandle(core::IWindow* const window)
+    {
+        const SDL_DisplayID display = SDL_GetDisplayForWindow(window->getSDLWindow());
+        if(display == 0) {
+            core::Logger::error("[d3d11] SDL_GetDisplayForWindow failed: {}", SDL_GetError());
+            return nullptr;
+        }
+        const SDL_PropertiesID properties = SDL_GetDisplayProperties(display);
+        if(properties == 0) {
+            core::Logger::error("[d3d11] SDL_GetDisplayProperties failed: {}", SDL_GetError());
+            return nullptr;
+        }
+        const auto handle = static_cast<HMONITOR>(SDL_GetPointerProperty(properties, SDL_PROP_DISPLAY_WINDOWS_HMONITOR_POINTER, nullptr));
+        if(handle == nullptr) {
+            core::Logger::error("[d3d11] SDL display does not expose an HMONITOR: {}", SDL_GetError());
+        }
+        return handle;
+    }
+
+    core::Vector2U getDrawableSize(core::IWindow* const window)
+    {
+        const core::Vector2U size = window->getPixelSize();
+        return { std::max(size.x, 1u), std::max(size.y, 1u) };
+    }
 
     bool makeLetterboxing(const core::Vector2U rect, const core::Vector2U inner_rect, D2D1_MATRIX_3X2_F& mat)
     {
@@ -579,17 +618,7 @@ namespace core
         LOG_INFO("present");
 
         if(m_resize_to_window) {
-            RECT rect{};
-            if(!GetClientRect(static_cast<HWND>(m_window->getNativeHandle()), &rect)) {
-                win32::check_hresult(HRESULT_FROM_WIN32(GetLastError()), "GetClientRect"sv);
-                assert(false);
-                return false;
-            }
-            if((rect.right - rect.left) <= 0 || (rect.bottom - rect.top) <= 0) {
-                rect.right = std::max(rect.left + 1, rect.right);
-                rect.bottom = std::max(rect.top + 1, rect.bottom);
-            }
-            if(!resizeSwapChain(Vector2U(static_cast<uint32_t>(rect.right - rect.left), static_cast<uint32_t>(rect.bottom - rect.top)))) {
+            if(!resizeSwapChain(getDrawableSize(m_window.get()))) {
                 return false;
             }
             m_resize_to_window = false;
@@ -612,12 +641,6 @@ namespace core
                    true)) {
                 return false;
             }
-        }
-
-        // title bar
-
-        if(!presentTitleBar()) {
-            return false;
         }
 
         // present
@@ -703,7 +726,7 @@ namespace core
         }
         leaveExclusiveFullscreenTemporarily();
     }
-    void SwapChain::onWindowSize(const Vector2U size)
+    void SwapChain::onWindowPixelSize(const Vector2U size)
     {
         if(size.x == 0 || size.y == 0) {
             return;
@@ -747,11 +770,6 @@ namespace core
         if(!m_scaling_renderer.AttachDevice(device)) {
             return;
         }
-#ifdef LUASTG_ENABLE_DIRECT2D
-        if(!static_cast<Window*>(m_window.get())->getTitleBarController().createResources(static_cast<HWND>(m_window->getNativeHandle()), static_cast<ID2D1DeviceContext*>(m_device->getNativeRendererHandle()))) {
-            return;
-        }
-#endif
         if(!setWindowMode(m_canvas_size)) {
             return;
         }
@@ -764,9 +782,6 @@ namespace core
         destroySwapChain();
         destroyCanvas();
         m_scaling_renderer.DetachDevice();
-#ifdef LUASTG_ENABLE_DIRECT2D
-        static_cast<Window*>(m_window.get())->getTitleBarController().destroyResources();
-#endif
     }
 
     // SwapChain
@@ -818,11 +833,6 @@ namespace core
         if(!m_scaling_renderer.AttachDevice(d3d11_device)) {
             return false;
         }
-#ifdef LUASTG_ENABLE_DIRECT2D
-        if(!static_cast<Window*>(m_window.get())->getTitleBarController().createResources(static_cast<HWND>(m_window->getNativeHandle()), static_cast<ID2D1DeviceContext*>(m_device->getNativeRendererHandle()))) {
-            return false;
-        }
-#endif
         if(!setWindowMode(size)) {
             return false;
         }
@@ -866,16 +876,7 @@ namespace core
 
         Logger::info("[core] [SwapChain] creating...");
 
-        RECT rect{};
-        if(!GetClientRect(static_cast<HWND>(m_window->getNativeHandle()), &rect)) {
-            win32::check_hresult(HRESULT_FROM_WIN32(GetLastError()), "GetClientRect"sv);
-            assert(false);
-            return false;
-        }
-        if((rect.right - rect.left) <= 0 || (rect.bottom - rect.top) <= 0) {
-            rect.right = std::max(rect.left + 1, rect.right);
-            rect.bottom = std::max(rect.top + 1, rect.bottom);
-        }
+        const Vector2U window_size = getDrawableSize(m_window.get());
 
         win32::com_ptr<IDXGIFactory2> dxgi_factory;
         if(!core::GraphicsDeviceManagerDXGI::refreshAndGetFactory(dxgi_factory.put())) {
@@ -910,8 +911,8 @@ namespace core
                     m_swap_chain_info.Width = m_swap_chain_fullscreen_display_mode.Width;
                     m_swap_chain_info.Height = m_swap_chain_fullscreen_display_mode.Height;
                 } else {
-                    m_swap_chain_info.Width = static_cast<UINT>(rect.right - rect.left);
-                    m_swap_chain_info.Height = static_cast<UINT>(rect.bottom - rect.top);
+                    m_swap_chain_info.Width = window_size.x;
+                    m_swap_chain_info.Height = window_size.y;
                 }
                 m_swap_chain_info.BufferCount = 1;
                 m_swap_chain_info.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
@@ -923,8 +924,8 @@ namespace core
                     m_swap_chain_info.Height = m_swap_chain_fullscreen_display_mode.Height;
                     m_swap_chain_info.BufferCount = 2;
                 } else {
-                    m_swap_chain_info.Width = static_cast<UINT>(rect.right - rect.left);
-                    m_swap_chain_info.Height = static_cast<UINT>(rect.bottom - rect.top);
+                    m_swap_chain_info.Width = window_size.x;
+                    m_swap_chain_info.Height = window_size.y;
                     m_swap_chain_info.BufferCount = 3;
                 }
                 m_swap_chain_info.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
@@ -949,10 +950,14 @@ namespace core
         // create swap chain
 
         if(m_model == SwapChainModel::legacy || m_model == SwapChainModel::modern) {
+            const HWND window_handle = getWindowHandle(m_window.get());
+            if(window_handle == nullptr) {
+                return false;
+            }
             if(!win32::check_hresult_as_boolean(
                    dxgi_factory->CreateSwapChainForHwnd(
                        static_cast<ID3D11Device*>(m_device->getNativeDevice()),
-                       static_cast<HWND>(m_window->getNativeHandle()),
+                       window_handle,
                        &m_swap_chain_info,
                        m_exclusive_fullscreen ? &m_swap_chain_fullscreen_info : nullptr,
                        nullptr,
@@ -1120,44 +1125,11 @@ namespace core
             return false;
         }
 
-#ifdef LUASTG_ENABLE_DIRECT2D
-        const auto renderer = static_cast<ID2D1DeviceContext*>(m_device->getNativeRendererHandle());
-        if(renderer == nullptr) {
-            assert(false);
-            return false;
-        }
-
-        win32::com_ptr<IDXGISurface> surface;
-        if(!win32::check_hresult_as_boolean(
-               m_swap_chain->GetBuffer(0, IID_PPV_ARGS(surface.put())),
-               "IDXGISwapChain::GetBuffer (0, IDXGISurface)"sv)) {
-            return false;
-        }
-
-        // TODO: linear color space
-        D2D1_BITMAP_PROPERTIES1 bitmap_info{};
-        bitmap_info.pixelFormat.format = COLOR_BUFFER_FORMAT;
-        bitmap_info.pixelFormat.alphaMode = D2D1_ALPHA_MODE_IGNORE;
-        bitmap_info.bitmapOptions = D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW;
-
-        if(!win32::check_hresult_as_boolean(
-               renderer->CreateBitmapFromDxgiSurface(surface.get(), &bitmap_info, m_swap_chain_bitmap.put()),
-               "ID2D1DeviceContext::CreateBitmapFromDxgiSurface"sv)) {
-            return false;
-        }
-#endif
-
         return true;
     }
     void SwapChain::destroyRenderTarget()
     {
         LOG_INFO("destroyRenderTarget");
-#ifdef LUASTG_ENABLE_DIRECT2D
-        if(const auto ctx = static_cast<ID2D1DeviceContext*>(m_device->getNativeRendererHandle()); ctx != nullptr) {
-            ctx->SetTarget(nullptr);
-        }
-        m_swap_chain_bitmap.reset();
-#endif
         if(const auto ctx = static_cast<ID3D11DeviceContext*>(m_device->getCommandbuffer()->getNativeHandle()); ctx != nullptr) {
             ctx->ClearState();
             ctx->Flush();
@@ -1195,7 +1167,7 @@ namespace core
         }
         Logger::info("[core] [SwapChain] leave exclusive fullscreen (temporarily)");
         const auto result = setFullscreenState(m_swap_chain.get(), FALSE);
-        m_window->setLayer(WindowLayer::Normal); // 强制取消窗口置顶
+        m_window->setAlwaysOnTop(false);
         m_resize_to_window = true;
         m_resize_to_display_mode = false;
         return result;
@@ -1216,7 +1188,7 @@ namespace core
         }
 
         DXGI_MODE_DESC1 display_mode{};
-        if(!d3d11::findBestDisplayMode(m_swap_chain.get(), static_cast<HWND>(m_window->getNativeHandle()), m_canvas_size.x, m_canvas_size.y, display_mode)) {
+        if(!d3d11::findBestDisplayMode(m_swap_chain.get(), getDisplayHandle(m_window.get()), m_canvas_size.x, m_canvas_size.y, display_mode)) {
             return false;
         }
 
@@ -1395,7 +1367,7 @@ namespace core
     {
         // check
 
-        const auto window = static_cast<HWND>(m_window->getNativeHandle());
+        const auto window = getWindowHandle(m_window.get());
         if(window == nullptr) {
             Logger::error("[core] [SwapChain] createComposition failed: window not available");
             assert(false);
@@ -1447,14 +1419,6 @@ namespace core
             return false;
         }
 
-#ifdef LUASTG_ENABLE_DIRECT2D
-        if(!win32::check_hresult_as_boolean(
-               m_composition_device->CreateVisual(m_composition_visual_title_bar.put()),
-               "IDCompositionDevice2::CreateVisual"sv)) {
-            return false;
-        }
-#endif
-
         // set content
 
         if(m_swap_chain) {
@@ -1464,24 +1428,6 @@ namespace core
                 return false;
             }
         }
-
-#ifdef LUASTG_ENABLE_DIRECT2D
-        if(!m_swap_chain_title_bar.create(
-               dxgi_factory.get(),
-               static_cast<ID3D11Device*>(m_device->getNativeDevice()),
-               static_cast<ID2D1DeviceContext*>(m_device->getNativeRendererHandle()),
-               m_window->_getCurrentSize())) {
-            return false;
-        }
-
-        if(!win32::check_hresult_as_boolean(
-               m_composition_visual_title_bar->SetContent(m_swap_chain_title_bar.getSwapChain1()),
-               "IDCompositionVisual::SetContent"sv)) {
-            return false;
-        }
-
-        // NOTE: Only add it to the visual tree when necessary.
-#endif
 
         // build visual tree
 
@@ -1516,29 +1462,17 @@ namespace core
                 m_composition_visual_root->SetContent(nullptr),
                 "IDCompositionVisual::SetContent (null)"sv);
         }
-#ifdef LUASTG_ENABLE_DIRECT2D
         if(m_composition_visual_swap_chain) {
             win32::check_hresult(
                 m_composition_visual_swap_chain->SetContent(nullptr),
                 "IDCompositionVisual::SetContent (null)"sv);
         }
-        if(m_composition_visual_title_bar) {
-            win32::check_hresult(
-                m_composition_visual_title_bar->SetContent(nullptr),
-                "IDCompositionVisual::SetContent (null)"sv);
-        }
-        m_swap_chain_title_bar.destroy();
-#endif
 
         // destroy resources
 
         m_composition_target.reset();
         m_composition_visual_root.reset();
-#ifdef LUASTG_ENABLE_DIRECT2D
         m_composition_visual_swap_chain.reset();
-        m_composition_visual_title_bar.reset();
-        m_is_title_bar_attached = false;
-#endif
 
         // commit
 
@@ -1570,10 +1504,6 @@ namespace core
     {
         LOG_INFO("updateCompositionTransform");
 
-        if(m_window->getNativeHandle() == nullptr) {
-            assert(false);
-            return false;
-        }
         if(!m_swap_chain) {
             return true;
         }
@@ -1585,18 +1515,13 @@ namespace core
             return false;
         }
 
-        RECT rect{};
-        if(!GetClientRect(static_cast<HWND>(m_window->getNativeHandle()), &rect)) {
-            win32::check_hresult(HRESULT_FROM_WIN32(GetLastError()), "GetClientRect"sv);
-            return false;
-        }
-        const auto window_size{ Vector2U(static_cast<uint32_t>(rect.right - rect.left), static_cast<uint32_t>(rect.bottom - rect.top)) };
+        const Vector2U window_size = getDrawableSize(m_window.get());
 
         D2D1::Matrix3x2F matrix{ D2D1::Matrix3x2F::Identity() };
         if(m_scaling_mode == SwapChainScalingMode::stretch) {
             matrix = D2D1::Matrix3x2F::Scale(
-                static_cast<float>(rect.right - rect.left) / static_cast<float>(info.Width),
-                static_cast<float>(rect.bottom - rect.top) / static_cast<float>(info.Height));
+                static_cast<float>(window_size.x) / static_cast<float>(info.Width),
+                static_cast<float>(window_size.y) / static_cast<float>(info.Height));
         } else {
             makeLetterboxing(window_size, Vector2U(info.Width, info.Height), matrix);
         }
@@ -1607,75 +1532,7 @@ namespace core
             return false;
         }
 
-#ifdef LUASTG_ENABLE_DIRECT2D
-        if(!m_swap_chain_title_bar.setSize(Vector2U(window_size.x, m_swap_chain_title_bar.getSize().y))) {
-            return false;
-        }
-#endif
-
         return commitComposition();
-    }
-
-    // custom title bar
-
-    bool SwapChain::presentTitleBar()
-    {
-#ifdef LUASTG_ENABLE_DIRECT2D
-        auto& title_bar_controller = static_cast<Window*>(m_window.get())->getTitleBarController();
-
-        if(m_model == SwapChainModel::legacy || m_model == SwapChainModel::modern) {
-            // render directly to the swap chain
-            title_bar_controller.draw(m_swap_chain_bitmap.get());
-        } else if(m_model == SwapChainModel::composition) {
-            // render to the secondary swap chain
-            if(title_bar_controller.isVisible()) {
-                if(!m_is_title_bar_attached) {
-                    if(!win32::check_hresult_as_boolean(
-                           m_composition_visual_root->AddVisual(m_composition_visual_title_bar.get(), TRUE, m_composition_visual_swap_chain.get()),
-                           "IDCompositionVisual::AddVisual (m_composition_visual_title_bar, TRUE, m_composition_visual_swap_chain)"sv)) {
-                        return false;
-                    }
-
-                    if(!commitComposition()) {
-                        return false;
-                    }
-
-                    m_is_title_bar_attached = true;
-                }
-
-                const auto swap_chain_size = m_swap_chain_title_bar.getSize();
-                const auto title_bar_height = title_bar_controller.getHeight();
-                if(title_bar_height != swap_chain_size.y) {
-                    if(!m_swap_chain_title_bar.setSize(Vector2U(swap_chain_size.x, title_bar_height))) {
-                        return false;
-                    }
-                }
-
-                m_swap_chain_title_bar.clearRenderTarget();
-                title_bar_controller.draw(m_swap_chain_title_bar.getBitmap1());
-                if(!m_swap_chain_title_bar.present()) {
-                    return false;
-                }
-            } else if(m_is_title_bar_attached) {
-                if(!win32::check_hresult_as_boolean(
-                       m_composition_visual_root->RemoveVisual(m_composition_visual_title_bar.get()),
-                       "IDCompositionVisual::RemoveVisual (m_composition_visual_title_bar)"sv)) {
-                    return false;
-                }
-
-                if(!commitComposition()) {
-                    return false;
-                }
-
-                m_is_title_bar_attached = false;
-            }
-        } else {
-            assert(false);
-            return false;
-        }
-
-#endif
-        return true;
     }
 }
 

@@ -1,12 +1,14 @@
 #include "win32/win32.hpp"
 #include "win32/abi.hpp"
-#include "Platform/WindowTheme.hpp"
 #include "imgui.h"
 #include "imgui_stdlib.h"
 #include "imgui_freetype.h"
 #include "imgui_impl_sdl3.h"
 #include "imgui_impl_dx11.h"
 #include "core/SdlRuntime.hpp"
+#include "core/SmartReference.hpp"
+#include "core/Window.hpp"
+#include "sdl/Window.hpp"
 #include "luastg_config_generated.h"
 #include "LConfig.h"
 #include <SDL3/SDL.h>
@@ -71,7 +73,6 @@ static std::unordered_map<std::string_view, std::string_view> i18n_map[2] = {
         { "config-window", "窗口" },
         { "config-window-title", "窗口标题" },
         { "config-window-cursor-visible", "显示鼠标" },
-        { "config-window-allow-window-corner", "允许窗口圆角（Windows 11）" },
         { "config-graphics-system", "显示" },
         { "config-graphics-system-preferred-device-name", "显卡" },
         { "config-graphics-system-resolution", "分辨率" },
@@ -127,7 +128,6 @@ static std::unordered_map<std::string_view, std::string_view> i18n_map[2] = {
         { "config-window", "Window" },
         { "config-window-title", "Window title" },
         { "config-window-cursor-visible", "Show mouse cursor" },
-        { "config-window-allow-window-corner", "Allow window corner (Windows 11)" },
         { "config-graphics-system", "Display" },
         { "config-graphics-system-preferred-device-name", "Graphics card" },
         { "config-graphics-system-resolution", "Resolution" },
@@ -336,19 +336,23 @@ struct DisplayMode
 constexpr UINT WINDOW_SIZE_X = 400;
 constexpr UINT WINDOW_SIZE_Y = 300;
 
-struct SdlWindowDeleter
+HWND getD3D11WindowHandle(core::IWindow* const window)
 {
-    void operator()(SDL_Window* const window) const noexcept
-    {
-        SDL_DestroyWindow(window);
+    const SDL_PropertiesID properties = SDL_GetWindowProperties(window->getSDLWindow());
+    if(properties == 0) {
+        throw std::runtime_error(std::string("SDL_GetWindowProperties failed: ") + SDL_GetError());
     }
-};
+    const auto handle = static_cast<HWND>(SDL_GetPointerProperty(properties, SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr));
+    if(handle == nullptr) {
+        throw std::runtime_error(std::string("SDL_PROP_WINDOW_WIN32_HWND_POINTER is unavailable: ") + SDL_GetError());
+    }
+    return handle;
+}
 
 struct Window
 {
-    std::unique_ptr<SDL_Window, SdlWindowDeleter> sdl_window;
+    core::SmartReference<core::IWindow> window;
     SDL_WindowID window_id{};
-    HWND win32_window{};
     UINT window_width{ WINDOW_SIZE_X };
     UINT window_height{ WINDOW_SIZE_Y };
     UINT pixel_width{ WINDOW_SIZE_X };
@@ -402,12 +406,12 @@ struct Window
             SDL_Event event{};
             while(SDL_PollEvent(&event)) {
                 ImGui_ImplSDL3_ProcessEvent(&event);
+                core::WindowSDL3::dispatchSDLEvent(event);
                 if(event.type == SDL_EVENT_QUIT) {
                     want_exit = true;
                     continue;
                 }
                 if(event.type == SDL_EVENT_SYSTEM_THEME_CHANGED) {
-                    Platform::WindowTheme::UpdateColorMode(win32_window, TRUE);
                     ApplyStyle();
                     continue;
                 }
@@ -427,7 +431,7 @@ struct Window
                         OnPixelSize(static_cast<UINT>(event.window.data1), static_cast<UINT>(event.window.data2));
                         break;
                     case SDL_EVENT_WINDOW_DISPLAY_SCALE_CHANGED:
-                        OnScaling(SDL_GetWindowDisplayScale(sdl_window.get()));
+                        OnScaling(window->getDPIScaling());
                         break;
                     default:
                         break;
@@ -580,7 +584,7 @@ struct Window
         const float scaling = window_scale;
 
         ImGuiStyle style;
-        if(Platform::WindowTheme::ShouldApplicationEnableDarkMode())
+        if(SDL_GetSystemTheme() == SDL_SYSTEM_THEME_DARK)
             ImGui::StyleColorsDark(&style);
         else
             ImGui::StyleColorsLight(&style);
@@ -653,7 +657,6 @@ struct Window
             showTextFieldEdit(config_json, "/window/title"_json_pointer, "config-window-title"sv, LUASTG_INFO ""s);
             showCheckBoxEdit(config_json, "/window/cursor_visible"_json_pointer, "config-window-cursor-visible"sv, true);
         }
-        showCheckBoxEdit(config_json, "/window/allow_window_corner"_json_pointer, "config-window-allow-window-corner"sv, true);
     }
     void LayoutGraphicsSystemTab()
     {
@@ -772,6 +775,7 @@ struct Window
     bool CreateDirectX()
     {
         HRESULT hr = S_OK;
+        const HWND window_handle = getD3D11WindowHandle(window.get());
 
         if(FAILED(CreateDXGIFactory1(IID_PPV_ARGS(&dxgi_factory)))) {
             throw std::runtime_error("CreateDXGIFactory1 failed.");
@@ -831,7 +835,7 @@ struct Window
             },
             .BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT,
             .BufferCount = 2,
-            .OutputWindow = win32_window,
+            .OutputWindow = window_handle,
             .Windowed = TRUE,
             .SwapEffect = DXGI_SWAP_EFFECT_DISCARD,
             .Flags = 0,
@@ -842,7 +846,7 @@ struct Window
             return false;
         }
 
-        hr = dxgi_factory->MakeWindowAssociation(win32_window, DXGI_MWA_NO_ALT_ENTER);
+        hr = dxgi_factory->MakeWindowAssociation(window_handle, DXGI_MWA_NO_ALT_ENTER);
         if(FAILED(hr)) {
             throw std::runtime_error("IDXGIFactory1::MakeWindowAssociation failed.");
             return false;
@@ -896,36 +900,28 @@ struct Window
 
     void moveToCenter()
     {
-        if(!SDL_SetWindowPosition(sdl_window.get(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED)) {
-            throw std::runtime_error(std::string("SDL_SetWindowPosition failed: ") + SDL_GetError());
+        if(!window->setCentered(false)) {
+            throw std::runtime_error("IWindow::setCentered failed");
         }
     }
     void updateWindowSize()
     {
-        if(!SDL_SetWindowSize(sdl_window.get(), static_cast<int>(WINDOW_SIZE_X), static_cast<int>(WINDOW_SIZE_Y))) {
-            throw std::runtime_error(std::string("SDL_SetWindowSize failed: ") + SDL_GetError());
+        if(!window->setSize({ WINDOW_SIZE_X, WINDOW_SIZE_Y })) {
+            throw std::runtime_error("IWindow::setSize failed");
         }
-        if(!SDL_SyncWindow(sdl_window.get())) {
+        if(!SDL_SyncWindow(window->getSDLWindow())) {
             throw std::runtime_error(std::string("SDL_SyncWindow timed out after resizing the window: ") + SDL_GetError());
         }
-        int width{};
-        int height{};
-        if(!SDL_GetWindowSize(sdl_window.get(), &width, &height)) {
-            throw std::runtime_error(std::string("SDL_GetWindowSize failed: ") + SDL_GetError());
-        }
-        window_width = static_cast<UINT>(width);
-        window_height = static_cast<UINT>(height);
-        if(!SDL_GetWindowSizeInPixels(sdl_window.get(), &width, &height)) {
-            throw std::runtime_error(std::string("SDL_GetWindowSizeInPixels failed: ") + SDL_GetError());
-        }
-        pixel_width = static_cast<UINT>(width);
-        pixel_height = static_cast<UINT>(height);
+        const auto logical_size = window->getSize();
+        window_width = logical_size.x;
+        window_height = logical_size.y;
+        const auto drawable_size = window->getPixelSize();
+        pixel_width = drawable_size.x;
+        pixel_height = drawable_size.y;
     }
     void updateTitle()
     {
-        if(!SDL_SetWindowTitle(sdl_window.get(), i18n("window-title").data())) {
-            throw std::runtime_error(std::string("SDL_SetWindowTitle failed: ") + SDL_GetError());
-        }
+        window->setTitleText(i18n("window-title"));
     }
 
     void loadConfigFromJson()
@@ -949,24 +945,14 @@ struct Window
     Window()
     {
         try {
-            sdl_window.reset(SDL_CreateWindow("", WINDOW_SIZE_X, WINDOW_SIZE_Y, SDL_WINDOW_HIGH_PIXEL_DENSITY | SDL_WINDOW_HIDDEN));
-            if(sdl_window == nullptr) {
-                throw std::runtime_error(std::string("SDL_CreateWindow failed: ") + SDL_GetError());
+            if(!core::IWindow::create({ WINDOW_SIZE_X, WINDOW_SIZE_Y }, "", core::WindowFrameStyle::Normal, false, window.put())) {
+                throw std::runtime_error("IWindow::create failed");
             }
-            window_id = SDL_GetWindowID(sdl_window.get());
+            window_id = SDL_GetWindowID(window->getSDLWindow());
             if(window_id == 0) {
                 throw std::runtime_error(std::string("SDL_GetWindowID failed: ") + SDL_GetError());
             }
-            const SDL_PropertiesID properties = SDL_GetWindowProperties(sdl_window.get());
-            if(properties == 0) {
-                throw std::runtime_error(std::string("SDL_GetWindowProperties failed: ") + SDL_GetError());
-            }
-            win32_window = static_cast<HWND>(SDL_GetPointerProperty(properties, SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr));
-            if(win32_window == nullptr) {
-                throw std::runtime_error(std::string("SDL_PROP_WINDOW_WIN32_HWND_POINTER is unavailable: ") + SDL_GetError());
-            }
-            Platform::WindowTheme::UpdateColorMode(win32_window, TRUE);
-            window_scale = SDL_GetWindowDisplayScale(sdl_window.get());
+            window_scale = window->getDPIScaling();
             if(window_scale <= 0.0f) {
                 throw std::runtime_error(std::string("SDL_GetWindowDisplayScale failed: ") + SDL_GetError());
             }
@@ -974,8 +960,8 @@ struct Window
             moveToCenter();
             updateTitle();
 
-            if(!SDL_ShowWindow(sdl_window.get())) {
-                throw std::runtime_error(std::string("SDL_ShowWindow failed: ") + SDL_GetError());
+            if(!window->setVisible(true)) {
+                throw std::runtime_error("IWindow::setVisible failed");
             }
 
             CreateDirectX();
@@ -984,7 +970,7 @@ struct Window
             ImGui::CreateContext();
             imgui_context_created = true;
             ImGui::GetIO().IniFilename = NULL;
-            if(!ImGui_ImplSDL3_InitForD3D(sdl_window.get())) {
+            if(!ImGui_ImplSDL3_InitForD3D(window->getSDLWindow())) {
                 throw std::runtime_error("ImGui_ImplSDL3_InitForD3D failed.");
             }
             imgui_platform_initialized = true;
@@ -1034,9 +1020,8 @@ struct Window
             DestroyDirectX();
             directx_initialized = false;
         }
-        sdl_window.reset();
+        window.reset();
         window_id = 0;
-        win32_window = nullptr;
     }
     ~Window()
     {

@@ -1,6 +1,7 @@
 #include "Core/Graphics/SwapChain_D3D11.hpp"
 #include "Core/i18n.hpp"
 #include "core/Configuration.hpp"
+#include "core/Logger.hpp"
 #include "Platform/WindowsVersion.hpp"
 #include "Platform/DesktopWindowManager.hpp"
 #include "Platform/Direct3D11.hpp"
@@ -15,10 +16,43 @@
 
 namespace
 {
-    HWND getWindowHandle(core::Graphics::IWindow* const window)
+    HWND getWindowHandle(core::IWindow* const window)
     {
         const SDL_PropertiesID properties = SDL_GetWindowProperties(window->getSDLWindow());
-        return static_cast<HWND>(SDL_GetPointerProperty(properties, SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr));
+        if(properties == 0) {
+            core::Logger::error("[d3d11] SDL_GetWindowProperties failed: {}", SDL_GetError());
+            return nullptr;
+        }
+        const auto handle = static_cast<HWND>(SDL_GetPointerProperty(properties, SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr));
+        if(handle == nullptr) {
+            core::Logger::error("[d3d11] SDL window does not expose an HWND: {}", SDL_GetError());
+        }
+        return handle;
+    }
+
+    HMONITOR getDisplayHandle(core::IWindow* const window)
+    {
+        const SDL_DisplayID display = SDL_GetDisplayForWindow(window->getSDLWindow());
+        if(display == 0) {
+            core::Logger::error("[d3d11] SDL_GetDisplayForWindow failed: {}", SDL_GetError());
+            return nullptr;
+        }
+        const SDL_PropertiesID properties = SDL_GetDisplayProperties(display);
+        if(properties == 0) {
+            core::Logger::error("[d3d11] SDL_GetDisplayProperties failed: {}", SDL_GetError());
+            return nullptr;
+        }
+        const auto handle = static_cast<HMONITOR>(SDL_GetPointerProperty(properties, SDL_PROP_DISPLAY_WINDOWS_HMONITOR_POINTER, nullptr));
+        if(handle == nullptr) {
+            core::Logger::error("[d3d11] SDL display does not expose an HMONITOR: {}", SDL_GetError());
+        }
+        return handle;
+    }
+
+    core::Vector2U getDrawableSize(core::IWindow* const window)
+    {
+        const core::Vector2U size = window->getPixelSize();
+        return { std::max(size.x, 1u), std::max(size.y, 1u) };
     }
 }
 
@@ -65,13 +99,10 @@ namespace
 
 namespace
 {
-    bool resolveOutput(HWND const window, IDXGISwapChain* const swap_chain, IDXGIOutput** const output_output)
+    bool resolveOutput(HMONITOR const monitor, IDXGISwapChain* const swap_chain, IDXGIOutput** const output_output)
     {
         HRNew;
-
-        auto const monitor = MonitorFromWindow(window, MONITOR_DEFAULTTONEAREST);
         if(monitor == nullptr) {
-            ReportError("MonitorFromWindow (MONITOR_DEFAULT_TO_NEAREST)");
             return false;
         }
 
@@ -216,7 +247,7 @@ namespace core::Graphics
         };
     }
 
-    static bool findBestDisplayMode(HWND const window, IDXGISwapChain1* dxgi_swapchain, Vector2U canvas_size, DXGI_MODE_DESC1& mode)
+    static bool findBestDisplayMode(HMONITOR const display, IDXGISwapChain1* dxgi_swapchain, Vector2U canvas_size, DXGI_MODE_DESC1& mode)
     {
         HRNew;
 
@@ -224,7 +255,7 @@ namespace core::Graphics
         HRGet = dxgi_swapchain->GetContainingOutput(&dxgi_output);
         if(FAILED(hr)) {
             ReportError("IDXGISwapChain1::GetContainingOutput");
-            if(!resolveOutput(window, dxgi_swapchain, dxgi_output.ReleaseAndGetAddressOf())) {
+            if(!resolveOutput(display, dxgi_swapchain, dxgi_output.ReleaseAndGetAddressOf())) {
                 return false;
             }
         }
@@ -733,126 +764,6 @@ namespace core::Graphics
         return isModernSwapChainModel(info);
     }
 
-    bool SecondarySwapChain::createRenderAttachment()
-    {
-        assert(d3d11_device);
-#ifdef LUASTG_ENABLE_DIRECT2D
-        assert(d2d1_device_context);
-#endif
-        assert(dxgi_swap_chain);
-        HRNew;
-
-        wil::com_ptr_nothrow<ID3D11Texture2D> texture;
-        HRGet = dxgi_swap_chain->GetBuffer(0, IID_PPV_ARGS(texture.put()));
-        HRCheckCallReturnBool("IDXGISwapChain::GetBuffer");
-
-        HRGet = d3d11_device->CreateRenderTargetView(texture.get(), NULL, d3d11_rtv.put());
-        HRCheckCallReturnBool("ID3D11Device::CreateRenderTargetView");
-
-        wil::com_ptr_nothrow<IDXGISurface> surface;
-        HRGet = dxgi_swap_chain->GetBuffer(0, IID_PPV_ARGS(surface.put()));
-        HRCheckCallReturnBool("IDXGISwapChain::GetBuffer");
-
-#ifdef LUASTG_ENABLE_DIRECT2D
-        D2D1_BITMAP_PROPERTIES1 bitmap_info{};
-        bitmap_info.pixelFormat.format = info.Format;
-        bitmap_info.pixelFormat.alphaMode = D2D1_ALPHA_MODE_IGNORE;
-        bitmap_info.bitmapOptions = D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW;
-        HRGet = d2d1_device_context->CreateBitmapFromDxgiSurface(surface.get(), &bitmap_info, d2d1_bitmap.put());
-        HRCheckCallReturnBool("ID2D1DeviceContext::CreateBitmapFromDxgiSurface");
-#endif
-
-        return true;
-    }
-    void SecondarySwapChain::destroyRenderAttachment()
-    {
-        if(d3d11_device_context) {
-            d3d11_device_context->ClearState();
-            d3d11_device_context->Flush();
-        }
-        d3d11_rtv.reset();
-#ifdef LUASTG_ENABLE_DIRECT2D
-        d2d1_bitmap.reset();
-#endif
-    }
-
-    bool SecondarySwapChain::create(IDXGIFactory2* factory, ID3D11Device* device, ID2D1DeviceContext* context, Vector2U const& size)
-    {
-        assert(factory);
-        assert(device);
-        assert(context);
-        assert(size.x > 0 && size.y > 0);
-        HRNew;
-
-        dxgi_factory = factory;
-        d3d11_device = device;
-        d3d11_device->GetImmediateContext(d3d11_device_context.put());
-#ifdef LUASTG_ENABLE_DIRECT2D
-        d2d1_device_context = context;
-#endif
-
-        info.Width = size.x;
-        info.Height = size.y;
-        info.Format = COLOR_BUFFER_FORMAT;
-        info.SampleDesc.Count = 1;
-        info.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-        info.BufferCount = 2;
-        info.Scaling = DXGI_SCALING_STRETCH;
-        info.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-        info.AlphaMode = DXGI_ALPHA_MODE_IGNORE;
-        info.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
-
-        HRGet = dxgi_factory->CreateSwapChainForComposition(d3d11_device.get(), &info, NULL, dxgi_swap_chain.put());
-        HRCheckCallReturnBool("IDXGIFactory2::CreateSwapChainForComposition");
-
-        return createRenderAttachment();
-    }
-    void SecondarySwapChain::destroy()
-    {
-        destroyRenderAttachment();
-        dxgi_factory.reset();
-        d3d11_device.reset();
-        d3d11_device_context.reset();
-#ifdef LUASTG_ENABLE_DIRECT2D
-        d2d1_device_context.reset();
-#endif
-        dxgi_swap_chain.reset();
-    }
-    bool SecondarySwapChain::setSize(Vector2U const& size)
-    {
-        assert(size.x > 0 && size.y > 0);
-        if(size.x == 0 || size.y == 0) {
-            return false;
-        }
-        HRNew;
-        destroyRenderAttachment();
-        info.Width = size.x;
-        info.Height = size.y;
-        HRGet = dxgi_swap_chain->ResizeBuffers(info.BufferCount, info.Width, info.Height, info.Format, info.Flags);
-        HRCheckCallReturnBool("IDXGISwapChain::ResizeBuffers");
-        return createRenderAttachment();
-    }
-    void SecondarySwapChain::clearRenderTarget()
-    {
-        assert(d3d11_device_context);
-        assert(d3d11_rtv);
-        if(d3d11_device_context && d3d11_rtv) {
-            FLOAT const solid_black[4]{ 0.0f, 0.0f, 0.0f, 1.0f };
-            d3d11_device_context->ClearRenderTargetView(d3d11_rtv.get(), solid_black);
-        }
-    }
-    bool SecondarySwapChain::present()
-    {
-        assert(dxgi_swap_chain);
-        if(!dxgi_swap_chain) {
-            return false;
-        }
-        HRNew;
-        HRGet = dxgi_swap_chain->Present(0, DXGI_PRESENT_ALLOW_TEARING);
-        HRCheckCallReturnBool("IDXGISwapChain::Present");
-        return true;
-    }
-
     void SwapChain_D3D11::dispatchEvent(EventType t)
     {
         // 回调
@@ -948,7 +859,7 @@ namespace core::Graphics
         _log("onWindowInactive");
         leaveExclusiveFullscreenTemporarily();
     }
-    void SwapChain_D3D11::onWindowSize(core::Vector2U size)
+    void SwapChain_D3D11::onWindowPixelSize(core::Vector2U size)
     {
         if(size.x == 0 || size.y == 0)
             return; // 忽略窗口最小化
@@ -1004,22 +915,16 @@ namespace core::Graphics
         }
 
         if(!fullscreen) {
-            // 获取窗口尺寸
-            RECT rc = {};
-            if(!GetClientRect(window_handle, &rc)) {
-                HRGet = HRESULT_FROM_WIN32(GetLastError());
-                HRCheckCallReturnBool("GetClientRect");
-            }
-            if(rc.right <= rc.left || rc.bottom <= rc.top) {
+            const Vector2U window_size = getDrawableSize(m_window.get());
+            if(window_size.x == 0 || window_size.y == 0) {
                 i18n_log_error_fmt("[core].SwapChain_D3D11.create_swapchain_failed_invalid_size_fmt",
-                    rc.right - rc.left,
-                    rc.bottom - rc.top);
+                    window_size.x,
+                    window_size.y);
                 assert(false);
                 return false;
             }
-            // 使用窗口尺寸
-            m_swap_chain_info.Width = static_cast<UINT>(rc.right - rc.left);
-            m_swap_chain_info.Height = static_cast<UINT>(rc.bottom - rc.top);
+            m_swap_chain_info.Width = window_size.x;
+            m_swap_chain_info.Height = window_size.y;
             // 进一步配置 FLIP 交换链模型
             if(m_modern_swap_chain_available) {
                 m_swap_chain_info.BufferCount = 3; // 三个缓冲区能带来更平稳的性能
@@ -1227,7 +1132,7 @@ namespace core::Graphics
         }
 
         DXGI_MODE_DESC1 display_mode{};
-        if(!findBestDisplayMode(getWindowHandle(m_window.get()), dxgi_swapchain.Get(), m_canvas_size, display_mode)) {
+        if(!findBestDisplayMode(getDisplayHandle(m_window.get()), dxgi_swapchain.Get(), m_canvas_size, display_mode)) {
             return false;
         }
 
@@ -1314,6 +1219,10 @@ namespace core::Graphics
         // 我们限制 DirectComposition 仅在 Windows 10+ 使用
 
         HRNew;
+        const HWND window_handle = getWindowHandle(m_window.get());
+        if(window_handle == nullptr) {
+            return false;
+        }
 
         // 必须成功的操作
 
@@ -1341,7 +1250,7 @@ namespace core::Graphics
         }
 #endif
 
-        HRGet = dcomp_desktop_device->CreateTargetForHwnd(getWindowHandle(m_window.get()), TRUE, &dcomp_target);
+        HRGet = dcomp_desktop_device->CreateTargetForHwnd(window_handle, TRUE, &dcomp_target);
         HRCheckCallReturnBool("IDCompositionDesktopDevice::CreateTargetForHwnd");
 
         HRGet = dcomp_desktop_device->CreateVisual(&dcomp_visual_swap_chain);
@@ -1353,22 +1262,6 @@ namespace core::Graphics
             HRGet = dcomp_desktop_device->CreateVisual(&dcomp_visual_root);
             HRCheckCallReturnBool("IDCompositionDesktopDevice::CreateVisual");
 
-#ifdef LUASTG_ENABLE_DIRECT2D
-            HRGet = dcomp_desktop_device->CreateVisual(&dcomp_visual_title_bar);
-            HRCheckCallReturnBool("IDCompositionDesktopDevice::CreateVisual");
-
-            if(!swap_chain_title_bar.create(
-                   m_device->GetDXGIFactory2(),
-                   m_device->GetD3D11Device(),
-                   m_device->GetD2D1DeviceContext(),
-                   m_window->getPixelSize())) {
-                return false;
-            }
-            // 标题栏交换链需要的时候再使用
-
-            HRGet = dcomp_visual_title_bar->SetContent(swap_chain_title_bar.GetDXGISwapChain1());
-            HRCheckCallReturnBool("IDCompositionVisual2::SetContent");
-#endif
         }
 
         // 把交换链塞进可视物
@@ -1423,21 +1316,10 @@ namespace core::Graphics
             HRGet = dcomp_visual_swap_chain->SetContent(NULL);
             HRCheckCallReport("IDCompositionVisual2::SetContent -> NULL");
         }
-#ifdef LUASTG_ENABLE_DIRECT2D
-        if(dcomp_visual_title_bar) {
-            HRGet = dcomp_visual_title_bar->SetContent(NULL);
-            HRCheckCallReport("IDCompositionVisual2::SetContent -> NULL");
-        }
-#endif
 
         dcomp_target.Reset();
         dcomp_visual_root.Reset();
         dcomp_visual_swap_chain.Reset();
-#ifdef LUASTG_ENABLE_DIRECT2D
-        dcomp_visual_title_bar.Reset();
-        swap_chain_title_bar.destroy();
-        m_title_bar_attached = false;
-#endif
 
         if(dcomp_desktop_device) {
             HRGet = dcomp_desktop_device->Commit();
@@ -1461,14 +1343,7 @@ namespace core::Graphics
         HRGet = dxgi_swapchain->GetDesc1(&desc1);
         HRCheckCallReturnBool("IDXGISwapChain1::GetDesc1");
 
-        RECT rc = {};
-        if(!GetClientRect(getWindowHandle(m_window.get()), &rc)) {
-            HRGet = HRESULT_FROM_WIN32(GetLastError());
-            HRCheckCallReturnBool("GetClientRect");
-        }
-        auto const window_size_u = Vector2U(
-            (uint32_t)(rc.right - rc.left),
-            (uint32_t)(rc.bottom - rc.top));
+        const Vector2U window_size_u = getDrawableSize(m_window.get());
         auto const swap_chain_size_u = Vector2U(desc1.Width, desc1.Height);
         auto const layout = calcPresentationPlacement(window_size_u, swap_chain_size_u, m_scaling_mode);
 
@@ -1504,14 +1379,6 @@ namespace core::Graphics
                 HRCheckCallReturnBool("IDCompositionVisual2::SetTransform");
             }
         }
-
-        // 同步窗口宽度
-
-#ifdef LUASTG_ENABLE_DIRECT2D
-        if(!swap_chain_title_bar.setSize(Vector2U(window_size_u.x, swap_chain_title_bar.getSize().y))) {
-            return false;
-        }
-#endif
 
         // 提交
 
@@ -1651,20 +1518,6 @@ namespace core::Graphics
         HRGet = m_device->GetD3D11Device()->CreateRenderTargetView(d3d11_texture2d.Get(), NULL, &m_swap_chain_d3d11_rtv);
         HRCheckCallReturnBool("ID3D11Device::CreateRenderTargetView");
 
-        Microsoft::WRL::ComPtr<IDXGISurface> dxgi_surface;
-        HRGet = dxgi_swapchain->GetBuffer(0, IID_PPV_ARGS(&dxgi_surface));
-        HRCheckCallReturnBool("IDXGISwapChain::GetBuffer -> 0");
-
-#ifdef LUASTG_ENABLE_DIRECT2D
-        // TODO: 线性颜色空间
-        D2D1_BITMAP_PROPERTIES1 d2d1_bitmap_info{};
-        d2d1_bitmap_info.pixelFormat.format = COLOR_BUFFER_FORMAT;
-        d2d1_bitmap_info.pixelFormat.alphaMode = D2D1_ALPHA_MODE_IGNORE;
-        d2d1_bitmap_info.bitmapOptions = D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW;
-        HRGet = m_device->GetD2D1DeviceContext()->CreateBitmapFromDxgiSurface(dxgi_surface.Get(), &d2d1_bitmap_info, &m_swap_chain_d2d1_bitmap);
-        HRCheckCallReturnBool("ID2D1DeviceContext::CreateBitmapFromDxgiSurface");
-#endif
-
         return true;
     }
     void SwapChain_D3D11::destroySwapChainRenderTarget()
@@ -1676,9 +1529,6 @@ namespace core::Graphics
             m_device->GetD3D11DeviceContext()->Flush();
         }
         m_swap_chain_d3d11_rtv.Reset();
-#ifdef LUASTG_ENABLE_DIRECT2D
-        m_swap_chain_d2d1_bitmap.Reset();
-#endif
     }
     bool SwapChain_D3D11::createCanvasColorBuffer()
     {

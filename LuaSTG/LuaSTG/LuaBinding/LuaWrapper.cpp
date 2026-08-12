@@ -79,7 +79,6 @@ namespace luastg::binding
         Window::registerClass(L);
         Window_InputMethodExtension::registerClass(L);
         Window_TextInputExtension::registerClass(L);
-        Window_Windows11Extension::registerClass(L);
         SwapChain::registerClass(L);
         Texture2D::registerClass(L);
         RenderTarget::registerClass(L);

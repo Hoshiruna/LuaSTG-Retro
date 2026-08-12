@@ -1,6 +1,7 @@
 #include "core/Application.hpp"
 #include "core/Logger.hpp"
 #include "core/SdlRuntime.hpp"
+#include "sdl/EventDispatcher.hpp"
 #include "sdl/Window.hpp"
 #include <SDL3/SDL.h>
 #include <atomic>
@@ -45,7 +46,8 @@ namespace core
 
             SDL_Event event{};
             while(SDL_PollEvent(&event)) {
-                Window::dispatchSDLEvent(event);
+                SDLEventDispatcher::dispatch(event);
+                WindowSDL3::dispatchSDLEvent(event);
                 if(event.type == SDL_EVENT_QUIT || event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED) {
                     exit_requested.store(true, std::memory_order_relaxed);
                 }

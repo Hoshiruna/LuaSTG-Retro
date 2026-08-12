@@ -102,6 +102,7 @@ namespace core
 
         static InputSystem& getInstance();
 
+        void shutdown();
         void beginFrame();
         void processEvent(const SDL_Event& event);
         void resetKeyboardAndMouse();
@@ -109,6 +110,7 @@ namespace core
         bool isKeyDown(Key key) const noexcept;
         bool wasKeyPressed(Key key) const noexcept;
         bool wasKeyReleased(Key key) const noexcept;
+        Key getLastPressedKey() const noexcept;
         bool isMouseButtonDown(MouseButton button) const noexcept;
         bool wasMouseButtonPressed(MouseButton button) const noexcept;
         bool wasMouseButtonReleased(MouseButton button) const noexcept;

@@ -6,6 +6,7 @@
 #define NOMINMAX
 #include <Windows.h>
 #include <shellapi.h>
+#include <SDL3/SDL.h>
 #include "utf8.hpp"
 
 void
@@ -115,12 +116,15 @@ luastg::binding::Platform::Register(lua_State* L) noexcept
             char const* title = luaL_checkstring(L, 1);
             char const* text = luaL_checkstring(L, 2);
             UINT flags = (UINT)luaL_checkinteger(L, 3);
-            int result = MessageBoxW(
-                (LAPP.GetAppModel() && LAPP.GetAppModel()->getWindow()) ? (HWND)LAPP.GetAppModel()->getWindow()->getNativeHandle() : NULL,
-                utf8::to_wstring(text).c_str(),
-                utf8::to_wstring(title).c_str(),
-                flags);
-            lua_pushinteger(L, result);
+            SDL_MessageBoxFlags type = SDL_MESSAGEBOX_INFORMATION;
+            if((flags & MB_ICONERROR) != 0) {
+                type = SDL_MESSAGEBOX_ERROR;
+            } else if((flags & MB_ICONWARNING) != 0) {
+                type = SDL_MESSAGEBOX_WARNING;
+            }
+            const auto window = LAPP.GetAppModel() ? LAPP.GetAppModel()->getWindow()->getSDLWindow() : nullptr;
+            const bool shown = SDL_ShowSimpleMessageBox(type, title, text, window);
+            lua_pushinteger(L, shown ? IDOK : 0);
             return 1;
         }
     };

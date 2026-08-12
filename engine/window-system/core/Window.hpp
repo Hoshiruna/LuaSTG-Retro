@@ -9,6 +9,7 @@ struct SDL_Window;
 
 namespace core
 {
+    // Window and display APIs are main-thread only.
     struct IWindowEventListener
     {
         virtual void onWindowCreate() {};
@@ -20,12 +21,14 @@ namespace core
         virtual void onWindowSize(Vector2U size) { (void)size; };
         virtual void onWindowPixelSize(Vector2U size) { (void)size; };
         virtual void onWindowMove(Vector2I position) { (void)position; };
+        virtual void onWindowDisplayChange() {};
         virtual void onWindowExposed() {};
         virtual void onWindowFullscreenStateChange(bool state) { (void)state; }
         virtual void onWindowDpiChange() {};
 
         virtual void onWindowClose() {};
 
+        virtual void onDisplayMove() {};
         virtual void onDeviceChange() {};
 
     };
@@ -62,12 +65,10 @@ namespace core
         virtual void addEventListener(IWindowEventListener * e) = 0;
         virtual void removeEventListener(IWindowEventListener * e) = 0;
 
-        virtual SDL_Window* getSDLWindow() const noexcept = 0;
+        virtual SDL_Window* getSDLWindow() const = 0;
 
         virtual void setIMEState(bool enable) = 0;
         virtual bool getIMEState() = 0;
-
-        // vvvvvvvv BEGIN WIP
 
         virtual void setInputMethodPosition(Vector2I position) = 0;
 
@@ -81,8 +82,6 @@ namespace core
         virtual void textInput_removeBufferRange(uint32_t code_point_index, uint32_t code_point_count) = 0;
         virtual void textInput_insertBufferRange(uint32_t code_point_index, StringView str) = 0;
         virtual void textInput_backspace(uint32_t code_point_count) = 0;
-
-        // ^^^^^^^^ END WIP
 
         virtual void setTitleText(StringView str) = 0;
         virtual StringView getTitleText() = 0;
@@ -103,9 +102,9 @@ namespace core
         virtual uint32_t getDPI() = 0;
         virtual float getDPIScaling() = 0;
 
-        virtual void setWindowMode(Vector2U size, WindowFrameStyle style = WindowFrameStyle::Normal, IDisplay* display = nullptr) = 0;
-        virtual void setFullScreenMode(IDisplay* display = nullptr) = 0;
-        virtual void setCentered(bool show, IDisplay* display = nullptr) = 0;
+        virtual bool setWindowMode(Vector2U size, WindowFrameStyle style = WindowFrameStyle::Normal, IDisplay* display = nullptr) = 0;
+        virtual bool setFullScreenMode(IDisplay* display = nullptr) = 0;
+        virtual bool setCentered(bool show, IDisplay* display = nullptr) = 0;
 
         virtual bool setCursor(WindowCursor type) = 0;
         virtual WindowCursor getCursor() = 0;
@@ -114,5 +113,5 @@ namespace core
         static bool create(Vector2U size, StringView title_text, WindowFrameStyle style, bool show, IWindow** pp_window);
     };
 
-    CORE_INTERFACE_ID(IWindow, "9432a56d-e3d2-5173-b313-a9581b373155")
+    CORE_INTERFACE_ID(IWindow, "7be6255c-08f5-5cd4-81d7-2f490256f2e9")
 }

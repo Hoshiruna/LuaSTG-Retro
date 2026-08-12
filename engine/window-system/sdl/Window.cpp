@@ -1,17 +1,36 @@
 #include "sdl/Window.hpp"
 #include "core/Configuration.hpp"
 #include "core/Logger.hpp"
-#include "core/SmartReference.hpp"
 #include "simdutf.h"
 #include <algorithm>
 #include <cassert>
+#include <climits>
 #include <functional>
 #include <stdexcept>
+#include <string_view>
 #include <unordered_map>
+#include <utility>
 
 namespace
 {
-    std::unordered_map<SDL_WindowID, core::Window*> windows;
+    std::unordered_map<SDL_WindowID, core::WindowSDL3*> windows;
+
+    bool requireMainThread(const std::string_view operation)
+    {
+        if(SDL_IsMainThread()) {
+            return true;
+        }
+        core::Logger::error("[sdl] {} must be called on the main thread", operation);
+        return false;
+    }
+
+    bool reportFailure(const bool result, const std::string_view operation)
+    {
+        if(!result) {
+            core::Logger::error("[sdl] {} failed: {}", operation, SDL_GetError());
+        }
+        return result;
+    }
 
     SDL_SystemCursor toSystemCursor(const core::WindowCursor cursor)
     {
@@ -62,13 +81,52 @@ namespace
                 return 0;
         }
     }
+
+    bool isDeviceChangeEvent(const Uint32 type)
+    {
+        switch(type) {
+            case SDL_EVENT_AUDIO_DEVICE_ADDED:
+            case SDL_EVENT_AUDIO_DEVICE_REMOVED:
+            case SDL_EVENT_AUDIO_DEVICE_FORMAT_CHANGED:
+            case SDL_EVENT_KEYBOARD_ADDED:
+            case SDL_EVENT_KEYBOARD_REMOVED:
+            case SDL_EVENT_MOUSE_ADDED:
+            case SDL_EVENT_MOUSE_REMOVED:
+            case SDL_EVENT_JOYSTICK_ADDED:
+            case SDL_EVENT_JOYSTICK_REMOVED:
+            case SDL_EVENT_GAMEPAD_ADDED:
+            case SDL_EVENT_GAMEPAD_REMOVED:
+            case SDL_EVENT_GAMEPAD_REMAPPED:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    std::vector<SDL_WindowID> getWindowIDs()
+    {
+        std::vector<SDL_WindowID> result;
+        result.reserve(windows.size());
+        for(const auto& [window_id, window] : windows) {
+            (void)window;
+            result.push_back(window_id);
+        }
+        return result;
+    }
 }
 
 namespace core
 {
-    Window::Window(const Vector2U size, const StringView title, const WindowFrameStyle style, const bool visible)
-        : m_title(title), m_style(style)
+    WindowSDL3::WindowSDL3(const Vector2U size, const StringView title, const WindowFrameStyle style, const bool visible)
+        : m_title(title), m_style(style), m_windowed_style(style), m_windowed_size(size)
     {
+        if(!requireMainThread("SDL_CreateWindow")) {
+            throw std::runtime_error("SDL window creation must run on the main thread");
+        }
+        if(size.x == 0 || size.y == 0 || size.x > static_cast<uint32_t>(INT_MAX) || size.y > static_cast<uint32_t>(INT_MAX)) {
+            Logger::error("[sdl] SDL_CreateWindow received an invalid size: {}x{}", size.x, size.y);
+            throw std::runtime_error("invalid SDL window size");
+        }
         m_window = SDL_CreateWindow(
             m_title.c_str(),
             static_cast<int>(size.x),
@@ -79,24 +137,66 @@ namespace core
             throw std::runtime_error("SDL_CreateWindow failed");
         }
 
-        windows.emplace(SDL_GetWindowID(m_window), this);
+        const SDL_WindowID id = SDL_GetWindowID(m_window);
+        if(id == 0) {
+            Logger::error("[sdl] SDL_GetWindowID failed: {}", SDL_GetError());
+            SDL_DestroyWindow(m_window);
+            m_window = nullptr;
+            throw std::runtime_error("SDL_GetWindowID failed");
+        }
+        windows.emplace(id, this);
         setCursor(WindowCursor::Arrow);
     }
 
-    Window::~Window()
+    WindowSDL3::~WindowSDL3()
     {
+        assert(SDL_IsMainThread());
+        requireMainThread("SDL_DestroyWindow");
         if(m_window != nullptr) {
-            dispatch([](IWindowEventListener& listener) { listener.onWindowDestroy(); });
+            try {
+                dispatch([](IWindowEventListener& listener) { listener.onWindowDestroy(); });
+            } catch(...) {
+                Logger::error("[sdl] A window listener threw during window destruction");
+            }
             windows.erase(SDL_GetWindowID(m_window));
         }
         if(m_cursor_handle != nullptr) {
-            SDL_DestroyCursor(m_cursor_handle);
+            bool can_destroy = true;
+            if(SDL_GetCursor() == m_cursor_handle && !SDL_SetCursor(SDL_GetDefaultCursor())) {
+                Logger::error("[sdl] SDL_SetCursor(default) failed during window destruction: {}", SDL_GetError());
+                can_destroy = false;
+            }
+            if(can_destroy) {
+                SDL_DestroyCursor(m_cursor_handle);
+            }
+            m_cursor_handle = nullptr;
         }
         SDL_DestroyWindow(m_window);
     }
 
-    void Window::dispatchSDLEvent(const SDL_Event& event)
+    void WindowSDL3::dispatchSDLEvent(const SDL_Event& event)
     {
+        if(!requireMainThread("SDL event dispatch")) {
+            return;
+        }
+        if(isDeviceChangeEvent(event.type) ||
+           (event.type >= SDL_EVENT_DISPLAY_FIRST && event.type <= SDL_EVENT_DISPLAY_LAST)) {
+            for(const SDL_WindowID window_id : getWindowIDs()) {
+                if(const auto it = windows.find(window_id); it != windows.end()) {
+                    if(isDeviceChangeEvent(event.type) || event.type == SDL_EVENT_DISPLAY_ADDED || event.type == SDL_EVENT_DISPLAY_REMOVED) {
+                        it->second->dispatch([](IWindowEventListener& listener) { listener.onDeviceChange(); });
+                    }
+                    if(event.type == SDL_EVENT_DISPLAY_MOVED) {
+                        it->second->dispatch([](IWindowEventListener& listener) { listener.onDisplayMove(); });
+                    }
+                    if(event.type == SDL_EVENT_DISPLAY_CONTENT_SCALE_CHANGED &&
+                       SDL_GetDisplayForWindow(it->second->m_window) == event.display.displayID) {
+                        it->second->dispatch([](IWindowEventListener& listener) { listener.onWindowDpiChange(); });
+                    }
+                }
+            }
+            return;
+        }
         const SDL_WindowID id = eventWindowID(event);
         if(id == 0) {
             return;
@@ -106,7 +206,7 @@ namespace core
         }
     }
 
-    void Window::handleEvent(const SDL_Event& event)
+    void WindowSDL3::handleEvent(const SDL_Event& event)
     {
         switch(event.type) {
             case SDL_EVENT_WINDOW_FOCUS_GAINED:
@@ -117,6 +217,9 @@ namespace core
                 break;
             case SDL_EVENT_WINDOW_RESIZED: {
                 const Vector2U size{ static_cast<uint32_t>(event.window.data1), static_cast<uint32_t>(event.window.data2) };
+                if(!m_fullscreen) {
+                    m_windowed_size = size;
+                }
                 dispatch([size](IWindowEventListener& listener) { listener.onWindowSize(size); });
                 break;
             }
@@ -137,7 +240,7 @@ namespace core
                 dispatch([](IWindowEventListener& listener) { listener.onWindowDpiChange(); });
                 break;
             case SDL_EVENT_WINDOW_DISPLAY_CHANGED:
-                dispatch([](IWindowEventListener& listener) { listener.onDeviceChange(); });
+                dispatch([](IWindowEventListener& listener) { listener.onWindowDisplayChange(); });
                 break;
             case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
                 dispatch([](IWindowEventListener& listener) { listener.onWindowClose(); });
@@ -158,7 +261,7 @@ namespace core
             case SDL_EVENT_KEY_DOWN:
                 if(!event.key.repeat && event.key.scancode == SDL_SCANCODE_RETURN && (event.key.mod & SDL_KMOD_ALT) != 0) {
                     if(m_fullscreen) {
-                        setWindowMode(getSize(), m_style, nullptr);
+                        setWindowMode(m_windowed_size, m_windowed_style, nullptr);
                     } else {
                         setFullScreenMode(nullptr);
                     }
@@ -169,24 +272,40 @@ namespace core
         }
     }
 
-    void Window::dispatch(const std::function<void(IWindowEventListener&)>& callback)
+    void WindowSDL3::dispatch(const std::function<void(IWindowEventListener&)>& callback)
     {
+        assert(SDL_IsMainThread());
         m_dispatching = true;
-        for(IWindowEventListener* listener : m_listeners) {
-            if(listener != nullptr) {
-                callback(*listener);
+        try {
+            for(IWindowEventListener* listener : m_listeners) {
+                if(listener != nullptr) {
+                    callback(*listener);
+                }
             }
+        } catch(...) {
+            m_dispatching = false;
+            std::erase(m_listeners, nullptr);
+            auto pending_listeners = std::move(m_pending_listeners);
+            m_pending_listeners.clear();
+            for(IWindowEventListener* listener : pending_listeners) {
+                addEventListener(listener);
+            }
+            throw;
         }
         m_dispatching = false;
         std::erase(m_listeners, nullptr);
-        for(IWindowEventListener* listener : m_pending_listeners) {
+        auto pending_listeners = std::move(m_pending_listeners);
+        m_pending_listeners.clear();
+        for(IWindowEventListener* listener : pending_listeners) {
             addEventListener(listener);
         }
-        m_pending_listeners.clear();
     }
 
-    void Window::addEventListener(IWindowEventListener* const listener)
+    void WindowSDL3::addEventListener(IWindowEventListener* const listener)
     {
+        if(!requireMainThread("IWindow::addEventListener")) {
+            return;
+        }
         removeEventListener(listener);
         if(m_dispatching) {
             m_pending_listeners.push_back(listener);
@@ -195,8 +314,11 @@ namespace core
         }
     }
 
-    void Window::removeEventListener(IWindowEventListener* const listener)
+    void WindowSDL3::removeEventListener(IWindowEventListener* const listener)
     {
+        if(!requireMainThread("IWindow::removeEventListener")) {
+            return;
+        }
         if(m_dispatching) {
             for(IWindowEventListener*& current : m_listeners) {
                 if(current == listener) {
@@ -209,18 +331,29 @@ namespace core
         std::erase(m_pending_listeners, listener);
     }
 
-    void Window::setIMEState(const bool enabled)
+    void WindowSDL3::setIMEState(const bool enabled)
     {
         textInput_setEnabled(enabled);
     }
 
-    bool Window::getIMEState()
+    bool WindowSDL3::getIMEState()
     {
         return textInput_isEnabled();
     }
 
-    void Window::setInputMethodPosition(const Vector2I position)
+    SDL_Window* WindowSDL3::getSDLWindow() const
     {
+        if(!requireMainThread("IWindow::getSDLWindow")) {
+            return nullptr;
+        }
+        return m_window;
+    }
+
+    void WindowSDL3::setInputMethodPosition(const Vector2I position)
+    {
+        if(!requireMainThread("SDL_SetTextInputArea")) {
+            return;
+        }
         m_text_input_position = position;
         const SDL_Rect area{ position.x, position.y, 1, 1 };
         if(!SDL_SetTextInputArea(m_window, &area, 0)) {
@@ -228,13 +361,19 @@ namespace core
         }
     }
 
-    bool Window::textInput_isEnabled()
+    bool WindowSDL3::textInput_isEnabled()
     {
+        if(!requireMainThread("IWindow::textInput_isEnabled")) {
+            return false;
+        }
         return m_text_input_enabled;
     }
 
-    void Window::textInput_setEnabled(const bool enabled)
+    void WindowSDL3::textInput_setEnabled(const bool enabled)
     {
+        if(!requireMainThread(enabled ? "SDL_StartTextInput" : "SDL_StopTextInput")) {
+            return;
+        }
         if(enabled == m_text_input_enabled) {
             return;
         }
@@ -249,30 +388,45 @@ namespace core
         }
     }
 
-    StringView Window::textInput_getBuffer()
+    StringView WindowSDL3::textInput_getBuffer()
     {
+        if(!requireMainThread("IWindow::textInput_getBuffer")) {
+            return {};
+        }
         return m_text_buffer_utf8;
     }
 
-    void Window::textInput_clearBuffer()
+    void WindowSDL3::textInput_clearBuffer()
     {
+        if(!requireMainThread("IWindow::textInput_clearBuffer")) {
+            return;
+        }
         m_text_buffer.clear();
         m_text_buffer_utf8.clear();
         m_text_cursor = 0;
     }
 
-    uint32_t Window::textInput_getCursorPosition()
+    uint32_t WindowSDL3::textInput_getCursorPosition()
     {
+        if(!requireMainThread("IWindow::textInput_getCursorPosition")) {
+            return 0;
+        }
         return m_text_cursor;
     }
 
-    void Window::textInput_setCursorPosition(const uint32_t position)
+    void WindowSDL3::textInput_setCursorPosition(const uint32_t position)
     {
+        if(!requireMainThread("IWindow::textInput_setCursorPosition")) {
+            return;
+        }
         m_text_cursor = std::min(position, static_cast<uint32_t>(m_text_buffer.size()));
     }
 
-    void Window::textInput_addCursorPosition(const int32_t offset)
+    void WindowSDL3::textInput_addCursorPosition(const int32_t offset)
     {
+        if(!requireMainThread("IWindow::textInput_addCursorPosition")) {
+            return;
+        }
         const int64_t position = std::clamp<int64_t>(
             static_cast<int64_t>(m_text_cursor) + offset,
             0,
@@ -280,8 +434,11 @@ namespace core
         m_text_cursor = static_cast<uint32_t>(position);
     }
 
-    void Window::textInput_removeBufferRange(const uint32_t position, const uint32_t count)
+    void WindowSDL3::textInput_removeBufferRange(const uint32_t position, const uint32_t count)
     {
+        if(!requireMainThread("IWindow::textInput_removeBufferRange")) {
+            return;
+        }
         if(position >= m_text_buffer.size()) {
             return;
         }
@@ -290,8 +447,11 @@ namespace core
         updateTextBuffer();
     }
 
-    void Window::textInput_insertBufferRange(const uint32_t position, const StringView text)
+    void WindowSDL3::textInput_insertBufferRange(const uint32_t position, const StringView text)
     {
+        if(!requireMainThread("IWindow::textInput_insertBufferRange")) {
+            return;
+        }
         if(!simdutf::validate_utf8(text.data(), text.size())) {
             return;
         }
@@ -303,57 +463,82 @@ namespace core
         updateTextBuffer();
     }
 
-    void Window::textInput_backspace(const uint32_t count)
+    void WindowSDL3::textInput_backspace(const uint32_t count)
     {
+        if(!requireMainThread("IWindow::textInput_backspace")) {
+            return;
+        }
         const uint32_t removed = std::min(count, m_text_cursor);
         m_text_cursor -= removed;
         m_text_buffer.erase(m_text_cursor, removed);
         updateTextBuffer();
     }
 
-    void Window::appendText(const StringView text)
+    void WindowSDL3::appendText(const StringView text)
     {
         textInput_insertBufferRange(m_text_cursor, text);
     }
 
-    void Window::updateTextBuffer()
+    void WindowSDL3::updateTextBuffer()
     {
         m_text_buffer_utf8.resize(simdutf::utf8_length_from_utf32(m_text_buffer.data(), m_text_buffer.size()));
         simdutf::convert_valid_utf32_to_utf8(m_text_buffer.data(), m_text_buffer.size(), m_text_buffer_utf8.data());
     }
 
-    void Window::setTitleText(const StringView text)
+    void WindowSDL3::setTitleText(const StringView text)
     {
-        m_title.assign(text);
-        if(!SDL_SetWindowTitle(m_window, m_title.c_str())) {
-            Logger::error("[sdl] SDL_SetWindowTitle failed: {}", SDL_GetError());
+        if(!requireMainThread("SDL_SetWindowTitle")) {
+            return;
         }
+        const std::string title(text);
+        if(!SDL_SetWindowTitle(m_window, title.c_str())) {
+            Logger::error("[sdl] SDL_SetWindowTitle failed: {}", SDL_GetError());
+            return;
+        }
+        m_title = title;
     }
 
-    StringView Window::getTitleText()
+    StringView WindowSDL3::getTitleText()
     {
+        if(!requireMainThread("IWindow::getTitleText")) {
+            return {};
+        }
         return m_title;
     }
 
-    bool Window::setFrameStyle(const WindowFrameStyle style)
+    bool WindowSDL3::setFrameStyle(const WindowFrameStyle style)
     {
+        if(!requireMainThread("SDL_SetWindowBordered/SDL_SetWindowResizable")) {
+            return false;
+        }
         const bool bordered = style != WindowFrameStyle::None;
         const bool resizable = style == WindowFrameStyle::Normal;
-        if(!SDL_SetWindowBordered(m_window, bordered) || !SDL_SetWindowResizable(m_window, resizable)) {
-            Logger::error("[sdl] Failed to change window frame style: {}", SDL_GetError());
+        if(!reportFailure(SDL_SetWindowBordered(m_window, bordered), "SDL_SetWindowBordered")) {
+            return false;
+        }
+        if(!reportFailure(SDL_SetWindowResizable(m_window, resizable), "SDL_SetWindowResizable")) {
             return false;
         }
         m_style = style;
+        if(!m_fullscreen) {
+            m_windowed_style = style;
+        }
         return true;
     }
 
-    WindowFrameStyle Window::getFrameStyle()
+    WindowFrameStyle WindowSDL3::getFrameStyle()
     {
+        if(!requireMainThread("IWindow::getFrameStyle")) {
+            return WindowFrameStyle::Normal;
+        }
         return m_style;
     }
 
-    Vector2U Window::getSize()
+    Vector2U WindowSDL3::getSize()
     {
+        if(!requireMainThread("SDL_GetWindowSize")) {
+            return {};
+        }
         int width{};
         int height{};
         if(!SDL_GetWindowSize(m_window, &width, &height)) {
@@ -362,8 +547,11 @@ namespace core
         return { static_cast<uint32_t>(std::max(width, 0)), static_cast<uint32_t>(std::max(height, 0)) };
     }
 
-    Vector2U Window::getPixelSize()
+    Vector2U WindowSDL3::getPixelSize()
     {
+        if(!requireMainThread("SDL_GetWindowSizeInPixels")) {
+            return {};
+        }
         int width{};
         int height{};
         if(!SDL_GetWindowSizeInPixels(m_window, &width, &height)) {
@@ -372,13 +560,29 @@ namespace core
         return { static_cast<uint32_t>(std::max(width, 0)), static_cast<uint32_t>(std::max(height, 0)) };
     }
 
-    bool Window::setSize(const Vector2U size)
+    bool WindowSDL3::setSize(const Vector2U size)
     {
-        return SDL_SetWindowSize(m_window, static_cast<int>(size.x), static_cast<int>(size.y));
+        if(!requireMainThread("SDL_SetWindowSize")) {
+            return false;
+        }
+        if(size.x == 0 || size.y == 0 || size.x > static_cast<uint32_t>(INT_MAX) || size.y > static_cast<uint32_t>(INT_MAX)) {
+            Logger::error("[sdl] SDL_SetWindowSize received an invalid size: {}x{}", size.x, size.y);
+            return false;
+        }
+        if(!reportFailure(SDL_SetWindowSize(m_window, static_cast<int>(size.x), static_cast<int>(size.y)), "SDL_SetWindowSize")) {
+            return false;
+        }
+        if(!m_fullscreen) {
+            m_windowed_size = size;
+        }
+        return true;
     }
 
-    Vector2I Window::getPosition()
+    Vector2I WindowSDL3::getPosition()
     {
+        if(!requireMainThread("SDL_GetWindowPosition")) {
+            return {};
+        }
         int x{};
         int y{};
         if(!SDL_GetWindowPosition(m_window, &x, &y)) {
@@ -387,79 +591,138 @@ namespace core
         return { x, y };
     }
 
-    bool Window::setPosition(const Vector2I position)
+    bool WindowSDL3::setPosition(const Vector2I position)
     {
-        return SDL_SetWindowPosition(m_window, position.x, position.y);
+        return requireMainThread("SDL_SetWindowPosition") &&
+               reportFailure(SDL_SetWindowPosition(m_window, position.x, position.y), "SDL_SetWindowPosition");
     }
 
-    bool Window::setVisible(const bool visible)
+    bool WindowSDL3::setVisible(const bool visible)
     {
-        return visible ? SDL_ShowWindow(m_window) : SDL_HideWindow(m_window);
+        if(!requireMainThread(visible ? "SDL_ShowWindow" : "SDL_HideWindow")) {
+            return false;
+        }
+        return reportFailure(visible ? SDL_ShowWindow(m_window) : SDL_HideWindow(m_window), visible ? "SDL_ShowWindow" : "SDL_HideWindow");
     }
 
-    bool Window::isVisible()
+    bool WindowSDL3::isVisible()
     {
+        if(!requireMainThread("SDL_GetWindowFlags")) {
+            return false;
+        }
         return (SDL_GetWindowFlags(m_window) & SDL_WINDOW_HIDDEN) == 0;
     }
 
-    bool Window::setAlwaysOnTop(const bool enabled)
+    bool WindowSDL3::setAlwaysOnTop(const bool enabled)
     {
-        return SDL_SetWindowAlwaysOnTop(m_window, enabled);
+        return requireMainThread("SDL_SetWindowAlwaysOnTop") &&
+               reportFailure(SDL_SetWindowAlwaysOnTop(m_window, enabled), "SDL_SetWindowAlwaysOnTop");
     }
 
-    bool Window::raise()
+    bool WindowSDL3::raise()
     {
-        return SDL_RaiseWindow(m_window);
+        return requireMainThread("SDL_RaiseWindow") && reportFailure(SDL_RaiseWindow(m_window), "SDL_RaiseWindow");
     }
 
-    uint32_t Window::getDPI()
+    uint32_t WindowSDL3::getDPI()
     {
         return static_cast<uint32_t>(96.0f * getDPIScaling() + 0.5f);
     }
 
-    float Window::getDPIScaling()
+    float WindowSDL3::getDPIScaling()
     {
+        if(!requireMainThread("SDL_GetWindowDisplayScale")) {
+            return 1.0f;
+        }
         const float scale = SDL_GetWindowDisplayScale(m_window);
-        return scale > 0.0f ? scale : 1.0f;
+        if(scale <= 0.0f) {
+            Logger::error("[sdl] SDL_GetWindowDisplayScale failed: {}", SDL_GetError());
+            return 1.0f;
+        }
+        return scale;
     }
 
-    void Window::setWindowMode(const Vector2U size, const WindowFrameStyle style, IDisplay* const display)
+    bool WindowSDL3::setWindowMode(const Vector2U size, const WindowFrameStyle style, IDisplay* const display)
     {
-        if(!SDL_SetWindowFullscreen(m_window, false)) {
-            Logger::error("[sdl] Failed to leave fullscreen mode: {}", SDL_GetError());
+        if(!requireMainThread("SDL_SetWindowFullscreen")) {
+            return false;
+        }
+        if((SDL_GetWindowFlags(m_window) & SDL_WINDOW_FULLSCREEN) != 0) {
+            if(!reportFailure(SDL_SetWindowFullscreen(m_window, false), "SDL_SetWindowFullscreen(false)")) {
+                return false;
+            }
+            if(!reportFailure(SDL_SyncWindow(m_window), "SDL_SyncWindow")) {
+                return false;
+            }
         }
         m_fullscreen = false;
-        setFrameStyle(style);
-        setSize(size);
-        setCentered(true, display);
+        m_windowed_size = size;
+        m_windowed_style = style;
+        return setFrameStyle(style) && setSize(size) && setCentered(true, display);
     }
 
-    void Window::setFullScreenMode(IDisplay* const display)
+    bool WindowSDL3::setFullScreenMode(IDisplay* const display)
     {
+        if(!requireMainThread("SDL_SetWindowFullscreen")) {
+            return false;
+        }
+        if(!m_fullscreen) {
+            m_windowed_size = getSize();
+            m_windowed_style = m_style;
+        }
         if(display != nullptr) {
             const SDL_DisplayID id = display->getSDLDisplayID();
-            SDL_SetWindowPosition(m_window, SDL_WINDOWPOS_CENTERED_DISPLAY(id), SDL_WINDOWPOS_CENTERED_DISPLAY(id));
+            if(!reportFailure(
+                SDL_SetWindowPosition(m_window, SDL_WINDOWPOS_CENTERED_DISPLAY(id), SDL_WINDOWPOS_CENTERED_DISPLAY(id)),
+                "SDL_SetWindowPosition")) {
+                return false;
+            }
         }
-        if(!SDL_SetWindowFullscreen(m_window, true)) {
-            Logger::error("[sdl] Failed to enter fullscreen mode: {}", SDL_GetError());
+        if(!reportFailure(SDL_SetWindowFullscreenMode(m_window, nullptr), "SDL_SetWindowFullscreenMode")) {
+            return false;
         }
+        if(!reportFailure(SDL_SetWindowFullscreen(m_window, true), "SDL_SetWindowFullscreen(true)")) {
+            return false;
+        }
+        m_fullscreen = true;
+        return reportFailure(SDL_SyncWindow(m_window), "SDL_SyncWindow");
     }
 
-    void Window::setCentered(const bool visible, IDisplay* display)
+    bool WindowSDL3::setCentered(const bool visible, IDisplay* display)
     {
-        SmartReference<IDisplay> nearest;
-        if(display == nullptr && IDisplay::getNearestFromWindow(this, nearest.put())) {
-            display = nearest.get();
+        if(!requireMainThread("SDL_SetWindowPosition")) {
+            return false;
         }
-        const SDL_DisplayID id = display != nullptr ? display->getSDLDisplayID() : SDL_GetPrimaryDisplay();
-        SDL_SetWindowPosition(m_window, SDL_WINDOWPOS_CENTERED_DISPLAY(id), SDL_WINDOWPOS_CENTERED_DISPLAY(id));
+        SDL_DisplayID id{};
+        if(display != nullptr) {
+            id = display->getSDLDisplayID();
+        } else {
+            id = SDL_GetDisplayForWindow(m_window);
+            if(id == 0) {
+                Logger::error("[sdl] SDL_GetDisplayForWindow failed: {}", SDL_GetError());
+                id = SDL_GetPrimaryDisplay();
+            }
+        }
+        if(id == 0) {
+            Logger::error("[sdl] SDL_GetPrimaryDisplay failed: {}", SDL_GetError());
+            return false;
+        }
+        if(!reportFailure(
+            SDL_SetWindowPosition(m_window, SDL_WINDOWPOS_CENTERED_DISPLAY(id), SDL_WINDOWPOS_CENTERED_DISPLAY(id)),
+            "SDL_SetWindowPosition")) {
+            return false;
+        }
         if(visible) {
-            setVisible(true);
+            return setVisible(true);
         }
+        return true;
     }
 
-    bool Window::setCursor(const WindowCursor type)
+    bool WindowSDL3::setCursor(const WindowCursor type)
     {
+        if(!requireMainThread("SDL_SetCursor")) {
+            return false;
+        }
         if(type == WindowCursor::None) {
             if(!SDL_HideCursor()) {
                 Logger::error("[sdl] SDL_HideCursor failed: {}", SDL_GetError());
@@ -474,20 +737,39 @@ namespace core
             Logger::error("[sdl] SDL_CreateSystemCursor failed: {}", SDL_GetError());
             return false;
         }
+        if(!SDL_SetCursor(cursor)) {
+            Logger::error("[sdl] SDL_SetCursor failed: {}", SDL_GetError());
+            SDL_DestroyCursor(cursor);
+            return false;
+        }
+        if(!SDL_ShowCursor()) {
+            Logger::error("[sdl] SDL_ShowCursor failed: {}", SDL_GetError());
+            SDL_Cursor* const previous = m_cursor_handle != nullptr ? m_cursor_handle : SDL_GetDefaultCursor();
+            if(SDL_SetCursor(previous)) {
+                SDL_DestroyCursor(cursor);
+            } else {
+                Logger::error("[sdl] Failed to restore the previous cursor: {}", SDL_GetError());
+                if(m_cursor_handle != nullptr) {
+                    SDL_DestroyCursor(m_cursor_handle);
+                }
+                m_cursor_handle = cursor;
+                m_cursor = type;
+            }
+            return false;
+        }
         if(m_cursor_handle != nullptr) {
             SDL_DestroyCursor(m_cursor_handle);
         }
         m_cursor_handle = cursor;
-        if(!SDL_SetCursor(m_cursor_handle) || !SDL_ShowCursor()) {
-            Logger::error("[sdl] Failed to set cursor: {}", SDL_GetError());
-            return false;
-        }
         m_cursor = type;
         return true;
     }
 
-    WindowCursor Window::getCursor()
+    WindowCursor WindowSDL3::getCursor()
     {
+        if(!requireMainThread("IWindow::getCursor")) {
+            return WindowCursor::Arrow;
+        }
         return m_cursor;
     }
 }
@@ -501,7 +783,7 @@ namespace core
             const auto& window_config = ConfigurationLoader::getInstance().getWindow();
             const auto& graphics_config = ConfigurationLoader::getInstance().getGraphicsSystem();
             const StringView title = window_config.hasTitle() ? window_config.getTitle() : "LuaSTG Retro";
-            auto* const window = new Window(
+            auto* const window = new WindowSDL3(
                 { graphics_config.getWidth(), graphics_config.getHeight() },
                 title,
                 WindowFrameStyle::Normal,
@@ -519,7 +801,7 @@ namespace core
     {
         assert(output != nullptr);
         try {
-            *output = new Window(size, title, style, visible);
+            *output = new WindowSDL3(size, title, style, visible);
             return true;
         } catch(...) {
             *output = nullptr;

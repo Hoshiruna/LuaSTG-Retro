@@ -44,8 +44,10 @@ namespace
                 return false;
             }
 
-            m_window->setWindowMode(core::Vector2U(640, 480));
-            m_swap_chain->setWindowMode(core::Vector2U(640, 480));
+            if(!m_window->setWindowMode(core::Vector2U(640, 480)) ||
+               !m_swap_chain->setWindowMode(core::Vector2U(640, 480))) {
+                return false;
+            }
 
             if(!createResources()) {
                 return false;

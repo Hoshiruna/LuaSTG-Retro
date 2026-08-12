@@ -61,7 +61,7 @@ void
 AppFrame::SetSplash(bool v) noexcept
 {
     if(m_pAppModel) {
-        m_pAppModel->getWindow()->setCursor(v ? core::Graphics::WindowCursor::Arrow : core::Graphics::WindowCursor::None);
+        m_pAppModel->getWindow()->setCursor(v ? core::WindowCursor::Arrow : core::WindowCursor::None);
     } else {
         auto& win = core::ConfigurationLoader::getInstance().getWindowRef();
         win.setCursorVisible(v);
@@ -177,24 +177,6 @@ AppFrame::Init() noexcept
 
         OpenInput();
 
-        // Creating controller input
-        try {
-            m_DirectInput = std::make_unique<Platform::DirectInput>((ptrdiff_t)m_pAppModel->getWindow()->getNativeHandle());
-            {
-                m_DirectInput->refresh(); // Since the window has not been shown yet, an Acquire device failure may occur and can be ignored.
-                uint32_t cnt = m_DirectInput->count();
-                for(uint32_t i = 0; i < cnt; i += 1) {
-                    spdlog::info("[luastg] Detected {} controller(s), product name: {}, device name: {}",
-                        m_DirectInput->isXInputDevice(i) ? "XInput" : "DirectInput",
-                        utf8::to_string(m_DirectInput->getProductName(i)),
-                        utf8::to_string(m_DirectInput->getDeviceName(i)));
-                }
-                spdlog::info("[luastg] Successfully created {} controller(s)", cnt);
-            }
-        } catch(const std::bad_alloc&) {
-            spdlog::error("[luastg] Failed to allocate memory for DirectInput");
-        }
-
         // Initializing ImGui
 #ifdef USING_DEAR_IMGUI
         imgui::bindEngine();
@@ -285,18 +267,6 @@ void
 AppFrame::onWindowCreate()
 {
     OpenInput();
-    m_DirectInput = std::make_unique<Platform::DirectInput>((ptrdiff_t)m_pAppModel->getWindow()->getNativeHandle());
-    {
-        m_DirectInput->refresh(); // Since the window has not been shown yet, an Acquire device failure may occur and can be ignored.
-        uint32_t cnt = m_DirectInput->count();
-        for(uint32_t i = 0; i < cnt; i += 1) {
-            spdlog::info("[luastg] Detected {} controller(s), product name: {}, device name: {}",
-                m_DirectInput->isXInputDevice(i) ? "XInput" : "DirectInput",
-                utf8::to_string(m_DirectInput->getProductName(i)),
-                utf8::to_string(m_DirectInput->getDeviceName(i)));
-        }
-        spdlog::info("[luastg] Successfully created {} controller(s)", cnt);
-    }
 }
 void
 AppFrame::onWindowDestroy()
@@ -315,11 +285,6 @@ AppFrame::onWindowInactive()
 {
     Platform::XInput::setEnable(false);
     m_window_active_changed.fetch_or(0x2);
-}
-void
-AppFrame::onWindowSize(core::Vector2U size)
-{
-    m_win32_window_size = size;
 }
 void
 AppFrame::onDeviceChange()

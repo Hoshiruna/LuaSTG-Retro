@@ -42,7 +42,7 @@ namespace luastg
     /// @brief 应用程序框架
     class AppFrame
         : public core::IApplicationEventListener,
-          public core::Graphics::IWindowEventListener,
+          public core::IWindowEventListener,
           public core::Graphics::ISwapChainEventListener,
           public IRenderTargetManager
     {
@@ -266,13 +266,11 @@ namespace luastg
 
     protected:
         std::atomic_int m_window_active_changed{ 0 };
-        core::Vector2U m_win32_window_size;
 
         void onWindowCreate() override;
         void onWindowDestroy() override;
         void onWindowActive() override;
         void onWindowInactive() override;
-        void onWindowSize(core::Vector2U size) override;
         void onDeviceChange() override;
 
         bool onUpdate() override;

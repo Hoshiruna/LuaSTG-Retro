@@ -4,7 +4,6 @@
 #include "core/implement/ReferenceCounted.hpp"
 #include "d3d11/GraphicsDevice.hpp"
 #include "d3d11/LetterBoxingRenderer.hpp"
-#include "d3d11/SecondarySwapChain.hpp"
 #include "windows/RuntimeLoader/DirectComposition.hpp"
 #include <wil/resource.h>
 
@@ -45,7 +44,7 @@ namespace core
 
         void onWindowActive() override;
         void onWindowInactive() override;
-        void onWindowSize(Vector2U size) override;
+        void onWindowPixelSize(Vector2U size) override;
         void onWindowFullscreenStateChange(bool state) override;
 
         // IGraphicsDeviceEventListener
@@ -105,10 +104,6 @@ namespace core
         bool commitComposition();
         bool updateCompositionTransform();
 
-        // custom title bar
-
-        bool presentTitleBar();
-
         // dependencies
 
         SmartReference<IWindow> m_window;
@@ -161,18 +156,5 @@ namespace core
         bool m_force_composition{};
         bool m_allow_composition{};
 
-        // Direct2D
-
-#ifdef LUASTG_ENABLE_DIRECT2D
-        win32::com_ptr<ID2D1Bitmap1> m_swap_chain_bitmap;
-#endif
-
-        // custom title bar
-
-#ifdef LUASTG_ENABLE_DIRECT2D
-        win32::com_ptr<IDCompositionVisual2> m_composition_visual_title_bar;
-        SecondarySwapChain m_swap_chain_title_bar;
-        bool m_is_title_bar_attached{};
-#endif
     };
 }

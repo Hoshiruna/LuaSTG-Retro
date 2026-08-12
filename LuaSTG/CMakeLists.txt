@@ -230,7 +230,7 @@ target_link_libraries(LuaSTG PRIVATE
     lua_luasql_sqlite3
     #lua_xlsx_csv
     lua_imgui
-    imgui_impl_win32ex
+    imgui_impl_sdl3
     imgui_impl_dx11
     lua_steam_api
     TracyAPI

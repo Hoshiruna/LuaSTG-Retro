@@ -1,7 +1,7 @@
 #pragma once
 #include "core/implement/ReferenceCounted.hpp"
 #include "Core/ApplicationModel.hpp"
-#include "Core/Graphics/Window.hpp"
+#include "core/Window.hpp"
 #include "core/SdlRuntime.hpp"
 #include "Core/Graphics/Direct3D11/Device.hpp"
 #include "Core/Graphics/SwapChain_D3D11.hpp"
@@ -373,10 +373,10 @@ namespace core
     class ApplicationModel_Win32 : public implement::ReferenceCounted<IApplicationModel>
     {
     private:
-        // 多个线程共享
+        // 主线程拥有窗口和事件循环
 
         SdlRuntime m_sdl_runtime;
-        SmartReference<Graphics::IWindow> m_window;
+        SmartReference<IWindow> m_window;
         std::atomic_bool m_exit_flag{};
         bool m_running{};
         bool m_updating{};
@@ -406,9 +406,9 @@ namespace core
         void runFrame();
 
     public:
-        // 多个线程共享
+        // 主线程
 
-        Graphics::IWindow* getWindow() { return *m_window; }
+        IWindow* getWindow() { return *m_window; }
         void requestExit();
 
         // 仅限工作线程

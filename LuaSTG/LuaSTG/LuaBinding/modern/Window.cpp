@@ -2,7 +2,6 @@
 #include "Window.hpp"
 #include "lua/plus.hpp"
 #include "AppFrame.h"
-#include "Platform/WindowsVersion.hpp"
 
 static void
 pushSize(lua_State* L, lua_Number const width, lua_Number const height)
@@ -11,6 +10,15 @@ pushSize(lua_State* L, lua_Number const width, lua_Number const height)
     auto const index = S.create_map(2);
     S.set_map_value(index, "width", width);
     S.set_map_value(index, "height", height);
+}
+
+static void
+pushPoint(lua_State* L, lua_Number const x, lua_Number const y)
+{
+    lua::stack_t S(L);
+    auto const index = S.create_map(2);
+    S.set_map_value(index, "x", x);
+    S.set_map_value(index, "y", y);
 }
 
 static int
@@ -78,11 +86,51 @@ namespace luastg::binding
             return 0;
         }
 
-        static int getClientAreaSize(lua_State* L)
+        static int getTitle(lua_State* L)
         {
             auto self = as(L, 1);
-            auto const size = self->data->_getCurrentSize();
+            lua::stack_t S(L);
+            S.push_value(self->data->getTitleText());
+            return 1;
+        }
+
+        static int getSize(lua_State* L)
+        {
+            auto self = as(L, 1);
+            auto const size = self->data->getSize();
             pushSize(L, size.x, size.y);
+            return 1;
+        }
+
+        static int getPixelSize(lua_State* L)
+        {
+            auto self = as(L, 1);
+            auto const size = self->data->getPixelSize();
+            pushSize(L, size.x, size.y);
+            return 1;
+        }
+
+        static int setSize(lua_State* L)
+        {
+            auto self = as(L, 1);
+            lua::stack_t S(L);
+            S.push_value(self->data->setSize({ S.get_value<uint32_t>(2), S.get_value<uint32_t>(3) }));
+            return 1;
+        }
+
+        static int getPosition(lua_State* L)
+        {
+            auto self = as(L, 1);
+            auto const position = self->data->getPosition();
+            pushPoint(L, position.x, position.y);
+            return 1;
+        }
+
+        static int setPosition(lua_State* L)
+        {
+            auto self = as(L, 1);
+            lua::stack_t S(L);
+            S.push_value(self->data->setPosition({ S.get_value<int32_t>(2), S.get_value<int32_t>(3) }));
             return 1;
         }
 
@@ -92,6 +140,58 @@ namespace luastg::binding
             lua::stack_t S(L);
             auto const style = self->data->getFrameStyle();
             S.push_value(static_cast<int32_t>(style));
+            return 1;
+        }
+
+        static int setStyle(lua_State* L)
+        {
+            auto self = as(L, 1);
+            lua::stack_t S(L);
+            S.push_value(self->data->setFrameStyle(static_cast<core::WindowFrameStyle>(S.get_value<int32_t>(2))));
+            return 1;
+        }
+
+        static int isVisible(lua_State* L)
+        {
+            auto self = as(L, 1);
+            lua::stack_t S(L);
+            S.push_value(self->data->isVisible());
+            return 1;
+        }
+
+        static int setVisible(lua_State* L)
+        {
+            auto self = as(L, 1);
+            lua::stack_t S(L);
+            S.push_value(self->data->setVisible(S.get_value<bool>(2)));
+            return 1;
+        }
+
+        static int setAlwaysOnTop(lua_State* L)
+        {
+            auto self = as(L, 1);
+            lua::stack_t S(L);
+            S.push_value(self->data->setAlwaysOnTop(S.get_value<bool>(2)));
+            return 1;
+        }
+
+        static int raise(lua_State* L)
+        {
+            auto self = as(L, 1);
+            lua::stack_t S(L);
+            S.push_value(self->data->raise());
+            return 1;
+        }
+
+        static int setCentered(lua_State* L)
+        {
+            auto self = as(L, 1);
+            lua::stack_t S(L);
+            if(Display::is(L, 2)) {
+                S.push_value(self->data->setCentered(true, Display::as(L, 2)->data));
+            } else {
+                S.push_value(self->data->setCentered(true));
+            }
             return 1;
         }
 
@@ -112,15 +212,15 @@ namespace luastg::binding
             auto const size = core::Vector2U(width, height);
             auto style = self->data->getFrameStyle();
             if(S.is_number(4)) {
-                style = static_cast<core::Graphics::WindowFrameStyle>(S.get_value<int32_t>(4));
+                style = static_cast<core::WindowFrameStyle>(S.get_value<int32_t>(4));
             }
             if(Display::is(L, 5)) {
                 auto display = Display::as(L, 5);
-                self->data->setWindowMode(size, style, display->data);
+                S.push_value(self->data->setWindowMode(size, style, display->data));
             } else {
-                self->data->setWindowMode(size, style);
+                S.push_value(self->data->setWindowMode(size, style));
             }
-            return 0;
+            return 1;
         }
 
         static int setFullscreen(lua_State* L)
@@ -129,18 +229,18 @@ namespace luastg::binding
             lua::stack_t S(L);
             if(Display::is(L, 2)) {
                 auto display = Display::as(L, 2);
-                self->data->setFullScreenMode(display->data);
+                S.push_value(self->data->setFullScreenMode(display->data));
             } else {
-                self->data->setFullScreenMode();
+                S.push_value(self->data->setFullScreenMode());
             }
-            return 0;
+            return 1;
         }
 
         static int getCursorVisibility(lua_State* L)
         {
             auto self = as(L, 1);
             lua::stack_t S(L);
-            S.push_value(self->data->getCursor() != core::Graphics::WindowCursor::None);
+            S.push_value(self->data->getCursor() != core::WindowCursor::None);
             return 1;
         }
 
@@ -149,8 +249,24 @@ namespace luastg::binding
             auto self = as(L, 1);
             lua::stack_t S(L);
             auto const visible = S.get_value<bool>(2);
-            self->data->setCursor(visible ? core::Graphics::WindowCursor::Arrow : core::Graphics::WindowCursor::None);
+            self->data->setCursor(visible ? core::WindowCursor::Arrow : core::WindowCursor::None);
             return 0;
+        }
+
+        static int getCursor(lua_State* L)
+        {
+            auto self = as(L, 1);
+            lua::stack_t S(L);
+            S.push_value(static_cast<int32_t>(self->data->getCursor()));
+            return 1;
+        }
+
+        static int setCursor(lua_State* L)
+        {
+            auto self = as(L, 1);
+            lua::stack_t S(L);
+            S.push_value(self->data->setCursor(static_cast<core::WindowCursor>(S.get_value<int32_t>(2))));
+            return 1;
         }
 
         // extension
@@ -171,14 +287,6 @@ namespace luastg::binding
                 ext->data = self->data;
                 ext->data->retain();
                 return 1;
-            }
-            if(name == Window_Windows11Extension::class_name) {
-                if(Platform::WindowsVersion::Is11()) {
-                    auto ext = Window_Windows11Extension::create(L);
-                    ext->data = self->data;
-                    ext->data->retain();
-                    return 1;
-                }
             }
             S.push_value(std::nullopt);
             return 1;
@@ -225,22 +333,51 @@ namespace luastg::binding
 
         {
             auto const e = S.create_module("lstg.Window.FrameStyle");
-            S.set_map_value(e, "borderless", static_cast<int32_t>(core::Graphics::WindowFrameStyle::None));
-            S.set_map_value(e, "fixed", static_cast<int32_t>(core::Graphics::WindowFrameStyle::Fixed));
-            S.set_map_value(e, "normal", static_cast<int32_t>(core::Graphics::WindowFrameStyle::Normal));
+            S.set_map_value(e, "borderless", static_cast<int32_t>(core::WindowFrameStyle::None));
+            S.set_map_value(e, "fixed", static_cast<int32_t>(core::WindowFrameStyle::Fixed));
+            S.set_map_value(e, "normal", static_cast<int32_t>(core::WindowFrameStyle::Normal));
+        }
+
+        {
+            auto const e = S.create_module("lstg.Window.Cursor");
+            S.set_map_value(e, "none", static_cast<int32_t>(core::WindowCursor::None));
+            S.set_map_value(e, "arrow", static_cast<int32_t>(core::WindowCursor::Arrow));
+            S.set_map_value(e, "hand", static_cast<int32_t>(core::WindowCursor::Hand));
+            S.set_map_value(e, "cross", static_cast<int32_t>(core::WindowCursor::Cross));
+            S.set_map_value(e, "text_input", static_cast<int32_t>(core::WindowCursor::TextInput));
+            S.set_map_value(e, "resize", static_cast<int32_t>(core::WindowCursor::Resize));
+            S.set_map_value(e, "resize_ew", static_cast<int32_t>(core::WindowCursor::ResizeEW));
+            S.set_map_value(e, "resize_ns", static_cast<int32_t>(core::WindowCursor::ResizeNS));
+            S.set_map_value(e, "resize_nesw", static_cast<int32_t>(core::WindowCursor::ResizeNESW));
+            S.set_map_value(e, "resize_nwse", static_cast<int32_t>(core::WindowCursor::ResizeNWSE));
+            S.set_map_value(e, "not_allowed", static_cast<int32_t>(core::WindowCursor::NotAllowed));
+            S.set_map_value(e, "wait", static_cast<int32_t>(core::WindowCursor::Wait));
         }
 
         // method
 
         auto const method_table = S.create_module(class_name);
         S.set_map_value(method_table, "setTitle", &WindowBinding::setTitle);
-        S.set_map_value(method_table, "getClientAreaSize", &WindowBinding::getClientAreaSize);
+        S.set_map_value(method_table, "getTitle", &WindowBinding::getTitle);
+        S.set_map_value(method_table, "getSize", &WindowBinding::getSize);
+        S.set_map_value(method_table, "getPixelSize", &WindowBinding::getPixelSize);
+        S.set_map_value(method_table, "setSize", &WindowBinding::setSize);
+        S.set_map_value(method_table, "getPosition", &WindowBinding::getPosition);
+        S.set_map_value(method_table, "setPosition", &WindowBinding::setPosition);
         S.set_map_value(method_table, "getStyle", &WindowBinding::getStyle);
+        S.set_map_value(method_table, "setStyle", &WindowBinding::setStyle);
+        S.set_map_value(method_table, "isVisible", &WindowBinding::isVisible);
+        S.set_map_value(method_table, "setVisible", &WindowBinding::setVisible);
+        S.set_map_value(method_table, "setAlwaysOnTop", &WindowBinding::setAlwaysOnTop);
+        S.set_map_value(method_table, "raise", &WindowBinding::raise);
+        S.set_map_value(method_table, "setCentered", &WindowBinding::setCentered);
         S.set_map_value(method_table, "getDisplayScale", &WindowBinding::getDisplayScale);
         S.set_map_value(method_table, "setWindowed", &WindowBinding::setWindowed);
         S.set_map_value(method_table, "setFullscreen", &WindowBinding::setFullscreen);
         S.set_map_value(method_table, "getCursorVisibility", &WindowBinding::getCursorVisibility);
         S.set_map_value(method_table, "setCursorVisibility", &WindowBinding::setCursorVisibility);
+        S.set_map_value(method_table, "getCursor", &WindowBinding::getCursor);
+        S.set_map_value(method_table, "setCursor", &WindowBinding::setCursor);
         S.set_map_value(method_table, "queryInterface", &WindowBinding::queryInterface);
         S.set_map_value(method_table, "getMain", &WindowBinding::getMain);
 
@@ -531,110 +668,6 @@ namespace luastg::binding
         auto const metatable = S.create_metatable(class_name);
         S.set_map_value(metatable, "__gc", &TextInputExtBinding::__gc);
         S.set_map_value(metatable, "__tostring", &TextInputExtBinding::__tostring);
-        S.set_map_value(metatable, "__index", method_table);
-    }
-
-}
-
-namespace luastg::binding
-{
-
-    std::string_view Window_Windows11Extension::class_name{ "lstg.Window.Windows11Extension" };
-
-    struct Win11ExtBinding : public Window_Windows11Extension
-    {
-
-        // meta methods
-
-        static int __gc(lua_State* L)
-        {
-            auto self = as(L, 1);
-            if(self->data) {
-                self->data->release();
-                self->data = nullptr;
-            }
-            return 0;
-        }
-
-        static int __tostring(lua_State* L)
-        {
-            lua::stack_t S(L);
-            [[maybe_unused]] auto self = as(L, 1);
-            S.push_value(class_name);
-            return 1;
-        }
-
-        static int __eq(lua_State* L)
-        {
-            lua::stack_t S(L);
-            auto self = as(L, 1);
-            if(is(L, 2)) {
-                auto other = as(L, 2);
-                S.push_value(self->data == other->data);
-            } else {
-                S.push_value(false);
-            }
-            return 1;
-        }
-
-        // instance methods
-
-        static int setWindowCornerPreference(lua_State* L)
-        {
-            auto self = as(L, 1);
-            lua::stack_t S(L);
-            auto const allow = S.get_value<bool>(2);
-            self->data->setWindowCornerPreference(allow);
-            return 0;
-        }
-
-        static int setTitleBarAutoHidePreference(lua_State* L)
-        {
-            auto self = as(L, 1);
-            lua::stack_t S(L);
-            auto const allow = S.get_value<bool>(2);
-            self->data->setTitleBarAutoHidePreference(allow);
-            return 0;
-        }
-    };
-
-    bool Window_Windows11Extension::is(lua_State* L, int index)
-    {
-        return nullptr != luaL_testudata(L, index, class_name.data());
-    }
-
-    Window_Windows11Extension* Window_Windows11Extension::as(lua_State* L, int index)
-    {
-        return static_cast<Window_Windows11Extension*>(luaL_checkudata(L, index, class_name.data()));
-    }
-
-    Window_Windows11Extension* Window_Windows11Extension::create(lua_State* L)
-    {
-        lua::stack_t S(L);
-        auto self = S.create_userdata<Window_Windows11Extension>();
-        auto const self_index = S.index_of_top();
-        S.set_metatable(self_index, class_name);
-        self->data = nullptr;
-        return self;
-    }
-
-    void Window_Windows11Extension::registerClass(lua_State* L)
-    {
-        [[maybe_unused]] lua::stack_balancer_t SB(L);
-        lua::stack_t S(L);
-
-        // method
-
-        auto const method_table = S.create_module(class_name);
-        S.set_map_value(method_table, "setWindowCornerPreference", &Win11ExtBinding::setWindowCornerPreference);
-        S.set_map_value(method_table, "setTitleBarAutoHidePreference", &Win11ExtBinding::setTitleBarAutoHidePreference);
-
-        // metatable
-
-        auto const metatable = S.create_metatable(class_name);
-        S.set_map_value(metatable, "__gc", &Win11ExtBinding::__gc);
-        S.set_map_value(metatable, "__tostring", &Win11ExtBinding::__tostring);
-        S.set_map_value(metatable, "__eq", &Win11ExtBinding::__eq);
         S.set_map_value(metatable, "__index", method_table);
     }
 

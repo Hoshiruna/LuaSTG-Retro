@@ -8,18 +8,18 @@
 
 namespace core
 {
-    class Window final : public implement::ReferenceCounted<IWindow>
+    class WindowSDL3 final : public implement::ReferenceCounted<IWindow>
     {
     public:
-        Window(Vector2U size, StringView title, WindowFrameStyle style, bool visible);
-        ~Window() override;
+        WindowSDL3(Vector2U size, StringView title, WindowFrameStyle style, bool visible);
+        ~WindowSDL3() override;
 
         static void dispatchSDLEvent(const SDL_Event& event);
 
         void addEventListener(IWindowEventListener* listener) override;
         void removeEventListener(IWindowEventListener* listener) override;
 
-        SDL_Window* getSDLWindow() const noexcept override { return m_window; }
+        SDL_Window* getSDLWindow() const override;
 
         void setIMEState(bool enabled) override;
         bool getIMEState() override;
@@ -51,9 +51,9 @@ namespace core
         bool raise() override;
         uint32_t getDPI() override;
         float getDPIScaling() override;
-        void setWindowMode(Vector2U size, WindowFrameStyle style, IDisplay* display) override;
-        void setFullScreenMode(IDisplay* display) override;
-        void setCentered(bool visible, IDisplay* display) override;
+        bool setWindowMode(Vector2U size, WindowFrameStyle style, IDisplay* display) override;
+        bool setFullScreenMode(IDisplay* display) override;
+        bool setCentered(bool visible, IDisplay* display) override;
         bool setCursor(WindowCursor type) override;
         WindowCursor getCursor() override;
 
@@ -67,7 +67,9 @@ namespace core
         SDL_Cursor* m_cursor_handle{};
         std::string m_title;
         WindowFrameStyle m_style{ WindowFrameStyle::Normal };
+        WindowFrameStyle m_windowed_style{ WindowFrameStyle::Normal };
         WindowCursor m_cursor{ WindowCursor::Arrow };
+        Vector2U m_windowed_size{};
         bool m_fullscreen{};
         bool m_dispatching{};
         std::vector<IWindowEventListener*> m_listeners;

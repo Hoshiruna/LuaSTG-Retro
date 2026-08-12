@@ -12,9 +12,7 @@ namespace luastg
         swapchain->setVSync(vsync);
         bool const result = swapchain->setCanvasSize(window_size);
 
-        window->setWindowMode(window_size);
-
-        return result;
+        return result && window->setWindowMode(window_size);
     }
 
     // TODO: 废弃
@@ -26,10 +24,7 @@ namespace luastg
         swapchain->setVSync(vsync);
         bool const result = swapchain->setCanvasSize(window_size);
 
-        window->setWindowMode(window_size);
-        window->setFullScreenMode();
-
-        return result;
+        return result && window->setWindowMode(window_size) && window->setFullScreenMode();
     }
 
     bool AppFrame::InitializationApplySettingStage1()
@@ -44,8 +39,10 @@ namespace luastg
             auto const& gs = core::ConfigurationLoader::getInstance().getGraphicsSystem();
             auto const& win = core::ConfigurationLoader::getInstance().getWindow();
             auto* p_window = m_pAppModel->getWindow();
-            p_window->setCursor(win.isCursorVisible() ? core::Graphics::WindowCursor::Arrow : core::Graphics::WindowCursor::None);
-            p_window->setWindowMode(core::Vector2U(gs.getWidth(), gs.getHeight()));
+            p_window->setCursor(win.isCursorVisible() ? core::WindowCursor::Arrow : core::WindowCursor::None);
+            if(!p_window->setWindowMode(core::Vector2U(gs.getWidth(), gs.getHeight()))) {
+                return false;
+            }
         }
         // 配置音频。设备 ID 只在一次枚举周期内使用，持久配置保存可读名称。
         {
@@ -79,7 +76,9 @@ namespace luastg
             return false;
         }
         if(gs.isFullscreen()) {
-            p_window->setFullScreenMode();
+            if(!p_window->setFullScreenMode()) {
+                return false;
+            }
         }
         return true;
     }

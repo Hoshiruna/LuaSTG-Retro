@@ -8,9 +8,10 @@ namespace core
 {
     CORE_INTERFACE IWindow;
 
+    // Window and display APIs are main-thread only.
     CORE_INTERFACE IDisplay : IReferenceCounted
     {
-        virtual uint32_t getSDLDisplayID() const noexcept = 0;
+        virtual uint32_t getSDLDisplayID() const = 0;
         virtual void getFriendlyName(IImmutableString * *output) = 0;
         virtual Vector2U getSize() = 0;
         virtual Vector2I getPosition() = 0;

@@ -82,39 +82,6 @@ target_link_libraries(imgui_impl_dx11 PUBLIC
 )
 set_target_properties(imgui_impl_dx11 PROPERTIES FOLDER external)
 
-# imgui backend win32ex
-
-add_library(imgui_impl_win32ex STATIC)
-luastg_target_common_options(imgui_impl_win32ex)
-luastg_target_more_warning(imgui_impl_win32ex)
-target_include_directories(imgui_impl_win32ex PUBLIC
-    backend
-)
-target_sources(imgui_impl_win32ex PRIVATE
-    backend/imgui_impl_win32ex.cpp
-    backend/imgui_impl_win32ex.h
-)
-target_link_libraries(imgui_impl_win32ex PUBLIC
-    imgui
-)
-set_target_properties(imgui_impl_win32ex PROPERTIES FOLDER external)
-
-# imgui backend win32
-
-add_library(imgui_impl_win32 STATIC)
-luastg_target_common_options(imgui_impl_win32)
-target_include_directories(imgui_impl_win32 PUBLIC
-    imgui/backends
-)
-target_sources(imgui_impl_win32 PRIVATE
-    imgui/backends/imgui_impl_win32.cpp
-    imgui/backends/imgui_impl_win32.h
-)
-target_link_libraries(imgui_impl_win32 PUBLIC
-    imgui
-)
-set_target_properties(imgui_impl_win32 PROPERTIES FOLDER external)
-
 # Dear ImGui SDL3 platform backend
 
 add_library(imgui_impl_sdl3 STATIC)

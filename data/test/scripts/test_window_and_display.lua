@@ -41,12 +41,6 @@ function M:onUpdate()
     elseif Keyboard.GetKeyState(Keyboard.E) then
         self.has_key_down = true
         self.main_window:setWindowed(window.width, window.height, FrameStyle.normal)
-    elseif Keyboard.GetKeyState(Keyboard.O) then
-        self.has_key_down = true
-        local ext = self.main_window:queryInterface("lstg.Window.Windows11Extension")
-        if ext then
-            ext:setWindowCornerPreference(false)
-        end
     elseif Keyboard.GetKeyState(Keyboard.D1) then
         self.has_key_down = true
         --self.main_window:setWindowed(window.width, window.height, FrameStyle.normal, displays[1])
@@ -56,12 +50,6 @@ function M:onUpdate()
         if displays[2] then
             --self.main_window:setWindowed(window.width, window.height, FrameStyle.normal, displays[2])
             self.main_window:setFullscreen(displays[2])
-        end
-    elseif Keyboard.GetKeyState(Keyboard.P) then
-        self.has_key_down = true
-        local ext = self.main_window:queryInterface("lstg.Window.Windows11Extension")
-        if ext then
-            ext:setWindowCornerPreference(true)
         end
     elseif Keyboard.GetKeyState(Keyboard.N) then
         self.has_key_down = true
@@ -78,18 +66,6 @@ function M:onUpdate()
     elseif Keyboard.GetKeyState(Keyboard.V) then
         self.has_key_down = true
         self.main_swap_chain:setVSyncPreference(not self.main_swap_chain:getVSyncPreference())
-    elseif Keyboard.GetKeyState(Keyboard.D9) then
-        self.has_key_down = true
-        local ext = self.main_window:queryInterface("lstg.Window.Windows11Extension")
-        if ext then
-            ext:setTitleBarAutoHidePreference(true)
-        end
-    elseif Keyboard.GetKeyState(Keyboard.D8) then
-        self.has_key_down = true
-        local ext = self.main_window:queryInterface("lstg.Window.Windows11Extension")
-        if ext then
-            ext:setTitleBarAutoHidePreference(false)
-        end
     else
         self.has_key_down = false
     end
@@ -102,9 +78,11 @@ function M:onRender()
         message = message .. string.format(fmt, ...) .. "\n"
     end
     info("main window:")
-    local wsz = self.main_window:getClientAreaSize()
-    info("    size: [%d x %d]", wsz.width, wsz.height)
-    info("    display scale: %.2f", tostring(self.main_window:getDisplayScale()))
+    local logical_size = self.main_window:getSize()
+    local pixel_size = self.main_window:getPixelSize()
+    info("    logical size: [%d x %d]", logical_size.width, logical_size.height)
+    info("    pixel size: [%d x %d]", pixel_size.width, pixel_size.height)
+    info("    display scale: %.2f", self.main_window:getDisplayScale())
     info("    cursor visibility: %s", tostring(self.main_window:getCursorVisibility()))
     info("main swap chain:")
     info("    vsync: %s", tostring(self.main_swap_chain:getVSyncPreference()))

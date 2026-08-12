@@ -22,14 +22,10 @@ set(PLATFORM_SOURCES
     Platform/CleanWindows.hpp
     Platform/KnownDirectory.hpp
     Platform/KnownDirectory.cpp
-    Platform/WindowSizeMoveController.hpp
-    Platform/WindowSizeMoveController.cpp
     Platform/DirectInput.hpp
     Platform/DirectInput.cpp
     Platform/WindowsVersion.hpp
     Platform/WindowsVersion.cpp
-    Platform/WindowTheme.hpp
-    Platform/WindowTheme.cpp
     Platform/Keyboard.hpp
     Platform/Keyboard.cpp
     Platform/HResultChecker.hpp
@@ -44,8 +40,6 @@ set(PLATFORM_SOURCES
     Platform/AdapterPolicy.cpp
     Platform/MessageBox.hpp
     Platform/MessageBox.cpp
-    Platform/ImmersiveTitleBarController.hpp
-    Platform/ImmersiveTitleBarController.cpp
 )
 source_group(TREE ${CMAKE_CURRENT_LIST_DIR} FILES ${PLATFORM_SOURCES})
 

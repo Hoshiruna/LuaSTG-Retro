@@ -10,7 +10,7 @@
 #include "imgui.h"
 #include "imgui_stdlib.h"
 #include "imgui_freetype.h"
-#include "imgui_impl_win32ex.h"
+#include "imgui_impl_sdl3.h"
 #include "imgui_impl_dx11.h"
 #include "implot.h"
 
@@ -19,6 +19,7 @@
 
 #include "Platform/XInput.hpp"
 #include "core/Configuration.hpp"
+#include "sdl/EventDispatcher.hpp"
 #include "utf8.hpp"
 
 #include "AppFrame.h"
@@ -819,8 +820,6 @@ namespace
 
 // imgui backend binding
 
-extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32Ex_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
-
 namespace
 {
     bool g_imgui_initialized = false;
@@ -831,7 +830,8 @@ namespace imgui
 {
     class ImGuiBackendEventListener
         : public core::Graphics::IDeviceEventListener,
-          public core::Graphics::IWindowEventListener
+          public core::IWindowEventListener,
+          public core::ISDLEventListener
     {
     public:
         // IDeviceEventListener
@@ -847,7 +847,9 @@ namespace imgui
             auto const device = static_cast<ID3D11Device*>(LAPP.GetAppModel()->getDevice()->getNativeHandle());
             ID3D11DeviceContext* context{};
             device->GetImmediateContext(&context);
-            ImGui_ImplDX11_Init(device, context);
+            if(!ImGui_ImplDX11_Init(device, context)) {
+                spdlog::error("[imgui] ImGui_ImplDX11_Init failed");
+            }
             context->Release();
         }
 
@@ -855,24 +857,24 @@ namespace imgui
 
         void onWindowCreate() override
         {
-            ImGui_ImplWin32Ex_Init(LAPP.GetAppModel()->getWindow()->getNativeHandle());
+            if(!ImGui_ImplSDL3_InitForD3D(LAPP.GetAppModel()->getWindow()->getSDLWindow())) {
+                spdlog::error("[imgui] ImGui_ImplSDL3_InitForD3D failed");
+            }
         }
         void onWindowDestroy() override
         {
-            ImGui_ImplWin32Ex_Shutdown();
+            ImGui_ImplSDL3_Shutdown();
             m_dpi_changed.store(0);
         }
         void onWindowDpiChange() override
         {
             m_dpi_changed.fetch_or(0x1);
         }
-        NativeWindowMessageResult onNativeWindowMessage(void* const window, uint32_t const message, uintptr_t const arg1, intptr_t const arg2) override
-        {
-            if(auto const result = ImGui_ImplWin32Ex_WndProcHandler(static_cast<HWND>(window), message, arg1, arg2))
-                return { result, true };
-            return {};
-        }
 
+        void processSDLEvent(const SDL_Event& event) override
+        {
+            ImGui_ImplSDL3_ProcessEvent(&event);
+        }
         // ImGuiBackendEventListener
 
         [[nodiscard]] bool isDpiChanged(bool const zero = false)
@@ -884,7 +886,7 @@ namespace imgui
         }
 
     private:
-        std::atomic_int m_dpi_changed;
+        std::atomic_int m_dpi_changed{};
     };
 }
 
@@ -975,6 +977,7 @@ namespace imgui
         applyStyle();
 
         g_imgui_backend_event_listener.onWindowCreate();
+        core::SDLEventDispatcher::addListener(&g_imgui_backend_event_listener);
         auto const window = LAPP.GetAppModel()->getWindow();
         window->addEventListener(&g_imgui_backend_event_listener);
 
@@ -999,8 +1002,10 @@ namespace imgui
 
             auto const window = LAPP.GetAppModel()->getWindow();
             window->removeEventListener(&g_imgui_backend_event_listener);
+            core::SDLEventDispatcher::removeListener(&g_imgui_backend_event_listener);
             g_imgui_backend_event_listener.onWindowDestroy();
         } else {
+            core::SDLEventDispatcher::removeListener(&g_imgui_backend_event_listener);
             g_imgui_backend_event_listener.onDeviceDestroy();
             g_imgui_backend_event_listener.onWindowDestroy();
         }
@@ -1038,24 +1043,11 @@ namespace imgui
             }
 
             {
-                tracy_zone_scoped_with_name("imgui.backend.NewFrame-WIN32");
-                auto const ws = LAPP.GetAppModel()->getSwapChain()->getCanvasSize();
-                auto const mt = LAPP.GetMousePositionTransformF();
-                ImGui_ImplWin32Ex_FrameData dt;
-                dt.view_size.x = static_cast<float>(ws.x);
-                dt.view_size.y = static_cast<float>(ws.y);
-                dt.mouse_offset.x = mt.x;
-                dt.mouse_offset.y = mt.y;
-                dt.mouse_scale.x = mt.z;
-                dt.mouse_scale.y = mt.w;
-                ImGui_ImplWin32Ex_NewFrame(&dt);
+                tracy_zone_scoped_with_name("imgui.backend.NewFrame-SDL3");
+                ImGui_ImplSDL3_NewFrame();
             }
 
             g_imgui_impl_dx11_initialized = true;
-            if(ImGui::GetIO().WantCaptureKeyboard)
-                LAPP.ResetKeyboardInput();
-            if(ImGui::GetIO().WantCaptureMouse)
-                LAPP.ResetMouseInput();
         }
     }
     void drawEngine()

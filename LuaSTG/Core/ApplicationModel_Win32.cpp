@@ -1,8 +1,10 @@
 #include "Core/ApplicationModel_Win32.hpp"
 #include "Core/i18n.hpp"
 #include "core/Configuration.hpp"
+#include "core/InputSystem.hpp"
 #include "Platform/WindowsVersion.hpp"
 #include "Platform/ProcessorInfo.hpp"
+#include "sdl/EventDispatcher.hpp"
 #include "sdl/Window.hpp"
 #include <SDL3/SDL.h>
 
@@ -386,9 +388,12 @@ namespace core
         m_exit_flag.store(false, std::memory_order_relaxed);
         m_running = true;
         while(!m_exit_flag.load(std::memory_order_relaxed)) {
+            InputSystem::getInstance().beginFrame();
             SDL_Event event{};
             while(SDL_PollEvent(&event)) {
-                Window::dispatchSDLEvent(event);
+                SDLEventDispatcher::dispatch(event);
+                InputSystem::getInstance().processEvent(event);
+                WindowSDL3::dispatchSDLEvent(event);
                 if(event.type == SDL_EVENT_QUIT || event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED) {
                     m_exit_flag.store(true, std::memory_order_relaxed);
                 }
@@ -502,8 +507,8 @@ namespace core
             m_p_frame_rate_controller = &m_frame_rate_controller;
         }
         get_system_memory_status();
-        if(!Graphics::IWindow::create(m_window.put()))
-            throw std::runtime_error("Graphics::IWindow::create");
+        if(!IWindow::create(m_window.put()))
+            throw std::runtime_error("IWindow::create");
         auto const& gpu = core::ConfigurationLoader::getInstance().getGraphicsSystem().getPreferredDeviceName();
         if(!Graphics::Direct3D11::Device::create(gpu, m_device.put()))
             throw std::runtime_error("Graphics::Direct3D11::Device::create");
@@ -518,7 +523,12 @@ namespace core
     }
     ApplicationModel_Win32::~ApplicationModel_Win32()
     {
-        std::ignore = 0;
+        InputSystem::getInstance().shutdown();
+        m_frame_query_list.clear();
+        m_renderer.reset();
+        m_swapchain.reset();
+        m_device.reset();
+        m_window.reset();
     }
 
     bool IApplicationModel::create(IApplicationEventListener* p_app, IApplicationModel** pp_model)

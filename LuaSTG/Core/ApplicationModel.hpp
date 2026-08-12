@@ -1,5 +1,5 @@
 #pragma once
-#include "Core/Graphics/Window.hpp"
+#include "core/Window.hpp"
 #include "Core/Graphics/Device.hpp"
 #include "Core/Graphics/SwapChain.hpp"
 #include "Core/Graphics/Renderer.hpp"
@@ -46,8 +46,8 @@ namespace core
     {
         // [工作线程]
         virtual IFrameRateController* getFrameRateController() = 0;
-        // [主线程|工作线程]
-        virtual Graphics::IWindow* getWindow() = 0;
+        // [主线程]
+        virtual IWindow* getWindow() = 0;
         // [工作线程]
         virtual Graphics::IDevice* getDevice() = 0;
         // [工作线程]

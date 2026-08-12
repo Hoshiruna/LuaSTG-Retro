@@ -5,12 +5,12 @@
 
 namespace core
 {
-    class Display final : public implement::ReferenceCounted<IDisplay>
+    class DisplaySDL3 final : public implement::ReferenceCounted<IDisplay>
     {
     public:
-        explicit Display(SDL_DisplayID id) noexcept;
+        explicit DisplaySDL3(SDL_DisplayID id) noexcept;
 
-        uint32_t getSDLDisplayID() const noexcept override;
+        uint32_t getSDLDisplayID() const override;
         void getFriendlyName(IImmutableString** output) override;
         Vector2U getSize() override;
         Vector2I getPosition() override;

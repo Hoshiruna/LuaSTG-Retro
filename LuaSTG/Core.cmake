@@ -17,7 +17,6 @@ set(Core_SRC
     Core/framework.hpp
     Core/framework.cpp
 
-    Core/Graphics/Window.hpp
     Core/Graphics/Format.hpp
     Core/Graphics/Device.hpp
     Core/Graphics/SwapChain.hpp
@@ -116,5 +115,6 @@ target_link_libraries(Core PUBLIC
     Core.ReferenceCounted
     Core.FileSystem
     Core.WindowSystem
+    Core.InputSystem
     win32
 )

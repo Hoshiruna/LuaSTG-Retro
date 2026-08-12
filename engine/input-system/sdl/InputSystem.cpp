@@ -130,6 +130,7 @@ namespace core
         std::array<bool, indexOf(Key::count)> keys{};
         std::array<bool, indexOf(Key::count)> key_pressed{};
         std::array<bool, indexOf(Key::count)> key_released{};
+        Key last_pressed_key{ Key::unknown };
         std::array<bool, indexOf(MouseButton::count)> mouse_buttons{};
         std::array<bool, indexOf(MouseButton::count)> mouse_pressed{};
         std::array<bool, indexOf(MouseButton::count)> mouse_released{};
@@ -202,12 +203,19 @@ namespace core
 
     InputSystem::~InputSystem()
     {
+        shutdown();
+    }
+
+    void InputSystem::shutdown()
+    {
         for(auto& entry : m_impl->gamepads) {
             SDL_CloseGamepad(entry.second.handle);
         }
+        m_impl->gamepads.clear();
         for(auto& entry : m_impl->joysticks) {
             SDL_CloseJoystick(entry.second.handle);
         }
+        m_impl->joysticks.clear();
     }
 
     InputSystem& InputSystem::getInstance()
@@ -220,6 +228,7 @@ namespace core
     {
         m_impl->key_pressed.fill(false);
         m_impl->key_released.fill(false);
+        m_impl->last_pressed_key = Key::unknown;
         m_impl->mouse_pressed.fill(false);
         m_impl->mouse_released.fill(false);
         m_impl->mouse.delta_x = 0.0f;
@@ -245,6 +254,7 @@ namespace core
                 const bool down = event.type == SDL_EVENT_KEY_DOWN;
                 if(down && !event.key.repeat) {
                     m_impl->key_pressed[index] = true;
+                    m_impl->last_pressed_key = key;
                 } else if(!down) {
                     m_impl->key_released[index] = true;
                 }
@@ -306,6 +316,7 @@ namespace core
     void InputSystem::resetKeyboardAndMouse()
     {
         m_impl->keys.fill(false);
+        m_impl->last_pressed_key = Key::unknown;
         m_impl->mouse_buttons.fill(false);
         m_impl->mouse.delta_x = 0.0f;
         m_impl->mouse.delta_y = 0.0f;
@@ -316,6 +327,7 @@ namespace core
     bool InputSystem::isKeyDown(const Key key) const noexcept { return key < Key::count && m_impl->keys[indexOf(key)]; }
     bool InputSystem::wasKeyPressed(const Key key) const noexcept { return key < Key::count && m_impl->key_pressed[indexOf(key)]; }
     bool InputSystem::wasKeyReleased(const Key key) const noexcept { return key < Key::count && m_impl->key_released[indexOf(key)]; }
+    Key InputSystem::getLastPressedKey() const noexcept { return m_impl->last_pressed_key; }
     bool InputSystem::isMouseButtonDown(const MouseButton button) const noexcept { return button < MouseButton::count && m_impl->mouse_buttons[indexOf(button)]; }
     bool InputSystem::wasMouseButtonPressed(const MouseButton button) const noexcept { return button < MouseButton::count && m_impl->mouse_pressed[indexOf(button)]; }
     bool InputSystem::wasMouseButtonReleased(const MouseButton button) const noexcept { return button < MouseButton::count && m_impl->mouse_released[indexOf(button)]; }

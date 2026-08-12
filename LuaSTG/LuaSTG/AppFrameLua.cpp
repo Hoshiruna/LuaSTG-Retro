@@ -28,11 +28,8 @@ extern "C"
 #include "core/FileSystem.hpp"
 #include "utf8.hpp"
 #include "lua/plus.hpp"
+#include <SDL3/SDL.h>
 #include "luastg/EmbeddedFileSystem.hpp"
-
-#define WIN32_LEAN_AND_MEAN
-#define NOMINMAX
-#include <Windows.h>
 
 using std::string_view_literals::operator""sv;
 
@@ -111,13 +108,8 @@ namespace luastg
         {
             try {
                 spdlog::error("[luajit] Failed to compile '{}': {}", desc, lua_tostring(L, -1));
-                MessageBoxW(
-                    m_pAppModel ? (HWND)m_pAppModel->getWindow()->getNativeHandle() : NULL,
-                    utf8::to_wstring(
-                        fmt::format("Failed to compile '{}': {}", desc, lua_tostring(L, -1)))
-                        .c_str(),
-                    L"" LUASTG_INFO,
-                    MB_ICONERROR | MB_OK);
+                const auto message = fmt::format("Failed to compile '{}': {}", desc, lua_tostring(L, -1));
+                SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, LUASTG_INFO, message.c_str(), m_pAppModel ? m_pAppModel->getWindow()->getSDLWindow() : nullptr);
             } catch(const std::bad_alloc&) {
                 spdlog::error("[luastg] Error occurred while writing log");
             }
@@ -132,13 +124,8 @@ namespace luastg
                     errmsg = "(error object is a nil value)";
                 }
                 spdlog::error("[luajit] Error while running '{}': {}", desc, errmsg);
-                MessageBoxW(
-                    m_pAppModel ? (HWND)m_pAppModel->getWindow()->getNativeHandle() : NULL,
-                    utf8::to_wstring(
-                        fmt::format("Error while running '{}': \n{}", desc, errmsg))
-                        .c_str(),
-                    L"" LUASTG_INFO,
-                    MB_ICONERROR | MB_OK);
+                const auto message = fmt::format("Error while running '{}': \n{}", desc, errmsg);
+                SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, LUASTG_INFO, message.c_str(), m_pAppModel ? m_pAppModel->getWindow()->getSDLWindow() : nullptr);
             } catch(const std::bad_alloc&) {
                 spdlog::error("[luastg] Failed to write log message");
             }
@@ -171,13 +158,8 @@ namespace luastg
                     errmsg = "(error object is a nil value)";
                 }
                 spdlog::error("[luajit] Error while calling global function '{}':{}", name, errmsg);
-                MessageBoxW(
-                    m_pAppModel ? (HWND)m_pAppModel->getWindow()->getNativeHandle() : NULL,
-                    utf8::to_wstring(
-                        fmt::format("Error while calling global function '{}':\n{}", name, errmsg))
-                        .c_str(),
-                    L"" LUASTG_INFO,
-                    MB_ICONERROR | MB_OK);
+                const auto message = fmt::format("Error while calling global function '{}':\n{}", name, errmsg);
+                SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, LUASTG_INFO, message.c_str(), m_pAppModel ? m_pAppModel->getWindow()->getSDLWindow() : nullptr);
             } catch(const std::bad_alloc&) {
                 spdlog::error("[luastg] Failed to write log message");
             }
@@ -198,18 +180,7 @@ namespace luastg
         if(lua_type(L, lua_gettop(L)) != LUA_TFUNCTION) {
             //															// ? ... trace nil
 #ifdef _DEBUG
-            try {
-                spdlog::error("[luajit] Error while calling global function '{}': function does not exist", name);
-                /*
-				MessageBoxW(
-					m_pAppModel ? (HWND)m_pAppModel->getWindow()->getNativeHandle() : NULL,
-					tErrorInfo.c_str(),
-					L"" LUASTG_INFO,
-					MB_ICONERROR | MB_OK);
-				//*/
-            } catch(const std::bad_alloc&) {
-                spdlog::error("[luastg] Failed to write log message");
-            }
+            spdlog::error("[luajit] Error while calling global function '{}': function does not exist", name);
 #endif
             lua_pop(L, argc + 2); // ?
             return false;
@@ -222,13 +193,8 @@ namespace luastg
             //															// ? trace errmsg
             try {
                 spdlog::error("[luajit] Error while calling global function '{}': {}", name, lua_tostring(L, -1));
-                MessageBoxW(
-                    m_pAppModel ? (HWND)m_pAppModel->getWindow()->getNativeHandle() : NULL,
-                    utf8::to_wstring(
-                        fmt::format("Error while calling global function '{}':\n{}", name, lua_tostring(L, -1)))
-                        .c_str(),
-                    L"" LUASTG_INFO,
-                    MB_ICONERROR | MB_OK);
+                const auto message = fmt::format("Error while calling global function '{}':\n{}", name, lua_tostring(L, -1));
+                SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, LUASTG_INFO, message.c_str(), m_pAppModel ? m_pAppModel->getWindow()->getSDLWindow() : nullptr);
             } catch(const std::bad_alloc&) {
                 spdlog::error("[luastg] Failed to write log message");
             }
