@@ -2,9 +2,9 @@
 
 CPMAddPackage(
     NAME Microsoft.DirectXTex
-    VERSION 2024.10.1
+    VERSION 2026.5.8
     GITHUB_REPOSITORY microsoft/DirectXTex
-    GIT_TAG oct2024
+    GIT_TAG may2026
     DOWNLOAD_ONLY YES
 )
 

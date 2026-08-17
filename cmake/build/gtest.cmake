@@ -2,9 +2,9 @@
 
 CPMAddPackage(
     NAME gtest
-    VERSION 1.70.0
-    URL https://github.com/google/googletest/releases/download/v1.17.0/googletest-1.17.0.tar.gz
-    URL_HASH SHA256=65FAB701D9829D38CB77C14ACDC431D2108BFDBF8979E40EB8AE567EDF10B27C
+    VERSION 1.18.0
+    URL https://github.com/google/googletest/releases/download/v1.18.0/googletest-1.18.0.tar.gz
+    URL_HASH SHA256=6E3191C1455468B3FC35A417FB565C1C5071AEE1B7E7F85E30CF48A98D37D8B5
     DOWNLOAD_ONLY YES
 )
 

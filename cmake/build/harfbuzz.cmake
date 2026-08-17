@@ -2,9 +2,9 @@
 
 CPMAddPackage(
     NAME libharfbuzz
-    VERSION 11.0.0
+    VERSION 14.3.1
     GITHUB_REPOSITORY harfbuzz/harfbuzz
-    GIT_TAG 11.0.0
+    GIT_TAG 14.3.1
     DOWNLOAD_ONLY YES
 )
 
