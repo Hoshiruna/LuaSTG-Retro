@@ -2,9 +2,9 @@
 
 CPMAddPackage(
     NAME Microsoft.DirectXTK
-    VERSION 2026.5.8
+    VERSION 2024.10.1
     GITHUB_REPOSITORY microsoft/DirectXTK
-    GIT_TAG may2026
+    GIT_TAG oct2024
     DOWNLOAD_ONLY YES
 )
 
