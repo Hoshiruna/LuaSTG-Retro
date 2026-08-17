@@ -2,9 +2,9 @@
 
 CPMAddPackage(
     NAME simdutf
-    VERSION 7.5.0
-    URL https://github.com/simdutf/simdutf/releases/download/v7.5.0/singleheader.zip
-    URL_HASH SHA256=9CD17ADBD2FB5FBDC0716DDF525BDC1DF0C12AB765BFCE51AAA646F2DC3FA869
+    VERSION 9.0.0
+    URL https://github.com/simdutf/simdutf/releases/download/v9.0.0/singleheader.zip
+    URL_HASH SHA256=C47C68CD51025EC66509BC36215B4C4F1F0F0A98129139EE55C541531B652526
     DOWNLOAD_ONLY YES
 )
 

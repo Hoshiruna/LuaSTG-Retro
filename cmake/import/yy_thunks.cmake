@@ -3,10 +3,10 @@
 
 CPMAddPackage(
     NAME YY_Thunks
-    VERSION 1.1.4
+    VERSION 1.2.2
     #GITHUB_REPOSITORY Chuyu-Team/YY-Thunks
-    URL https://github.com/Chuyu-Team/YY-Thunks/releases/download/v1.1.4/YY-Thunks-1.1.4-Objs.zip
-    URL_HASH SHA256=F9850A35D1F2B0CAE15E64DA516DE0EC5E798C060B320E91788AA33B853E85BA
+    URL https://github.com/Chuyu-Team/YY-Thunks/releases/download/v1.2.2/YY-Thunks-Objs.zip
+    URL_HASH SHA256=518ED7EF4825E8A41997FBCCFA2C8090CF31A6038FD51520A2E49886F947F9FC
     DOWNLOAD_ONLY YES
 )
 

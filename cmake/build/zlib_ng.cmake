@@ -2,9 +2,9 @@
 
 CPMAddPackage(
     NAME zlib_ng
-    VERSION 2.3.2
+    VERSION 2.3.3
     GITHUB_REPOSITORY zlib-ng/zlib-ng
-    GIT_TAG 2.3.2
+    GIT_TAG 2.3.3
     DOWNLOAD_ONLY YES
 )
 

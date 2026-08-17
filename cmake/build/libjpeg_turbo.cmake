@@ -2,9 +2,9 @@
 
 CPMAddPackage(
     NAME libjpeg_turbo
-    VERSION 3.1.3
+    VERSION 3.2.0
     GITHUB_REPOSITORY libjpeg-turbo/libjpeg-turbo
-    GIT_TAG 3.1.3
+    GIT_TAG 3.2.0
     DOWNLOAD_ONLY YES
 )
 

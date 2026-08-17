@@ -2,9 +2,9 @@
 
 CPMAddPackage(
     NAME minizip_ng
-    VERSION 4.1.0
+    VERSION 4.2.2
     GITHUB_REPOSITORY zlib-ng/minizip-ng
-    GIT_TAG 4.1.0
+    GIT_TAG 4.2.2
     DOWNLOAD_ONLY YES
 )
 
@@ -46,6 +46,7 @@ add_custom_command(
         -DMZ_COMPAT=OFF
         -DMZ_BZIP2=OFF
         -DMZ_LZMA=OFF
+        -DMZ_PPMD=OFF
         -DMZ_ZSTD=OFF
         -DMZ_FETCH_LIBS=OFF
         -DMZ_ZLIB_FLAVOR=zlib-ng

@@ -1,26 +1,26 @@
 # zlib
 
 CPMAddPackage(
-    NAME zlib_ng # 必须用这个名称，用来适配一些SB库
-    VERSION 2.2.5
+    NAME zlib_ng # This name must be used
+    VERSION 2.3.3
     GITHUB_REPOSITORY zlib-ng/zlib-ng
-    GIT_TAG 2.2.5
+    GIT_TAG 2.3.3
     DOWNLOAD_ONLY YES
 )
 
 # minizip
-# 读取 zip 文件
+# Load ZIP file
 
 CPMAddPackage(
     NAME minizip_ng
-    VERSION 4.0.10
+    VERSION 4.2.2
     GITHUB_REPOSITORY zlib-ng/minizip-ng
-    GIT_TAG 4.0.10
+    GIT_TAG 4.2.2
     DOWNLOAD_ONLY YES
 )
 
 if(zlib_ng_ADDED AND minizip_ng_ADDED)
-    # first, fuck cmake
+    # first, cmake
     # cmake import target requires exist include directories, idk why
 
     file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/install/Debug/include/minizip-ng/placeholder.h "")
@@ -28,7 +28,7 @@ if(zlib_ng_ADDED AND minizip_ng_ADDED)
     file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/install/RelWithDebInfo/include/minizip-ng/placeholder.h "")
     file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/install/MinSizeRel/include/minizip-ng/placeholder.h "")
 
-    # then, fuck zlib ng
+    # then, zlib ng
 
     set(zlib_ng_source_dir  ${zlib_ng_SOURCE_DIR})
     set(zlib_ng_build_dir   ${CMAKE_CURRENT_BINARY_DIR}/zlib-ng/$<CONFIG>)
