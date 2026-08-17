@@ -46,6 +46,7 @@ add_custom_command(
         -DMZ_COMPAT=OFF
         -DMZ_BZIP2=OFF
         -DMZ_LZMA=OFF
+        -DMZ_PPMD=OFF
         -DMZ_ZSTD=OFF
         -DMZ_FETCH_LIBS=OFF
         -DMZ_ZLIB_FLAVOR=zlib-ng
