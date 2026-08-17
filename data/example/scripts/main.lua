@@ -5,6 +5,7 @@
 
 local lstg = require("lstg")
 local Keyboard = lstg.Input.Keyboard
+local Key = lstg.Input.Key
 local task = require("task")
 local TaskManager = require("task.Manager")
 local resource_pool
@@ -48,18 +49,18 @@ local player_class = {
     function(self)
         local dx = 0
         local dy = 0
-        if Keyboard.GetKeyState(Keyboard.Left) and Keyboard.GetKeyState(Keyboard.Right) then
+        if Keyboard.isDown(Key.left) and Keyboard.isDown(Key.right) then
             dx = 0
-        elseif Keyboard.GetKeyState(Keyboard.Left) then
+        elseif Keyboard.isDown(Key.left) then
             dx = -1
-        elseif Keyboard.GetKeyState(Keyboard.Right) then
+        elseif Keyboard.isDown(Key.right) then
             dx = 1
         end
-        if Keyboard.GetKeyState(Keyboard.Down) and Keyboard.GetKeyState(Keyboard.Up) then
+        if Keyboard.isDown(Key.down) and Keyboard.isDown(Key.up) then
             dy = 0
-        elseif Keyboard.GetKeyState(Keyboard.Down) then
+        elseif Keyboard.isDown(Key.down) then
             dy = -1
-        elseif Keyboard.GetKeyState(Keyboard.Up) then
+        elseif Keyboard.isDown(Key.up) then
             dy = 1
         end
         if dx ~= 0 and dy ~= 0 then
@@ -68,7 +69,7 @@ local player_class = {
             dy = dy * k
         end
         local speed = 4
-        if Keyboard.GetKeyState(Keyboard.LeftShift) then
+        if Keyboard.isDown(Key.left_shift) then
             speed = 2
         end
         self.x = clamp(self.x + speed * dx, 8, window.width - 8)
@@ -211,7 +212,7 @@ function FrameFunc()
     global_tasks:gc()
     updateBackground()
     updateGameObject()
-    if Keyboard.GetKeyState(Keyboard.Escape) then
+    if Keyboard.isDown(Key.escape) then
         return true -- exit
     end
     return false

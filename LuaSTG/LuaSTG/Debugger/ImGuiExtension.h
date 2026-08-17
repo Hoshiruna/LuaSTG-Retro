@@ -8,6 +8,8 @@ namespace imgui
     void cancelSetCursor();
     void updateEngine(bool allow_set_cursor);
     void drawEngine();
+    void syncInputCapture();
+    bool wantsKeyboardCapture();
 
     void showTestInputWindow(bool* p_open = nullptr);
 };

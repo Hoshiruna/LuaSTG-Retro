@@ -1,7 +1,6 @@
 #include "AppFrame.h"
 #include "ApplicationRestart.hpp"
 #include "core/FileSystem.hpp"
-#include "Platform/XInput.hpp"
 #include "Utility/Utility.h"
 #include "Debugger/ImGuiExtension.h"
 #include "DiscordRPC/DiscordRPC.hpp"
@@ -175,8 +174,6 @@ AppFrame::Init() noexcept
         // Renderer adapter
         m_bRenderStarted = false;
 
-        OpenInput();
-
         // Initializing ImGui
 #ifdef USING_DEAR_IMGUI
         imgui::bindEngine();
@@ -230,8 +227,6 @@ AppFrame::Shutdown() noexcept
     core::FileSystemManager::removeAllFileSystem();
     spdlog::info("[luastg] All resource packages unloaded");
 
-    CloseInput();
-    m_DirectInput = nullptr;
     m_pTextRenderer = nullptr;
     m_pAppModel = nullptr;
     m_audio_engine = nullptr;
@@ -264,26 +259,13 @@ AppFrame::Run() noexcept
 #pragma region // Game loop
 
 void
-AppFrame::onWindowCreate()
-{
-    OpenInput();
-}
-void
-AppFrame::onWindowDestroy()
-{
-    m_DirectInput = nullptr;
-    CloseInput();
-}
-void
 AppFrame::onWindowActive()
 {
-    Platform::XInput::setEnable(true);
     m_window_active_changed.fetch_or(0x1);
 }
 void
 AppFrame::onWindowInactive()
 {
-    Platform::XInput::setEnable(false);
     m_window_active_changed.fetch_or(0x2);
 }
 void
@@ -308,9 +290,6 @@ AppFrame::onUpdate()
 
         int window_active_changed = m_window_active_changed.exchange(0);
         if(window_active_changed & 0x2) {
-            if(m_DirectInput)
-                m_DirectInput->reset();
-
             lua_pushinteger(L, (lua_Integer)LuaEngine::EngineEvent::WindowActive);
             lua_pushboolean(L, false);
             SafeCallGlobalFunctionB(LuaEngine::G_CALLBACK_EngineEvent, 2, 0);
@@ -321,9 +300,6 @@ AppFrame::onUpdate()
             }
         }
         if(window_active_changed & 0x1) {
-            if(m_DirectInput)
-                m_DirectInput->reset();
-
             lua_pushinteger(L, (lua_Integer)LuaEngine::EngineEvent::WindowActive);
             lua_pushboolean(L, true);
             SafeCallGlobalFunctionB(LuaEngine::G_CALLBACK_EngineEvent, 2, 0);
@@ -334,12 +310,9 @@ AppFrame::onUpdate()
             }
         }
         if(window_active_changed & 0x4) {
-            if(m_DirectInput)
-                m_DirectInput->refresh();
             (void)m_audio_engine->refreshAudioDevices();
         }
 
-        UpdateInput();
         DiscordRPC::RunCallbacks();
     }
 

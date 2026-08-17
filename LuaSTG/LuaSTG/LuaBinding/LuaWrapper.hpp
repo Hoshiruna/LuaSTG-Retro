@@ -117,12 +117,6 @@ namespace luastg::binding
         static void CreateAndPush(lua_State* L);
     };
 
-    class DirectInput
-    {
-    public:
-        static void Register(lua_State* L) noexcept;
-    };
-
     class ParticleSystem
     {
     public:

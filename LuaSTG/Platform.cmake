@@ -22,20 +22,14 @@ set(PLATFORM_SOURCES
     Platform/CleanWindows.hpp
     Platform/KnownDirectory.hpp
     Platform/KnownDirectory.cpp
-    Platform/DirectInput.hpp
-    Platform/DirectInput.cpp
     Platform/WindowsVersion.hpp
     Platform/WindowsVersion.cpp
-    Platform/Keyboard.hpp
-    Platform/Keyboard.cpp
     Platform/HResultChecker.hpp
     Platform/HResultChecker.cpp
     #Platform/DetectCPU.hpp
     #Platform/DetectCPU.cpp
     Platform/ProcessorInfo.hpp
     Platform/ProcessorInfo.cpp
-    Platform/XInput.hpp
-    Platform/XInput.cpp
     Platform/AdapterPolicy.hpp
     Platform/AdapterPolicy.cpp
     Platform/MessageBox.hpp

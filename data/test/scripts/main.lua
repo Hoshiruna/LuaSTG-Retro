@@ -168,8 +168,7 @@ function FrameFunc()
     showSelectResolutionWindow()
     test.onUpdate()
     imgui.ImGui.EndFrame()
-    local Key = lstg.Input.Keyboard
-    if Key.GetKeyState(Key.Escape) then
+    if lstg.Input.Keyboard.isDown(lstg.Input.Key.escape) then
         return true
     end
     return false

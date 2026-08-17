@@ -388,7 +388,6 @@ namespace core
         m_exit_flag.store(false, std::memory_order_relaxed);
         m_running = true;
         while(!m_exit_flag.load(std::memory_order_relaxed)) {
-            InputSystem::getInstance().beginFrame();
             SDL_Event event{};
             while(SDL_PollEvent(&event)) {
                 SDLEventDispatcher::dispatch(event);
@@ -398,6 +397,7 @@ namespace core
                     m_exit_flag.store(true, std::memory_order_relaxed);
                 }
             }
+            InputSystem::getInstance().update();
 
             if(m_exit_flag.load(std::memory_order_relaxed)) {
                 break;
@@ -519,6 +519,9 @@ namespace core
         m_frame_query_list.reserve(2);
         for(int i = 0; i < 2; i += 1) {
             m_frame_query_list.emplace_back(m_device.get());
+        }
+        if(!InputSystem::getInstance().initialize()) {
+            throw std::runtime_error("InputSystem::initialize");
         }
     }
     ApplicationModel_Win32::~ApplicationModel_Win32()

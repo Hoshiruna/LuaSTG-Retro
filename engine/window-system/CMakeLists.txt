@@ -13,6 +13,7 @@ target_sources(${lib_name} PRIVATE ${lib_src})
 target_link_libraries(${lib_name} PUBLIC
     Core.ReferenceCounted
     Core.Configuration
+    Core.InputSystem
     Core.Logging
     Core.Math
     Core.String

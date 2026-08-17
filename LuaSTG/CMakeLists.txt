@@ -105,7 +105,6 @@ set(LUASTG_ENGINE_SOURCES
     LuaSTG/LuaBinding/LW_DiscordRPC.cpp
     LuaSTG/LuaBinding/LW_BentLaser.cpp
     LuaSTG/LuaBinding/LW_Color.cpp
-    LuaSTG/LuaBinding/LW_DInput.cpp
     LuaSTG/LuaBinding/LW_FileManager.cpp
     LuaSTG/LuaBinding/LW_Input.cpp
     LuaSTG/LuaBinding/LW_LuaSTG.cpp
@@ -125,8 +124,6 @@ set(LUASTG_ENGINE_SOURCES
     LuaSTG/LuaBinding/external/lua_dwrite.cpp
     LuaSTG/LuaBinding/external/lua_random.hpp
     LuaSTG/LuaBinding/external/lua_random.cpp
-    LuaSTG/LuaBinding/external/lua_xinput.hpp
-    LuaSTG/LuaBinding/external/lua_xinput.cpp
     LuaSTG/LuaBinding/external/HttpClient.hpp
     LuaSTG/LuaBinding/external/HttpClient.cpp
 
@@ -217,7 +214,6 @@ target_link_libraries(LuaSTG PRIVATE
     utf8
     win32
     PlatformAPI
-    DirectX::ToolKitMini
     DirectX::TextureMini
     Core
     xmath

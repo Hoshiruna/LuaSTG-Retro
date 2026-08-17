@@ -3,6 +3,8 @@
 #include "LuaBinding/modern/GameObject.hpp"
 #include "lua/plus.hpp"
 #include "AppFrame.h"
+#include "Debugger/ImGuiExtension.h"
+#include "core/InputSystem.hpp"
 
 using std::string_view_literals::operator""sv;
 
@@ -512,13 +514,8 @@ namespace luastg
             ColliderDisplayConfig(4, core::Color4B(175, 15, 20, 150)), // GROUP_PLAYER
         };
         static bool f8 = false;
-        static bool kf8 = false;
-
-        if(!kf8 && LAPP.GetKeyState(/* VK_F8 */ 0x77)) {
-            kf8 = true;
+        if(!imgui::wantsKeyboardCapture() && core::InputSystem::getInstance().wasRawKeyPressed(core::Key::f8)) {
             f8 = !f8;
-        } else if(kf8 && !LAPP.GetKeyState(/* VK_F8 */ 0x77)) {
-            kf8 = false;
         }
 
         if(f8) {

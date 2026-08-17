@@ -13,7 +13,6 @@ function M:onCreate()
     resources.loadTTF("body", "C:/Windows/Fonts/msyh.ttc", 0, 24)
     self.main_window = Window.getMain()
     self.main_swap_chain = SwapChain.getMain()
-    self.has_key_down = false
 end
 
 function M:onDestroy()
@@ -23,51 +22,37 @@ end
 function M:onUpdate()
     local displays = Display.getAll()
     local Keyboard = lstg.Input.Keyboard
-    if Keyboard.GetKeyState(Keyboard.A) then
-        self.has_key_down = true
+    local Key = lstg.Input.Key
+    if Keyboard.wasPressed(Key.a) then
         self.main_swap_chain:setSize(window.width, window.height)
-    elseif Keyboard.GetKeyState(Keyboard.S) then
-        self.has_key_down = true
+    elseif Keyboard.wasPressed(Key.s) then
         self.main_swap_chain:setSize(1280, 720)
-    elseif Keyboard.GetKeyState(Keyboard.D) then
-        self.has_key_down = true
+    elseif Keyboard.wasPressed(Key.d) then
         self.main_swap_chain:setSize(640, 360)
-    elseif Keyboard.GetKeyState(Keyboard.Q) then
-        self.has_key_down = true
+    elseif Keyboard.wasPressed(Key.q) then
         self.main_window:setWindowed(window.width, window.height, FrameStyle.borderless)
-    elseif Keyboard.GetKeyState(Keyboard.W) then
-        self.has_key_down = true
+    elseif Keyboard.wasPressed(Key.w) then
         self.main_window:setWindowed(window.width, window.height, FrameStyle.fixed)
-    elseif Keyboard.GetKeyState(Keyboard.E) then
-        self.has_key_down = true
+    elseif Keyboard.wasPressed(Key.e) then
         self.main_window:setWindowed(window.width, window.height, FrameStyle.normal)
-    elseif Keyboard.GetKeyState(Keyboard.D1) then
-        self.has_key_down = true
+    elseif Keyboard.wasPressed(Key.digit1) then
         --self.main_window:setWindowed(window.width, window.height, FrameStyle.normal, displays[1])
         self.main_window:setFullscreen(displays[1])
-    elseif Keyboard.GetKeyState(Keyboard.D2) then
-        self.has_key_down = true
+    elseif Keyboard.wasPressed(Key.digit2) then
         if displays[2] then
             --self.main_window:setWindowed(window.width, window.height, FrameStyle.normal, displays[2])
             self.main_window:setFullscreen(displays[2])
         end
-    elseif Keyboard.GetKeyState(Keyboard.N) then
-        self.has_key_down = true
+    elseif Keyboard.wasPressed(Key.n) then
         self.main_window:setCursorVisibility(true)
-    elseif Keyboard.GetKeyState(Keyboard.M) then
-        self.has_key_down = true
+    elseif Keyboard.wasPressed(Key.m) then
         self.main_window:setCursorVisibility(false)
-    elseif Keyboard.GetKeyState(Keyboard.K) then
-        self.has_key_down = true
+    elseif Keyboard.wasPressed(Key.k) then
         self.main_swap_chain:setScalingMode(ScalingMode.stretch)
-    elseif Keyboard.GetKeyState(Keyboard.L) then
-        self.has_key_down = true
+    elseif Keyboard.wasPressed(Key.l) then
         self.main_swap_chain:setScalingMode(ScalingMode.aspect_ratio)
-    elseif Keyboard.GetKeyState(Keyboard.V) then
-        self.has_key_down = true
+    elseif Keyboard.wasPressed(Key.v) then
         self.main_swap_chain:setVSyncPreference(not self.main_swap_chain:getVSyncPreference())
-    else
-        self.has_key_down = false
     end
 end
 

@@ -7,7 +7,6 @@ local M = {}
 function M:onCreate()
     resources.createRenderTarget("rt:test1")
     resources.createRenderTarget("rt:test2")
-    self.press_key = false
 end
 
 function M:onDestroy()
@@ -17,18 +16,11 @@ end
 
 function M:onUpdate()
     local Keyboard = lstg.Input.Keyboard
-    if not self.press_key then
-        if Keyboard.GetKeyState(Keyboard.D1) then
-            window:setSize(1280, 720)
-            self.press_key = true
-        elseif Keyboard.GetKeyState(Keyboard.D2) then
-            window:setSize(1920, 1080)
-            self.press_key = true
-        end
-    else
-        if not Keyboard.GetKeyState(Keyboard.D1) and not Keyboard.GetKeyState(Keyboard.D2) then
-            self.press_key = false
-        end
+    local Key = lstg.Input.Key
+    if Keyboard.wasPressed(Key.digit1) then
+        window:setSize(1280, 720)
+    elseif Keyboard.wasPressed(Key.digit2) then
+        window:setSize(1920, 1080)
     end
 end
 

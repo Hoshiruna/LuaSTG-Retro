@@ -720,20 +720,22 @@ function M:onRender()
     --set_camera()
 
     --local k = lstg.Input.Keyboard
+    --local kc = lstg.Input.Key
     --local m = lstg.Input.Mouse
+    --local mb = lstg.Input.MouseButton
     
-    --local kk1 = k.GetKeyState(k.X)
-    --local mk1, mk2, mk3, mk4, mk5 = m.GetKeyState(m.Left), m.GetKeyState(m.Middle), m.GetKeyState(m.Right), m.GetKeyState(m.X1), m.GetKeyState(m.X2)
-    --local mx1, my1 = lstg.Input.Mouse.GetPosition()
-    --local mx2, my2 = lstg.Input.Mouse.GetPosition(true)
-    --local mz = lstg.Input.Mouse.GetWheelDelta()
+    --local kk1 = k.isDown(kc.x)
+    --local mk1, mk2, mk3, mk4, mk5 = m.isDown(mb.left), m.isDown(mb.middle), m.isDown(mb.right), m.isDown(mb.x1), m.isDown(mb.x2)
+    --local mx1, my1 = m.getPosition()
+    --local mx2, my2 = m.getCanvasPosition()
+    --local mwx, mwy = m.getWheel()
     --
-    --local st = string.format("%s\n%s, %s, %s, %s, %s\n%.2f, %.2f\n%.2f, %.2f\n%.2f",
+    --local st = string.format("%s\n%s, %s, %s, %s, %s\n%.2f, %.2f\n%.2f, %.2f\n%.2f, %.2f",
     --    kk1,
     --    mk1, mk2, mk3, mk4, mk5,
     --    mx1, my1,
     --    mx2, my2,
-    --    mz
+    --    mwx, mwy
     --)
 
     local c_white = lstg.Color(255, 255, 255, 255)

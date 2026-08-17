@@ -21,6 +21,5 @@ include(${CMAKE_CURRENT_LIST_DIR}/ada_url.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/sdl3.cmake)
 
 include(${CMAKE_CURRENT_LIST_DIR}/wil.cmake)
-include(${CMAKE_CURRENT_LIST_DIR}/directx_tk.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/directx_tex.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/d3dcompiler.cmake)

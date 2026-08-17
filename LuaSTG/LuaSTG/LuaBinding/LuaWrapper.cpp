@@ -48,7 +48,6 @@ namespace luastg::binding
         ParticleSystem::Register(L);
         StopWatch::Register(L);
         BentLaser::Register(L);
-        DirectInput::Register(L);
         lua_pop(L, 1);
 
         BuiltInFunction::Register(L); // 内建函数库

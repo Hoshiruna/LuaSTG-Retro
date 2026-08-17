@@ -1,6 +1,6 @@
 local imgui_exist, imgui = pcall(require, "imgui")
 local Mouse = lstg.Input.Mouse
-local Key = lstg.Input.Keyboard
+local MouseButton = lstg.Input.MouseButton
 
 local function set_touhou_world()
     local hscale = window.width / 384
@@ -24,7 +24,7 @@ local function get_touhou_world_cursor()
     local height = 448 * scale
     local dx = (window.width - width) * 0.5
     local dy = (window.height - height) * 0.5
-    local mx, my = lstg.GetMousePosition()
+    local mx, my = Mouse.getCanvasPosition()
     local x = mx - dx
     local y = my - dy
     local xv = -192 + 384 * (x / width)
@@ -59,9 +59,9 @@ function M:onUpdate()
     if imgui_exist then
         imgui.backend.ShowParticleSystemEditor(self.ps)
     end
-    if Mouse.GetKeyState(Mouse.Right) or Mouse.GetKeyState(Mouse.Left) then
+    if Mouse.isDown(MouseButton.right) or Mouse.isDown(MouseButton.left) then
         local mx, my = get_touhou_world_cursor()
-        if Mouse.GetKeyState(Mouse.Right) then
+        if Mouse.isDown(MouseButton.right) then
             self.ps:setActive(true)
         end
         self.ps:Update(1 / 60, mx, my, self.timer % 360)

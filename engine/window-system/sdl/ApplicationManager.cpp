@@ -1,4 +1,5 @@
 #include "core/Application.hpp"
+#include "core/InputSystem.hpp"
 #include "core/Logger.hpp"
 #include "core/SdlRuntime.hpp"
 #include "sdl/EventDispatcher.hpp"
@@ -31,12 +32,17 @@ namespace core
             Logger::error("[sdl] ApplicationManager could not initialize SDL: {}", SDL_GetError());
             return;
         }
+        if(!InputSystem::getInstance().initialize()) {
+            Logger::error("[sdl] ApplicationManager could not initialize the input system");
+            return;
+        }
 
         application_instance = application;
         main_thread_id = std::this_thread::get_id();
         exit_requested.store(false, std::memory_order_relaxed);
 
         if(!application->onCreate()) {
+            InputSystem::getInstance().shutdown();
             application_instance = nullptr;
             return;
         }
@@ -47,19 +53,26 @@ namespace core
             SDL_Event event{};
             while(SDL_PollEvent(&event)) {
                 SDLEventDispatcher::dispatch(event);
+                InputSystem::getInstance().processEvent(event);
                 WindowSDL3::dispatchSDLEvent(event);
                 if(event.type == SDL_EVENT_QUIT || event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED) {
                     exit_requested.store(true, std::memory_order_relaxed);
                 }
             }
+            InputSystem::getInstance().update();
 
             if(exit_requested.load(std::memory_order_relaxed)) {
                 break;
+            }
+            if(!update_enabled || is_updating || application_instance == nullptr) {
+                SDL_Delay(1);
+                continue;
             }
             runUpdate();
         }
 
         application->onDestroy();
+        InputSystem::getInstance().shutdown();
         application_instance = nullptr;
     }
 

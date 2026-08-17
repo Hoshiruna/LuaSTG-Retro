@@ -4,7 +4,6 @@
 #include "core/AudioSystem.hpp"
 #include "GameResource/ResourceManager.h"
 #include "GameObject/GameObjectPool.h"
-#include "Platform/DirectInput.hpp"
 
 namespace luastg
 {
@@ -73,9 +72,6 @@ namespace luastg
         // 渲染状态
         bool m_bRenderStarted = false;
 
-        // 输入设备
-        std::unique_ptr<Platform::DirectInput> m_DirectInput;
-
     public:
         /// @brief 保护模式执行脚本
         /// @note 该函数仅限框架调用，为主逻辑最外层调用。若脚本运行时发生错误，该函数负责截获错误发出错误消息。
@@ -102,30 +98,8 @@ namespace luastg
         bool OnLoadMainScriptAndFiles();
 
     public: // 输入系统接口
-        void OpenInput();
-        void CloseInput();
-        void UpdateInput();
-        void ResetKeyboardInput();
-        void ResetMouseInput();
-
-        //检查按键是否按下
-        bool GetKeyState(int VKCode) noexcept;
-
-        /// @brief 获得最后一次按键输入
-        int GetLastKey() noexcept;
-
-        /// @brief 获取鼠标位置（以窗口左下角为原点）
-        core::Vector2F GetMousePosition(bool no_flip = false) noexcept;
-
-        core::Vector2F GetCurrentWindowSizeF();
-        core::Vector4F GetMousePositionTransformF();
-
-        /// @brief 获取鼠标滚轮增量
-        int32_t GetMouseWheelDelta() noexcept;
-
-        /// @brief 检查鼠标是否按下
-        bool GetMouseState_legacy(int button) noexcept;
-        bool GetMouseState(int button) noexcept;
+        /// @brief 获取鼠标在画布中的位置，默认以左下角为原点
+        core::Vector2F GetMousePosition(bool no_flip = false, bool* inside = nullptr, bool raw = false) noexcept;
 
     public: // 脚本调用接口，含义参见API文档
         void SetTitle(const char* v) noexcept;
@@ -246,8 +220,6 @@ namespace luastg
 
         GameObjectPool& GetGameObjectPool() noexcept { return *m_GameObjectPool; }
 
-        Platform::DirectInput* GetDInput() noexcept { return m_DirectInput.get(); }
-
         core::IApplicationModel* GetAppModel() { return m_pAppModel.get(); }
         core::Graphics::IRenderer* GetRenderer2D() { return m_pAppModel->getRenderer(); }
         core::IAudioSystem* getAudioSystem() { return m_audio_engine.get(); }
@@ -267,8 +239,6 @@ namespace luastg
     protected:
         std::atomic_int m_window_active_changed{ 0 };
 
-        void onWindowCreate() override;
-        void onWindowDestroy() override;
         void onWindowActive() override;
         void onWindowInactive() override;
         void onDeviceChange() override;

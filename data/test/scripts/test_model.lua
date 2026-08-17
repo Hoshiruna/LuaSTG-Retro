@@ -23,39 +23,40 @@ local function Camera3D()
     }
     function M:update()
         local speed = self.speed
-        local Key = lstg.Input.Keyboard
-        if lstg.GetKeyState(Key.LeftControl) then
+        local Keyboard = lstg.Input.Keyboard
+        local Key = lstg.Input.Key
+        if Keyboard.isDown(Key.left_control) then
             speed = speed * 10.0
         end
-        if lstg.GetKeyState(Key.W) then
+        if Keyboard.isDown(Key.w) then
             self.x = self.x + speed * math.cos(math.rad(self.dir))
             self.z = self.z + speed * math.sin(math.rad(self.dir))
-        elseif lstg.GetKeyState(Key.S) then
+        elseif Keyboard.isDown(Key.s) then
             self.x = self.x - speed * math.cos(math.rad(self.dir))
             self.z = self.z - speed * math.sin(math.rad(self.dir))
         end
-        if lstg.GetKeyState(Key.D) then
+        if Keyboard.isDown(Key.d) then
             self.x = self.x + speed * math.cos(math.rad(self.dir - 90))
             self.z = self.z + speed * math.sin(math.rad(self.dir - 90))
-        elseif lstg.GetKeyState(Key.A) then
+        elseif Keyboard.isDown(Key.a) then
             self.x = self.x + speed * math.cos(math.rad(self.dir + 90))
             self.z = self.z + speed * math.sin(math.rad(self.dir + 90))
         end
-        if lstg.GetKeyState(Key.Space) then
+        if Keyboard.isDown(Key.space) then
             self.y = self.y + speed
-        elseif lstg.GetKeyState(Key.LeftShift) then
+        elseif Keyboard.isDown(Key.left_shift) then
             self.y = self.y - speed
         end
-        if not self.rbtn and lstg.GetMouseState(2) then
+        if not self.rbtn and lstg.Input.Mouse.isDown(lstg.Input.MouseButton.right) then
             self.rbtn = true
-            self.mx, self.my = lstg.GetMousePosition()
+            self.mx, self.my = lstg.Input.Mouse.getCanvasPosition()
             self.last_dir = self.dir
             self.last_upd = self.upd
-        elseif self.rbtn and not lstg.GetMouseState(2) then
+        elseif self.rbtn and not lstg.Input.Mouse.isDown(lstg.Input.MouseButton.right) then
             self.rbtn = false
         end
         if self.rbtn then
-            local mx, my = lstg.GetMousePosition()
+            local mx, my = lstg.Input.Mouse.getCanvasPosition()
             local dx, dy = mx - self.mx, my - self.my
             self.dir = self.last_dir - self.aspeed * dx
             self.upd = self.last_upd + self.aspeed * dy
