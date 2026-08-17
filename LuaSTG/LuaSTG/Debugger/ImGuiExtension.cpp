@@ -913,22 +913,6 @@ namespace
 
         return g_ini_path;
     }
-    void addSystemFont()
-    {
-        constexpr std::array system_fonts{
-            R"(C:\Windows\Fonts\msyh.ttc)"sv,
-            R"(C:\Windows\Fonts\msyh.ttf)"sv, // Windows 7
-        };
-        std::error_code ec;
-        for(auto const& system_font : system_fonts) {
-            std::u8string_view const path{ reinterpret_cast<char8_t const*>(system_font.data()), system_font.size() };
-            if(std::filesystem::is_regular_file(path, ec)) {
-                if(ImGui::GetIO().Fonts->AddFontFromFileTTF(system_font.data(), 16.0f)) {
-                    break;
-                }
-            }
-        }
-    }
     void applyStyle()
     {
         ImGuiStyle style;
@@ -968,10 +952,10 @@ namespace imgui
 
         ImGuiIO& io = ImGui::GetIO();
         io.IniFilename = getIniPath().c_str(); // managed by imgui
+        io.Fonts->AddFontDefault();
         //io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
         //io.ConfigFlags |= ImGuiConfigFlags_NavEnableSetMousePos;
 
-        addSystemFont();
         applyStyle();
 
         g_imgui_backend_event_listener.onWindowCreate();
