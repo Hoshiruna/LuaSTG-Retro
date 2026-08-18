@@ -9,6 +9,7 @@
 #include <string>
 #include <string_view>
 #include <type_traits>
+#include <unordered_map>
 
 namespace
 {
@@ -19,6 +20,25 @@ namespace
     {
         uint32_t id{};
         bool gamepad{};
+    };
+
+    static constexpr std::array key_values{
+#define KEY(name) std::pair{ std::string_view{ #name }, core::Key::name }
+        KEY(unknown),
+        KEY(a), KEY(b), KEY(c), KEY(d), KEY(e), KEY(f), KEY(g), KEY(h), KEY(i), KEY(j), KEY(k), KEY(l), KEY(m),
+        KEY(n), KEY(o), KEY(p), KEY(q), KEY(r), KEY(s), KEY(t), KEY(u), KEY(v), KEY(w), KEY(x), KEY(y), KEY(z),
+        KEY(digit1), KEY(digit2), KEY(digit3), KEY(digit4), KEY(digit5), KEY(digit6), KEY(digit7), KEY(digit8), KEY(digit9), KEY(digit0),
+        KEY(enter), KEY(escape), KEY(backspace), KEY(tab), KEY(space), KEY(minus), KEY(equals),
+        KEY(left_bracket), KEY(right_bracket), KEY(backslash), KEY(semicolon), KEY(apostrophe), KEY(grave), KEY(comma), KEY(period), KEY(slash),
+        KEY(caps_lock), KEY(f1), KEY(f2), KEY(f3), KEY(f4), KEY(f5), KEY(f6), KEY(f7), KEY(f8), KEY(f9), KEY(f10), KEY(f11), KEY(f12),
+        KEY(f13), KEY(f14), KEY(f15), KEY(f16), KEY(f17), KEY(f18), KEY(f19), KEY(f20), KEY(f21), KEY(f22), KEY(f23), KEY(f24),
+        KEY(print_screen), KEY(scroll_lock), KEY(pause), KEY(insert), KEY(home), KEY(page_up), KEY(delete_key), KEY(end_key), KEY(page_down),
+        KEY(right), KEY(left), KEY(down), KEY(up), KEY(num_lock), KEY(keypad_divide), KEY(keypad_multiply), KEY(keypad_minus),
+        KEY(keypad_plus), KEY(keypad_enter), KEY(keypad1), KEY(keypad2), KEY(keypad3), KEY(keypad4), KEY(keypad5),
+        KEY(keypad6), KEY(keypad7), KEY(keypad8), KEY(keypad9), KEY(keypad0), KEY(keypad_period), KEY(keypad_equals), KEY(keypad_comma),
+        KEY(application), KEY(power), KEY(media_next), KEY(media_previous), KEY(media_stop), KEY(media_play), KEY(mute), KEY(volume_up), KEY(volume_down),
+        KEY(left_control), KEY(left_shift), KEY(left_alt), KEY(left_super), KEY(right_control), KEY(right_shift), KEY(right_alt), KEY(right_super),
+#undef KEY
     };
 
     core::InputSystem& input() noexcept
@@ -42,7 +62,7 @@ namespace
     }
 
     template<typename Enum>
-    Enum checkEnum(lua_State* const L, const int argument, const Enum count)
+    Enum checkIntegerEnum(lua_State* const L, const int argument, const Enum count)
     {
         const auto value = luaL_checkinteger(L, argument);
         luaL_argcheck(L, value >= 0 && static_cast<uint64_t>(value) < static_cast<uint64_t>(static_cast<std::underlying_type_t<Enum>>(count)), argument, "invalid enum value");
@@ -50,7 +70,7 @@ namespace
     }
 
     template<typename Enum, size_t Size>
-    void registerEnum(lua_State* const L, const char* const name, const std::array<std::pair<std::string_view, Enum>, Size>& values)
+    void registerIntegerEnum(lua_State* const L, const char* const name, const std::array<std::pair<std::string_view, Enum>, Size>& values)
     {
         constexpr luaL_Reg empty[] = { { nullptr, nullptr } };
         luaL_register(L, name, empty);
@@ -62,39 +82,63 @@ namespace
         lua_pop(L, 1);
     }
 
+    core::Key checkKey(lua_State* const L, const int argument)
+    {
+        static const std::unordered_map<std::string_view, core::Key> lookup(key_values.begin(), key_values.end());
+        size_t size{};
+        const auto* const data = luaL_checklstring(L, argument, &size);
+        const std::string_view name(data, size);
+        const auto entry = lookup.find(name);
+        luaL_argcheck(L, entry != lookup.end(), argument, "unknown key name");
+        return entry->second;
+    }
+
+    void registerKeys(lua_State* const L)
+    {
+        constexpr luaL_Reg empty[] = { { nullptr, nullptr } };
+        luaL_register(L, "lstg.Input.Key", empty);
+        for(const auto& value : key_values) {
+            const auto name = value.first;
+            lua_pushlstring(L, name.data(), name.size());
+            lua_pushlstring(L, name.data(), name.size());
+            lua_settable(L, -3);
+        }
+        lua_pop(L, 1);
+    }
+
     int keyboardIsDown(lua_State* const L)
     {
-        lua_pushboolean(L, input().isKeyDown(checkEnum(L, 1, core::Key::count)));
+        lua_pushboolean(L, input().isKeyDown(checkKey(L, 1)));
         return 1;
     }
 
     int keyboardWasPressed(lua_State* const L)
     {
-        lua_pushboolean(L, input().wasKeyPressed(checkEnum(L, 1, core::Key::count)));
+        lua_pushboolean(L, input().wasKeyPressed(checkKey(L, 1)));
         return 1;
     }
 
     int keyboardWasReleased(lua_State* const L)
     {
-        lua_pushboolean(L, input().wasKeyReleased(checkEnum(L, 1, core::Key::count)));
+        lua_pushboolean(L, input().wasKeyReleased(checkKey(L, 1)));
         return 1;
     }
 
     int mouseIsDown(lua_State* const L)
     {
-        lua_pushboolean(L, input().isMouseButtonDown(checkEnum(L, 1, core::MouseButton::count)));
+        lua_pushboolean(L, input().isMouseButtonDown(checkIntegerEnum(L, 1, core::MouseButton::count)));
         return 1;
     }
 
     int mouseWasPressed(lua_State* const L)
     {
-        lua_pushboolean(L, input().wasMouseButtonPressed(checkEnum(L, 1, core::MouseButton::count)));
+        lua_pushboolean(L, input().wasMouseButtonPressed(checkIntegerEnum(L, 1, core::MouseButton::count)));
         return 1;
     }
 
     int mouseWasReleased(lua_State* const L)
     {
-        lua_pushboolean(L, input().wasMouseButtonReleased(checkEnum(L, 1, core::MouseButton::count)));
+        lua_pushboolean(L, input().wasMouseButtonReleased(checkIntegerEnum(L, 1, core::MouseButton::count)));
         return 1;
     }
 
@@ -204,28 +248,28 @@ namespace
     int gamepadIsDown(lua_State* const L)
     {
         const auto* const self = checkDevice(L, 1, gamepad_type_name);
-        lua_pushboolean(L, input().isGamepadButtonDown(self->id, checkEnum(L, 2, core::GamepadButton::count)));
+        lua_pushboolean(L, input().isGamepadButtonDown(self->id, checkIntegerEnum(L, 2, core::GamepadButton::count)));
         return 1;
     }
 
     int gamepadWasPressed(lua_State* const L)
     {
         const auto* const self = checkDevice(L, 1, gamepad_type_name);
-        lua_pushboolean(L, input().wasGamepadButtonPressed(self->id, checkEnum(L, 2, core::GamepadButton::count)));
+        lua_pushboolean(L, input().wasGamepadButtonPressed(self->id, checkIntegerEnum(L, 2, core::GamepadButton::count)));
         return 1;
     }
 
     int gamepadWasReleased(lua_State* const L)
     {
         const auto* const self = checkDevice(L, 1, gamepad_type_name);
-        lua_pushboolean(L, input().wasGamepadButtonReleased(self->id, checkEnum(L, 2, core::GamepadButton::count)));
+        lua_pushboolean(L, input().wasGamepadButtonReleased(self->id, checkIntegerEnum(L, 2, core::GamepadButton::count)));
         return 1;
     }
 
     int gamepadGetAxis(lua_State* const L)
     {
         const auto* const self = checkDevice(L, 1, gamepad_type_name);
-        lua_pushnumber(L, input().getGamepadAxis(self->id, checkEnum(L, 2, core::GamepadAxis::count)));
+        lua_pushnumber(L, input().getGamepadAxis(self->id, checkIntegerEnum(L, 2, core::GamepadAxis::count)));
         return 1;
     }
 
@@ -381,24 +425,6 @@ void luastg::binding::Input::Register(lua_State* const L) noexcept
     luaL_register(L, "lstg.Input", empty);
     lua_pop(L, 1);
 
-    static constexpr std::array keys{
-#define KEY(name) std::pair{ std::string_view{ #name }, core::Key::name }
-        KEY(unknown),
-        KEY(a), KEY(b), KEY(c), KEY(d), KEY(e), KEY(f), KEY(g), KEY(h), KEY(i), KEY(j), KEY(k), KEY(l), KEY(m),
-        KEY(n), KEY(o), KEY(p), KEY(q), KEY(r), KEY(s), KEY(t), KEY(u), KEY(v), KEY(w), KEY(x), KEY(y), KEY(z),
-        KEY(digit1), KEY(digit2), KEY(digit3), KEY(digit4), KEY(digit5), KEY(digit6), KEY(digit7), KEY(digit8), KEY(digit9), KEY(digit0),
-        KEY(enter), KEY(escape), KEY(backspace), KEY(tab), KEY(space), KEY(minus), KEY(equals),
-        KEY(left_bracket), KEY(right_bracket), KEY(backslash), KEY(semicolon), KEY(apostrophe), KEY(grave), KEY(comma), KEY(period), KEY(slash),
-        KEY(caps_lock), KEY(f1), KEY(f2), KEY(f3), KEY(f4), KEY(f5), KEY(f6), KEY(f7), KEY(f8), KEY(f9), KEY(f10), KEY(f11), KEY(f12),
-        KEY(f13), KEY(f14), KEY(f15), KEY(f16), KEY(f17), KEY(f18), KEY(f19), KEY(f20), KEY(f21), KEY(f22), KEY(f23), KEY(f24),
-        KEY(print_screen), KEY(scroll_lock), KEY(pause), KEY(insert), KEY(home), KEY(page_up), KEY(delete_key), KEY(end_key), KEY(page_down),
-        KEY(right), KEY(left), KEY(down), KEY(up), KEY(num_lock), KEY(keypad_divide), KEY(keypad_multiply), KEY(keypad_minus),
-        KEY(keypad_plus), KEY(keypad_enter), KEY(keypad1), KEY(keypad2), KEY(keypad3), KEY(keypad4), KEY(keypad5),
-        KEY(keypad6), KEY(keypad7), KEY(keypad8), KEY(keypad9), KEY(keypad0), KEY(keypad_period), KEY(keypad_equals), KEY(keypad_comma),
-        KEY(application), KEY(power), KEY(media_next), KEY(media_previous), KEY(media_stop), KEY(media_play), KEY(mute), KEY(volume_up), KEY(volume_down),
-        KEY(left_control), KEY(left_shift), KEY(left_alt), KEY(left_super), KEY(right_control), KEY(right_shift), KEY(right_alt), KEY(right_super),
-#undef KEY
-    };
     static constexpr std::array mouse_buttons{
 #define BUTTON(name) std::pair{ std::string_view{ #name }, core::MouseButton::name }
         BUTTON(left), BUTTON(middle), BUTTON(right), BUTTON(x1), BUTTON(x2),
@@ -426,11 +452,11 @@ void luastg::binding::Input::Register(lua_State* const L) noexcept
         std::pair{ std::string_view{ "left" }, core::JoystickHat::left },
     };
 
-    registerEnum(L, "lstg.Input.Key", keys);
-    registerEnum(L, "lstg.Input.MouseButton", mouse_buttons);
-    registerEnum(L, "lstg.Input.GamepadButton", gamepad_buttons);
-    registerEnum(L, "lstg.Input.GamepadAxis", gamepad_axes);
-    registerEnum(L, "lstg.Input.JoystickHat", joystick_hats);
+    registerKeys(L);
+    registerIntegerEnum(L, "lstg.Input.MouseButton", mouse_buttons);
+    registerIntegerEnum(L, "lstg.Input.GamepadButton", gamepad_buttons);
+    registerIntegerEnum(L, "lstg.Input.GamepadAxis", gamepad_axes);
+    registerIntegerEnum(L, "lstg.Input.JoystickHat", joystick_hats);
 
     static constexpr luaL_Reg keyboard_methods[] = {
         { "isDown", keyboardIsDown },
