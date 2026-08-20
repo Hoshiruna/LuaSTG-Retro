@@ -738,89 +738,41 @@ namespace luastg
 
     // 加载TrueType字体
 
-    bool ResourcePool::LoadTTFFont(const char* name, const char* path, float width, float height) noexcept
+    bool ResourcePool::LoadDynamicFont(const char* name, core::Graphics::TrueTypeFontInfo const* fonts, size_t count,
+        DynamicFontLoadOptions const& options) noexcept
     {
+        if(!fonts || count == 0) {
+            spdlog::error("[luastg] LoadDynamicFont: no font sources were provided for '{}' (resource pool '{}')", name, getResourcePoolName());
+            return false;
+        }
         if(m_TTFFontPool.find(std::string_view(name)) != m_TTFFontPool.end()) {
             if(ResourceMgr::GetResourceLoadingLog()) {
-                spdlog::warn("[luastg] LoadTTFFont: 矢量字体 '{}' 已存在，加载操作已取消 (资源池 '{}')", name, getResourcePoolName());
+                spdlog::warn("[luastg] LoadDynamicFont: dynamic font '{}' already exists (resource pool '{}')", name, getResourcePoolName());
             }
             return false;
         }
 
-        core::SmartReference<core::Graphics::IGlyphManager> p_glyphmgr;
-        core::Graphics::TrueTypeFontInfo create_info = {
-            .source = path,
-            .font_face = 0,
-            .font_size = core::Vector2F(width, height),
-            .is_force_to_file = false,
-            .is_buffer = false,
-        };
-        if(!core::Graphics::IGlyphManager::create(LAPP.GetAppModel()->getDevice(), &create_info, 1, p_glyphmgr.put())) {
-            spdlog::error("[luastg] LoadTTFFont: 加载矢量字体 '{}' 失败 (资源池 '{}')", name, getResourcePoolName());
-            return false;
-        }
-
-        // 创建定义
-        try {
-            core::SmartReference<IResourceFont> tRes;
-            tRes.attach(new ResourceFontImpl(name, p_glyphmgr.get()));
-            m_TTFFontPool.emplace(name, tRes);
-        } catch(std::exception const& e) {
-            spdlog::error("[luastg] LoadTTFFont: 无法加载矢量字体 '{}' ({}) (资源池 '{}')", name, e.what(), getResourcePoolName());
-            return false;
-        }
-
-        if(ResourceMgr::GetResourceLoadingLog()) {
-            spdlog::info("[luastg] LoadTTFFont: 已从 '{}' 加载矢量字体 '{}' (资源池 '{}')", path, name, getResourcePoolName());
-        }
-
-        return true;
-    }
-
-    bool ResourcePool::LoadTTFFont(const char* name, core::IData* data, float width, float height) noexcept
-    {
-        if(m_TTFFontPool.find(std::string_view(name)) != m_TTFFontPool.end()) {
-            if(ResourceMgr::GetResourceLoadingLog()) {
-                spdlog::warn("[luastg] LoadTTFFont: 矢量字体 '{}' 已存在，加载操作已取消 (资源池 '{}')", name, getResourcePoolName());
+        std::vector<core::SmartReference<core::IData>> source_data(count);
+        std::vector<core::Graphics::TrueTypeFontInfo> buffered_fonts(fonts, fonts + count);
+        for(size_t i = 0; i < count; ++i) {
+            if(fonts[i].is_buffer) {
+                continue;
             }
-            return false;
+            if(!core::FileSystemManager::readFile(fonts[i].source, source_data[i].put())) {
+                spdlog::error("[luastg] LoadDynamicFont: failed to read font source '{}' (resource pool '{}')", fonts[i].source, getResourcePoolName());
+                return false;
+            }
+            buffered_fonts[i].source = core::StringView(
+                static_cast<char const*>(source_data[i]->data()),
+                source_data[i]->size());
+            buffered_fonts[i].is_buffer = true;
+            buffered_fonts[i].is_force_to_file = false;
         }
-
-        if(!data) {
-            spdlog::error("[luastg] LoadTTFFont: 加载矢量字体 '{}' 失败 (资源池 '{}')", name, getResourcePoolName());
-            return false;
-        }
-
-        core::SmartReference<core::Graphics::IGlyphManager> p_glyphmgr;
-        core::Graphics::TrueTypeFontInfo create_info = {
-            .source = core::StringView(static_cast<char const*>(data->data()), data->size()),
-            .font_face = 0,
-            .font_size = core::Vector2F(width, height),
-            .is_force_to_file = false,
-            .is_buffer = true,
-        };
-        if(!core::Graphics::IGlyphManager::create(LAPP.GetAppModel()->getDevice(), &create_info, 1, p_glyphmgr.put())) {
-            spdlog::error("[luastg] LoadTTFFont: 加载矢量字体 '{}' 失败 (资源池 '{}')", name, getResourcePoolName());
-            return false;
-        }
-
-        try {
-            core::SmartReference<IResourceFont> tRes;
-            tRes.attach(new ResourceFontImpl(name, p_glyphmgr.get()));
-            m_TTFFontPool.emplace(name, tRes);
-        } catch(std::exception const& e) {
-            spdlog::error("[luastg] LoadTTFFont: 无法加载矢量字体 '{}' ({}) (资源池 '{}')", name, e.what(), getResourcePoolName());
-            return false;
-        }
-
-        if(ResourceMgr::GetResourceLoadingLog()) {
-            spdlog::info("[luastg] LoadTTFFont: 已从内存加载矢量字体 '{}' (资源池 '{}')", name, getResourcePoolName());
-        }
-
-        return true;
+        return LoadTrueTypeFont(name, buffered_fonts.data(), buffered_fonts.size(), options);
     }
 
-    bool ResourcePool::LoadTrueTypeFont(const char* name, core::Graphics::TrueTypeFontInfo* fonts, size_t count) noexcept
+    bool ResourcePool::LoadTrueTypeFont(const char* name, core::Graphics::TrueTypeFontInfo* fonts, size_t count,
+        DynamicFontLoadOptions const& options) noexcept
     {
         if(m_TTFFontPool.find(std::string_view(name)) != m_TTFFontPool.end()) {
             if(ResourceMgr::GetResourceLoadingLog()) {
@@ -830,7 +782,9 @@ namespace luastg
         }
 
         core::SmartReference<core::Graphics::IGlyphManager> p_glyphmgr;
-        if(!core::Graphics::IGlyphManager::create(LAPP.GetAppModel()->getDevice(), fonts, count, p_glyphmgr.put())) {
+        auto* const sampler = LAPP.GetRenderer2D()->getKnownSamplerState(options.sampler);
+        if(!core::Graphics::IGlyphManager::create(
+               LAPP.GetAppModel()->getDevice(), fonts, count, options.rasterization, sampler, p_glyphmgr.put())) {
             spdlog::error("[luastg] LoadTrueTypeFont: 加载矢量字体组 '{}' 失败 (资源池 '{}')", name, getResourcePoolName());
             return false;
         }

@@ -60,6 +60,7 @@ namespace luastg
         std::string texture_path;
         std::vector<core::Graphics::TrueTypeFontInfo> fonts;
         std::vector<std::string> font_sources;
+        DynamicFontLoadOptions dynamic_font_options;
         core::SmartReference<IResourceTexture> texture;
         core::SmartReference<IResourceSprite> sprite;
         std::vector<core::SmartReference<IResourceSprite>> sprites;
@@ -72,8 +73,6 @@ namespace luastg
         double b{};
         uint64_t loop_start_frame{};
         uint64_t loop_end_frame{};
-        float font_width{};
-        float font_height{};
         int columns{};
         int rows{};
         int interval{};

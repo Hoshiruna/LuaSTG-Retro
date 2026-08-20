@@ -8,6 +8,7 @@ local Keyboard = lstg.Input.Keyboard
 local task = require("task")
 local TaskManager = require("task.Manager")
 local resource_pool
+local sans_font
 local global_tasks = TaskManager.create()
 
 --------------------------------------------------------------------------------
@@ -139,27 +140,24 @@ local timer = 0
 local function updateBackground()
     timer = timer + 1
 end
-local function renderText(font, text, x, y, scale, color, oscale, ocolor, align)
-    local d = oscale
-    local k = oscale * math.sqrt(2.0) * 0.5
-    local s = 2 * scale
-    lstg.RenderTTF(font, text, x - d, x - d, y, y, align, ocolor, s)
-    lstg.RenderTTF(font, text, x + d, x + d, y, y, align, ocolor, s)
-    lstg.RenderTTF(font, text, x, x, y - d, y - d, align, ocolor, s)
-    lstg.RenderTTF(font, text, x, x, y + d, y + d, align, ocolor, s)
-    lstg.RenderTTF(font, text, x - k, x - k, y + k, y + k, align, ocolor, s)
-    lstg.RenderTTF(font, text, x + k, x + k, y + k, y + k, align, ocolor, s)
-    lstg.RenderTTF(font, text, x + k, x + k, y - k, y - k, align, ocolor, s)
-    lstg.RenderTTF(font, text, x - k, x - k, y - k, y - k, align, ocolor, s)
-    lstg.RenderTTF(font, text, x, x, y, y, align, color, s)
+local function renderText(text, x, y, scale, color, outline_width, outline_color, horizontal_align, vertical_align)
+    sans_font:draw(text, x, y, {
+        scaleX = scale,
+        scaleY = scale,
+        color = color,
+        outlineWidth = outline_width,
+        outlineColor = outline_color,
+        horizontalAlign = horizontal_align,
+        verticalAlign = vertical_align,
+    })
 end
 local function renderBackground()
     local cx, cy = window.width / 2, window.height / 2
-    renderText("Sans", "海内存知己\n天涯若比邻\n欢迎来到 Luastg Retro",
+    renderText("海内存知己\n天涯若比邻\n欢迎来到 Luastg Retro",
         cx, cy,
-        1, lstg.Color(255, 2255, 255, 255),
+        1, lstg.Color(255, 255, 255, 255),
         4, lstg.Color(255, 0, 0, 0),
-        1 + 4)
+        "center", "middle")
     local circle_r = 300
     for i = 0, (360 - 1), (360 / 60) do
         local angle = i + timer * 0.17
@@ -170,17 +168,17 @@ local function renderBackground()
     end
 end
 local function drawDebugInfo()
-    renderText("Sans", "移动/Move: ←↑↓→  低速移动/Slower Move: LeftShift",
+    renderText("移动/Move: ←↑↓→  低速移动/Slower Move: LeftShift",
         4, 4,
-        0.5, lstg.Color(255, 2255, 255, 255),
+        0.5, lstg.Color(255, 255, 255, 255),
         2, lstg.Color(255, 0, 0, 0),
-        0 + 8)
+        "left", "bottom")
     local text = string.format("OBJ %d FPS %.2f", lstg.GetnObj(), lstg.GetFPS())
-    renderText("Sans", text,
+    renderText(text,
         window.width - 4, 4,
-        0.5, lstg.Color(255, 2255, 255, 255),
+        0.5, lstg.Color(255, 255, 255, 255),
         2, lstg.Color(255, 0, 0, 0),
-        2 + 8)
+        "right", "bottom")
 end
 
 --------------------------------------------------------------------------------
@@ -199,9 +197,20 @@ function GameInit()
     lstg.SetImageState("player-rect", "", lstg.Color(255, 64, 64, 255))
     resource_pool:createSprite("bullet-rect", white, 0, 0, 16, 16)
     lstg.SetImageState("bullet-rect", "", lstg.Color(96, 0, 0, 0))
-    if not resource_pool:loadTTF("Sans", "C:/Windows/Fonts/msyh.ttc", 48, 48) then
-        resource_pool:loadTTF("Sans", "C:/Windows/Fonts/msyh.ttf", 48, 48) -- Windows 7
+    local font_error
+    sans_font, font_error = resource_pool:loadDynamicFont("Sans", {
+        pixelWidth = 48,
+        pixelHeight = 48,
+        sources = { { path = "C:/Windows/Fonts/msyh.ttc", faceIndex = 0 } },
+    })
+    if not sans_font then
+        sans_font, font_error = resource_pool:loadDynamicFont("Sans", {
+            pixelWidth = 48,
+            pixelHeight = 48,
+            sources = { { path = "C:/Windows/Fonts/msyh.ttf", faceIndex = 0 } }, -- Windows 7
+        })
     end
+    assert(sans_font, font_error)
     buildGameObjectScene()
 end
 function GameExit()

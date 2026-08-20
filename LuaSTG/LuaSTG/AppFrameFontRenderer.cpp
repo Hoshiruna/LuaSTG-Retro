@@ -5,16 +5,6 @@ namespace luastg
 {
     // luastg plus interface
 
-    constexpr int TEXT_ALIGN_LEFT = 0x00;
-    constexpr int TEXT_ALIGN_CENTER = 0x01;
-    constexpr int TEXT_ALIGN_RIGHT = 0x02;
-
-    constexpr int TEXT_ALIGN_TOP = 0x00;
-    constexpr int TEXT_ALIGN_VCENTER = 0x04;
-    constexpr int TEXT_ALIGN_BOTTOM = 0x08;
-
-    constexpr int TEXT_FLAG_WORDBREAK = 0x10;
-
     bool AppFrame::RenderText(IResourceFont* p, wchar_t* strBuf, core::RectF rect, core::Vector2F scale, FontAlignHorizontal halign, FontAlignVertical valign, bool bWordBreak) noexcept
     {
         using namespace core;
@@ -221,134 +211,46 @@ namespace luastg
             false);
     }
 
-    bool AppFrame::RenderTTF(const char* name, const char* str, float left, float right, float bottom, float top, float scale, int format, core::Color4B c) noexcept
+    bool AppFrame::DynamicFontCache(IResourceFont* const font, std::string_view const text) noexcept
     {
-        core::SmartReference<IResourceFont> p = m_ResourceMgr.FindTTFFont(name);
-        if(!p) {
-            spdlog::error("[luastg] RenderTTF: 找不到字体资源'{}'", name);
+        return font && DynamicFontRenderer(m_pTextRenderer.get()).cache(font->GetGlyphManager(), text);
+    }
+
+    bool AppFrame::DynamicFontMeasure(
+        IResourceFont* const font,
+        std::string_view const text,
+        DynamicFontLayoutOptions const& options,
+        DynamicFontTextMetrics& metrics) noexcept
+    {
+        return font && DynamicFontRenderer(m_pTextRenderer.get()).measure(font->GetGlyphManager(), text, options, metrics);
+    }
+
+    bool AppFrame::DynamicFontDraw(
+        IResourceFont* const font,
+        std::string_view const text,
+        core::Vector2F const anchor,
+        DynamicFontDrawOptions const& options,
+        core::Vector2F& end_position) noexcept
+    {
+        if(!font) {
             return false;
         }
+        updateGraph2DBlendMode(options.blend);
+        return DynamicFontRenderer(m_pTextRenderer.get()).draw(font->GetGlyphManager(), text, anchor, options, end_position);
+    }
 
-        // 编码转换
-        std::wstring s_TempStringBuf;
-        try {
-            s_TempStringBuf = utf8::to_wstring(str);
-        } catch(const std::bad_alloc&) {
-            spdlog::error("[luastg] RenderTTF: 内存不足");
+    bool AppFrame::DynamicFontDrawInRect(
+        IResourceFont* const font,
+        std::string_view const text,
+        core::RectF const& rect,
+        DynamicFontDrawOptions const& options,
+        core::Vector2F& end_position) noexcept
+    {
+        if(!font) {
             return false;
         }
-
-        // 计算格式
-        bool bWordBreak = false;
-        FontAlignHorizontal halign = FontAlignHorizontal::Left;
-        FontAlignVertical valign = FontAlignVertical::Top;
-
-        if((format & TEXT_ALIGN_CENTER) == TEXT_ALIGN_CENTER)
-            halign = FontAlignHorizontal::Center;
-        else if((format & TEXT_ALIGN_RIGHT) == TEXT_ALIGN_RIGHT)
-            halign = FontAlignHorizontal::Right;
-
-        if((format & TEXT_ALIGN_VCENTER) == TEXT_ALIGN_VCENTER)
-            valign = FontAlignVertical::Middle;
-        else if((format & TEXT_ALIGN_BOTTOM) == TEXT_ALIGN_BOTTOM)
-            valign = FontAlignVertical::Bottom;
-
-        if((format & TEXT_FLAG_WORDBREAK) == TEXT_FLAG_WORDBREAK)
-            bWordBreak = true;
-
-        p->SetBlendColor(c);
-        return RenderText(
-            p.get(),
-            const_cast<wchar_t*>(s_TempStringBuf.data()),
-            core::RectF(left, top, right, bottom),
-            core::Vector2F(scale, scale) * 0.5f, // TODO: 缩放系数=0.5 ????????????
-            halign,
-            valign,
-            bWordBreak);
+        updateGraph2DBlendMode(options.blend);
+        return DynamicFontRenderer(m_pTextRenderer.get()).drawInRect(font->GetGlyphManager(), text, rect, options, end_position);
     }
 
-    // native interface
-
-    bool AppFrame::FontRenderer_SetFontProvider(const char* name)
-    {
-        core::SmartReference<IResourceFont> p = m_ResourceMgr.FindTTFFont(name);
-        if(!p) {
-            spdlog::error("[luastg] SetFontProvider: 找不到字体资源'{}'", name);
-            return false;
-        }
-        m_pTextRenderer->setGlyphManager(p->GetGlyphManager());
-        return true;
-    }
-
-    void AppFrame::FontRenderer_SetScale(core::Vector2F const& s)
-    {
-        m_pTextRenderer->setScale(s);
-    }
-
-    core::RectF AppFrame::FontRenderer_MeasureTextBoundary(const char* str, size_t len)
-    {
-        return m_pTextRenderer->getTextBoundary(core::StringView(str, len));
-    }
-
-    core::Vector2F AppFrame::FontRenderer_MeasureTextAdvance(const char* str, size_t len)
-    {
-        return m_pTextRenderer->getTextAdvance(core::StringView(str, len));
-    }
-
-    bool AppFrame::FontRenderer_RenderText(const char* str, size_t len, core::Vector2F& pos, const float z, const BlendMode blend, core::Color4B const& color)
-    {
-        float const last_z = m_pTextRenderer->getZ();
-
-        updateGraph2DBlendMode(blend);
-        m_pTextRenderer->setZ(z);
-        m_pTextRenderer->setColor(color);
-
-        core::Vector2F endpos;
-        const bool result = m_pTextRenderer->drawText(core::StringView(str, len), pos, &endpos);
-        pos = endpos;
-
-        m_pTextRenderer->setZ(last_z);
-        return result;
-    }
-
-    bool AppFrame::FontRenderer_RenderTextInSpace(const char* str, size_t len, core::Vector3F& pos, core::Vector3F const& rvec, core::Vector3F const& dvec, const BlendMode blend, core::Color4B const& color)
-    {
-        updateGraph2DBlendMode(blend);
-        m_pTextRenderer->setColor(color);
-
-        core::Vector3F endpos;
-        const bool result = m_pTextRenderer->drawTextInSpace(
-            core::StringView(str, len),
-            pos,
-            rvec,
-            dvec,
-            &endpos);
-        pos = endpos;
-
-        return result;
-    }
-
-    float AppFrame::FontRenderer_GetFontLineHeight()
-    {
-        auto* p = m_pTextRenderer->getGlyphManager();
-        if(p)
-            return p->getLineHeight();
-        return 0.0f;
-    }
-
-    float AppFrame::FontRenderer_GetFontAscender()
-    {
-        auto* p = m_pTextRenderer->getGlyphManager();
-        if(p)
-            return p->getAscender();
-        return 0.0f;
-    }
-
-    float AppFrame::FontRenderer_GetFontDescender()
-    {
-        auto* p = m_pTextRenderer->getGlyphManager();
-        if(p)
-            return p->getDescender();
-        return 0.0f;
-    }
 };

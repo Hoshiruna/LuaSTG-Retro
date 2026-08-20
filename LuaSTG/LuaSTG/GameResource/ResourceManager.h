@@ -27,6 +27,12 @@ namespace core
 
 namespace luastg
 {
+    struct DynamicFontLoadOptions
+    {
+        core::Graphics::GlyphRasterizationOptions rasterization;
+        core::Graphics::IRenderer::SamplerState sampler{ core::Graphics::IRenderer::SamplerState::LinearClamp };
+    };
+
     class AsyncResourceLoader;
     class AsyncResourceJob;
     struct AsyncResourceRequest;
@@ -109,9 +115,10 @@ namespace luastg
         bool LoadSpriteFont(const char* name, const char* path, const char* tex_path, bool mipmaps = true) noexcept;
         bool LoadSpriteFont(const char* name, core::IData* font_data, const char* path, const char* tex_path, core::IData* texture_data, bool mipmaps = true) noexcept;
         // 加载矢量字体
-        bool LoadTTFFont(const char* name, const char* path, float width, float height) noexcept;
-        bool LoadTTFFont(const char* name, core::IData* data, float width, float height) noexcept;
-        bool LoadTrueTypeFont(const char* name, core::Graphics::TrueTypeFontInfo* fonts, size_t count) noexcept;
+        bool LoadDynamicFont(const char* name, core::Graphics::TrueTypeFontInfo const* fonts, size_t count,
+            DynamicFontLoadOptions const& options = {}) noexcept;
+        bool LoadTrueTypeFont(const char* name, core::Graphics::TrueTypeFontInfo* fonts, size_t count,
+            DynamicFontLoadOptions const& options = {}) noexcept;
         // 特效
         bool LoadFX(const char* name, const char* path) noexcept;
         bool LoadFXFromSource(const char* name, std::string_view source, const char* path) noexcept;
@@ -179,12 +186,10 @@ namespace luastg
         core::SmartReference<IResourceSoundEffect> FindSound(const char* name) noexcept;
         core::SmartReference<IResourceParticle> FindParticle(const char* name) noexcept;
         core::SmartReference<IResourceFont> FindSpriteFont(const char* name) noexcept;
-        core::SmartReference<IResourceFont> FindTTFFont(const char* name) noexcept;
         core::SmartReference<IResourcePostEffectShader> FindFX(const char* name) noexcept;
         core::SmartReference<IResourceModel> FindModel(const char* name) noexcept;
 
         bool GetTextureSize(const char* name, core::Vector2U& out) noexcept;
-        void CacheTTFFontString(const char* name, const char* text, size_t len) noexcept;
         void UpdateVideo(double delta_seconds);
 
     private:

@@ -3,6 +3,7 @@
 #include "Core/Graphics/Font.hpp"
 #include "core/AudioSystem.hpp"
 #include "GameResource/ResourceManager.h"
+#include "GameResource/DynamicFontRenderer.hpp"
 #include "GameObject/GameObjectPool.h"
 #include "Platform/DirectInput.hpp"
 
@@ -176,7 +177,10 @@ namespace luastg
 
         bool RenderText(const char* name, const char* str, float x, float y, float scale, FontAlignHorizontal halign, FontAlignVertical valign) noexcept;
 
-        bool RenderTTF(const char* name, const char* str, float left, float right, float bottom, float top, float scale, int format, core::Color4B c) noexcept;
+        bool DynamicFontCache(IResourceFont* font, std::string_view text) noexcept;
+        bool DynamicFontMeasure(IResourceFont* font, std::string_view text, DynamicFontLayoutOptions const& options, DynamicFontTextMetrics& metrics) noexcept;
+        bool DynamicFontDraw(IResourceFont* font, std::string_view text, core::Vector2F anchor, DynamicFontDrawOptions const& options, core::Vector2F& end_position) noexcept;
+        bool DynamicFontDrawInRect(IResourceFont* font, std::string_view text, core::RectF const& rect, DynamicFontDrawOptions const& options, core::Vector2F& end_position) noexcept;
 
         void SnapShot(const char* path) noexcept;
         void SaveTexture(const char* tex_name, const char* path) noexcept;
@@ -223,20 +227,6 @@ namespace luastg
         // 接口
 
         IRenderTargetManager* GetRenderTargetManager();
-
-    public:
-        // 文字渲染器包装
-        bool FontRenderer_SetFontProvider(const char* name);
-        void FontRenderer_SetScale(const core::Vector2F& s);
-
-        core::RectF FontRenderer_MeasureTextBoundary(const char* str, size_t len);
-        core::Vector2F FontRenderer_MeasureTextAdvance(const char* str, size_t len);
-        bool FontRenderer_RenderText(const char* str, size_t len, core::Vector2F& pos, float z, BlendMode blend, core::Color4B const& color);
-        bool FontRenderer_RenderTextInSpace(const char* str, size_t len, core::Vector3F& pos, core::Vector3F const& rvec, core::Vector3F const& dvec, BlendMode blend, core::Color4B const& color);
-
-        float FontRenderer_GetFontLineHeight();
-        float FontRenderer_GetFontAscender();
-        float FontRenderer_GetFontDescender();
 
     public:
         // 获取框架对象

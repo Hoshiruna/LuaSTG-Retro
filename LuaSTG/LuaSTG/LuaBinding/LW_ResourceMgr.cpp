@@ -1,15 +1,218 @@
 #include "LuaBinding/LuaWrapper.hpp"
 #include "LuaBinding/AsyncResourceJob.hpp"
 #include "LuaBinding/Resource.hpp"
+#include "LuaBinding/modern/DynamicFont.hpp"
 #include "GameResource/AsyncResourceLoader.hpp"
 #include "lua/plus.hpp"
 #include "AppFrame.h"
 
 #include <algorithm>
+#include <cmath>
+#include <limits>
 #include <string>
 #include <string_view>
 #include <utility>
 #include <vector>
+
+namespace
+{
+    struct ParsedDynamicFontDescriptor
+    {
+        std::vector<core::Graphics::TrueTypeFontInfo> fonts;
+        std::vector<std::string> paths;
+        luastg::DynamicFontLoadOptions options;
+    };
+
+    int absoluteIndex(lua_State* const L, int const index) noexcept
+    {
+        return index > 0 || index <= LUA_REGISTRYINDEX ? index : lua_gettop(L) + index + 1;
+    }
+
+    float optionalNumberField(lua_State* const L, int const table_index, char const* const name, float const fallback)
+    {
+        lua_getfield(L, table_index, name);
+        auto const value = lua_isnil(L, -1) ? fallback : static_cast<float>(luaL_checknumber(L, -1));
+        lua_pop(L, 1);
+        return value;
+    }
+
+    uint32_t optionalIntegerField(lua_State* const L, int const table_index, char const* const name, uint32_t const fallback)
+    {
+        lua_getfield(L, table_index, name);
+        if(lua_isnil(L, -1)) {
+            lua_pop(L, 1);
+            return fallback;
+        }
+        auto const value = luaL_checknumber(L, -1);
+        luaL_argcheck(
+            L,
+            std::isfinite(value)
+                && value >= 0
+                && value <= std::numeric_limits<uint32_t>::max()
+                && std::floor(value) == value,
+            table_index,
+            "faceIndex must be a non-negative 32-bit integer");
+        lua_pop(L, 1);
+        return static_cast<uint32_t>(value);
+    }
+
+    std::string_view optionalStringField(lua_State* const L, int const table_index, char const* const name,
+        std::string_view const fallback, bool* const was_present = nullptr)
+    {
+        lua_getfield(L, table_index, name);
+        if(lua_isnil(L, -1)) {
+            lua_pop(L, 1);
+            if(was_present) {
+                *was_present = false;
+            }
+            return fallback;
+        }
+        size_t length{};
+        auto const* const value = luaL_checklstring(L, -1, &length);
+        lua_pop(L, 1);
+        if(was_present) {
+            *was_present = true;
+        }
+        return std::string_view(value, length);
+    }
+
+    uint8_t optionalAlphaThreshold(lua_State* const L, int const table_index)
+    {
+        lua_getfield(L, table_index, "alphaThreshold");
+        if(lua_isnil(L, -1)) {
+            lua_pop(L, 1);
+            return 0;
+        }
+        auto const value = luaL_checknumber(L, -1);
+        luaL_argcheck(L, std::isfinite(value) && value >= 0 && value <= 255 && std::floor(value) == value,
+            table_index, "alphaThreshold must be an integer from 0 through 255");
+        lua_pop(L, 1);
+        return static_cast<uint8_t>(value);
+    }
+
+    std::string_view checkDynamicFontName(lua_State* const L, int const index)
+    {
+        size_t length{};
+        auto const* const value = luaL_checklstring(L, index, &length);
+        std::string_view const name(value, length);
+        luaL_argcheck(
+            L,
+            !name.empty() && name.find('\0') == std::string_view::npos,
+            index,
+            "dynamic font name must be non-empty and cannot contain NUL bytes");
+        return name;
+    }
+
+    ParsedDynamicFontDescriptor parseDynamicFontDescriptor(lua_State* const L, int const descriptor_index)
+    {
+        auto const descriptor = absoluteIndex(L, descriptor_index);
+        luaL_checktype(L, descriptor, LUA_TTABLE);
+
+        lua_getfield(L, descriptor, "pixelHeight");
+        auto const default_height = static_cast<float>(luaL_checknumber(L, -1));
+        lua_pop(L, 1);
+        auto const default_width = optionalNumberField(L, descriptor, "pixelWidth", 0.0f);
+        luaL_argcheck(L, std::isfinite(default_width) && default_width >= 0.0f, descriptor_index, "pixelWidth must be finite and non-negative");
+        luaL_argcheck(L, std::isfinite(default_height) && default_height > 0.0f, descriptor_index, "pixelHeight must be finite and greater than zero");
+
+        lua_getfield(L, descriptor, "sources");
+        auto const sources_index = absoluteIndex(L, -1);
+        luaL_checktype(L, sources_index, LUA_TTABLE);
+        auto const count = static_cast<size_t>(lua_objlen(L, sources_index));
+        luaL_argcheck(L, count > 0, descriptor_index, "sources must contain at least one font source");
+
+        ParsedDynamicFontDescriptor result;
+        auto const raster_mode = optionalStringField(L, descriptor, "rasterMode", "grayscale");
+        if(raster_mode == "grayscale") {
+            result.options.rasterization.raster_mode = core::Graphics::GlyphRasterMode::Grayscale;
+        } else if(raster_mode == "monochrome") {
+            result.options.rasterization.raster_mode = core::Graphics::GlyphRasterMode::Monochrome;
+        } else {
+            luaL_argerror(L, descriptor_index, "rasterMode must be 'grayscale' or 'monochrome'");
+        }
+
+        auto const hinting = optionalStringField(L, descriptor, "hinting", "native");
+        if(hinting == "native") {
+            result.options.rasterization.hinting = core::Graphics::GlyphHintingMode::Native;
+        } else if(hinting == "auto") {
+            result.options.rasterization.hinting = core::Graphics::GlyphHintingMode::Auto;
+        } else if(hinting == "none") {
+            result.options.rasterization.hinting = core::Graphics::GlyphHintingMode::None;
+        } else {
+            luaL_argerror(L, descriptor_index, "hinting must be 'native', 'auto', or 'none'");
+        }
+
+        auto const default_target = result.options.rasterization.raster_mode == core::Graphics::GlyphRasterMode::Monochrome
+            ? std::string_view("monochrome")
+            : std::string_view("normal");
+        auto const hinting_target = optionalStringField(L, descriptor, "hintingTarget", default_target);
+        if(hinting_target == "normal") {
+            result.options.rasterization.hinting_target = core::Graphics::GlyphHintingTarget::Normal;
+        } else if(hinting_target == "light") {
+            result.options.rasterization.hinting_target = core::Graphics::GlyphHintingTarget::Light;
+        } else if(hinting_target == "monochrome") {
+            result.options.rasterization.hinting_target = core::Graphics::GlyphHintingTarget::Monochrome;
+        } else {
+            luaL_argerror(L, descriptor_index, "hintingTarget must be 'normal', 'light', or 'monochrome'");
+        }
+        result.options.rasterization.alpha_threshold = optionalAlphaThreshold(L, descriptor);
+
+        auto const sampler = optionalStringField(L, descriptor, "sampler", "linear+clamp");
+        if(sampler == "point+wrap") {
+            result.options.sampler = core::Graphics::IRenderer::SamplerState::PointWrap;
+        } else if(sampler == "point+clamp") {
+            result.options.sampler = core::Graphics::IRenderer::SamplerState::PointClamp;
+        } else if(sampler == "linear+wrap") {
+            result.options.sampler = core::Graphics::IRenderer::SamplerState::LinearWrap;
+        } else if(sampler == "linear+clamp") {
+            result.options.sampler = core::Graphics::IRenderer::SamplerState::LinearClamp;
+        } else {
+            luaL_argerror(L, descriptor_index,
+                "sampler must be 'point+wrap', 'point+clamp', 'linear+wrap', or 'linear+clamp'");
+        }
+
+        result.fonts.resize(count);
+        result.paths.resize(count);
+        for(size_t i = 0; i < count; ++i) {
+            lua_rawgeti(L, sources_index, static_cast<int>(i + 1));
+            auto const source_index = absoluteIndex(L, -1);
+            luaL_checktype(L, source_index, LUA_TTABLE);
+
+            lua_getfield(L, source_index, "path");
+            size_t path_length{};
+            auto const* const path = luaL_checklstring(L, -1, &path_length);
+            result.paths[i].assign(path, path_length);
+            lua_pop(L, 1);
+            luaL_argcheck(
+                L,
+                !result.paths[i].empty() && result.paths[i].find('\0') == std::string::npos,
+                descriptor_index,
+                "font source paths must be non-empty and cannot contain NUL bytes");
+
+            auto& font = result.fonts[i];
+            font.source = result.paths[i];
+            font.font_face = optionalIntegerField(L, source_index, "faceIndex", 0);
+            font.font_size.x = optionalNumberField(L, source_index, "pixelWidth", default_width);
+            font.font_size.y = optionalNumberField(L, source_index, "pixelHeight", default_height);
+            font.is_force_to_file = false;
+            font.is_buffer = false;
+            luaL_argcheck(
+                L,
+                std::isfinite(font.font_size.x) && font.font_size.x >= 0.0f,
+                descriptor_index,
+                "source pixelWidth must be finite and non-negative");
+            luaL_argcheck(
+                L,
+                std::isfinite(font.font_size.y) && font.font_size.y > 0.0f,
+                descriptor_index,
+                "source pixelHeight must be finite and greater than zero");
+            lua_pop(L, 1);
+        }
+        lua_pop(L, 1);
+        return result;
+    }
+
+}
 
 void
 luastg::binding::ResourceManager::Register(lua_State* L) noexcept
@@ -384,147 +587,54 @@ luastg::binding::ResourceManager::Register(lua_State* L) noexcept
             }
             return PushAsyncJob(L, std::move(request));
         }
-        static int LoadTTF(lua_State* L) noexcept
+        static int LoadDynamicFont(lua_State* L) noexcept
         {
-            ResourcePool* pActivedPool = BeginPoolCall(L);
-            if(!pActivedPool) {
-                return luaL_error(L, "can't load resource at this time.");
+            auto* const pool = BeginPoolCall(L);
+            auto const name = checkDynamicFontName(L, 1);
+            auto descriptor = parseDynamicFontDescriptor(L, 2);
+            if(!pool->LoadDynamicFont(
+                   name.data(), descriptor.fonts.data(), descriptor.fonts.size(), descriptor.options)) {
+                lua_pushnil(L);
+                lua_pushfstring(L, "failed to load dynamic font '%s'", name.data());
+                return 2;
             }
-            const char* name = luaL_checkstring(L, 1);
-            const char* path = luaL_checkstring(L, 2);
-            bool result = pActivedPool->LoadTTFFont(name, path, (float)luaL_checknumber(L, 3), (float)luaL_checknumber(L, 4));
-            lua_pushboolean(L, result);
+            auto resource = pool->GetTTFFont(name);
+            DynamicFont::push(L, resource.get());
             return 1;
         }
-        static int LoadTTFAsync(lua_State* L) noexcept
+        static int LoadDynamicFontAsync(lua_State* L) noexcept
         {
-            auto request = CreateAsyncRequest(L, AsyncResourceRequestType::TrueTypeFont);
-            request.path = luaL_checkstring(L, 2);
-            request.font_width = (float)luaL_checknumber(L, 3);
-            request.font_height = (float)luaL_checknumber(L, 4);
+            auto* const pool = BeginPoolCall(L);
+            auto const name = checkDynamicFontName(L, 1);
+            AsyncResourceRequest request;
+            request.type = AsyncResourceRequestType::TrueTypeFont;
+            request.pool_id = pool->GetId();
+            request.name.assign(name);
+            auto descriptor = parseDynamicFontDescriptor(L, 2);
+            for(auto& font : descriptor.fonts) {
+                font.source = {};
+            }
+            request.fonts = std::move(descriptor.fonts);
+            request.font_sources = std::move(descriptor.paths);
+            request.dynamic_font_options = descriptor.options;
             return PushAsyncJob(L, std::move(request));
         }
-        static int LoadTrueTypeFont(lua_State* L) noexcept
+        static int GetDynamicFont(lua_State* L) noexcept
         {
-            ResourcePool* pActivedPool = BeginPoolCall(L);
-            lua::stack_t S(L);
-
-            // 先检查有没有资源池
-            if(!pActivedPool) {
-                return luaL_error(L, "can't load resource at this time.");
+            auto* const pool = BeginPoolCall(L);
+            auto resource = pool->GetTTFFont(checkDynamicFontName(L, 1));
+            if(!resource) {
+                lua_pushnil(L);
+                return 1;
             }
-
-            // 第一个参数，资源名
-            std::string_view const name = S.get_value<std::string_view>(1);
-
-            // 第二个参数，字体组
-            if(!lua_istable(L, 2)) {
-                return luaL_error(L, "invalid parameter #2, required table");
-            }
-            int const cnt = (int)lua_objlen(L, 2);
-            std::vector<core::Graphics::TrueTypeFontInfo> fonts(cnt);
-            for(int i = 1; i <= cnt; i += 1) {
-                auto& font = fonts[i - 1];
-                font.source = "";
-                font.font_face = 0;
-                font.font_size = core::Vector2F(0.0f, 0.0f);
-                font.is_force_to_file = false;
-                font.is_buffer = false;
-
-                lua_pushinteger(L, i); // name param fonts i
-                lua_gettable(L, 2); // name param fonts font
-                if(!lua_istable(L, -1)) {
-                    return luaL_error(L, "invalid value #%d in parameter #2, required table", i);
-                }
-
-                lua_getfield(L, -1, "source"); // name param fonts font ?
-                if(lua_type(L, -1) == LUA_TSTRING) // name param fonts font v
-                {
-                    font.source = S.get_value<std::string_view>(-1);
-                }
-                lua_pop(L, 1); // name param fonts font
-
-                lua_getfield(L, -1, "font_face"); // name param fonts font ?
-                if(lua_type(L, -1) == LUA_TNUMBER) // name param fonts font v
-                {
-                    font.font_face = (uint32_t)luaL_checkinteger(L, -1);
-                }
-                lua_pop(L, 1); // name param fonts font
-
-                lua_getfield(L, -1, "width"); // name param fonts font ?
-                if(lua_type(L, -1) == LUA_TNUMBER) // name param fonts font v
-                {
-                    font.font_size.x = (float)luaL_checknumber(L, -1);
-                }
-                lua_pop(L, 1); // name param fonts font
-
-                lua_getfield(L, -1, "height"); // name param fonts font ?
-                if(lua_type(L, -1) == LUA_TNUMBER) // name param fonts font v
-                {
-                    font.font_size.y = (float)luaL_checknumber(L, -1);
-                }
-                lua_pop(L, 1); // name param fonts font
-
-                lua_pop(L, 1); // name param fonts
-            }
-
-            bool result = pActivedPool->LoadTrueTypeFont(name.data(), fonts.data(), fonts.size());
-            lua_pushboolean(L, result);
-
+            DynamicFont::push(L, resource.get());
             return 1;
         }
-        static int LoadTrueTypeFontAsync(lua_State* L) noexcept
+        static int HasDynamicFont(lua_State* L) noexcept
         {
-            lua::stack_t S(L);
-            auto request = CreateAsyncRequest(L, AsyncResourceRequestType::TrueTypeFont);
-            if(!lua_istable(L, 2)) {
-                return luaL_error(L, "invalid parameter #2, required table");
-            }
-            int const cnt = (int)lua_objlen(L, 2);
-            request.fonts.resize(cnt);
-            request.font_sources.resize(cnt);
-            for(int i = 1; i <= cnt; i += 1) {
-                auto& font = request.fonts[i - 1];
-                font.source = "";
-                font.font_face = 0;
-                font.font_size = core::Vector2F(0.0f, 0.0f);
-                font.is_force_to_file = false;
-                font.is_buffer = false;
-
-                lua_pushinteger(L, i);
-                lua_gettable(L, 2);
-                if(!lua_istable(L, -1)) {
-                    return luaL_error(L, "invalid value #%d in parameter #2, required table", i);
-                }
-
-                lua_getfield(L, -1, "source");
-                if(lua_type(L, -1) == LUA_TSTRING) {
-                    request.font_sources[i - 1] = std::string(S.get_value<std::string_view>(-1));
-                    font.source = request.font_sources[i - 1];
-                }
-                lua_pop(L, 1);
-
-                lua_getfield(L, -1, "font_face");
-                if(lua_type(L, -1) == LUA_TNUMBER) {
-                    font.font_face = (uint32_t)luaL_checkinteger(L, -1);
-                }
-                lua_pop(L, 1);
-
-                lua_getfield(L, -1, "width");
-                if(lua_type(L, -1) == LUA_TNUMBER) {
-                    font.font_size.x = (float)luaL_checknumber(L, -1);
-                }
-                lua_pop(L, 1);
-
-                lua_getfield(L, -1, "height");
-                if(lua_type(L, -1) == LUA_TNUMBER) {
-                    font.font_size.y = (float)luaL_checknumber(L, -1);
-                }
-                lua_pop(L, 1);
-
-                lua_pop(L, 1);
-            }
-            return PushAsyncJob(L, std::move(request));
+            auto* const pool = BeginPoolCall(L);
+            lua_pushboolean(L, static_cast<bool>(pool->GetTTFFont(checkDynamicFontName(L, 1))));
+            return 1;
         }
         static int LoadFX(lua_State* L) noexcept
         {
@@ -879,13 +989,6 @@ luastg::binding::ResourceManager::Register(lua_State* L) noexcept
             return 0;
         }
 
-        static int CacheTTFString(lua_State* L)
-        {
-            size_t len = 0;
-            const char* str = luaL_checklstring(L, 2, &len);
-            LRES.CacheTTFFontString(luaL_checkstring(L, 1), str, len);
-            return 0;
-        }
     };
 
     luaL_Reg const lib[] = {
@@ -902,10 +1005,6 @@ luastg::binding::ResourceManager::Register(lua_State* L) noexcept
         { "LoadPSAsync", &Wrapper::LoadPSAsync },
         { "LoadFont", &Wrapper::LoadFont },
         { "LoadFontAsync", &Wrapper::LoadFontAsync },
-        { "LoadTTF", &Wrapper::LoadTTF },
-        { "LoadTTFAsync", &Wrapper::LoadTTFAsync },
-        { "LoadTrueTypeFont", &Wrapper::LoadTrueTypeFont },
-        { "LoadTrueTypeFontAsync", &Wrapper::LoadTrueTypeFontAsync },
         { "LoadFX", &Wrapper::LoadFX },
         { "LoadFXAsync", &Wrapper::LoadFXAsync },
         { "LoadModel", &Wrapper::LoadModel },
@@ -935,7 +1034,6 @@ luastg::binding::ResourceManager::Register(lua_State* L) noexcept
 
         { "SetFontState", &Wrapper::SetFontState },
 
-        { "CacheTTFString", &Wrapper::CacheTTFString },
         { NULL, NULL },
     };
 
@@ -953,10 +1051,10 @@ luastg::binding::ResourceManager::Register(lua_State* L) noexcept
         { "loadMusicAsync", &Wrapper::LoadMusicAsync },
         { "loadSpriteFont", &Wrapper::LoadFont },
         { "loadSpriteFontAsync", &Wrapper::LoadFontAsync },
-        { "loadTTF", &Wrapper::LoadTTF },
-        { "loadTTFAsync", &Wrapper::LoadTTFAsync },
-        { "loadTrueTypeFont", &Wrapper::LoadTrueTypeFont },
-        { "loadTrueTypeFontAsync", &Wrapper::LoadTrueTypeFontAsync },
+        { "loadDynamicFont", &Wrapper::LoadDynamicFont },
+        { "loadDynamicFontAsync", &Wrapper::LoadDynamicFontAsync },
+        { "getDynamicFont", &Wrapper::GetDynamicFont },
+        { "hasDynamicFont", &Wrapper::HasDynamicFont },
         { "loadFX", &Wrapper::LoadFX },
         { "loadFXAsync", &Wrapper::LoadFXAsync },
         { "loadModel", &Wrapper::LoadModel },

@@ -528,7 +528,7 @@ namespace luastg
         m_glyphmgr.attach(new f2dFont(f2d_path, f2d_data, tex_path, texture_data, mipmap));
     }
     ResourceFontImpl::ResourceFontImpl(const char* name, core::Graphics::IGlyphManager* p_mgr)
-        : ResourceBaseImpl(ResourceType::SpriteFont, name), m_glyphmgr(p_mgr), m_BlendMode(BlendMode::MulAlpha), m_BlendColor(core::Color4B(0xFFFFFFFFu))
+        : ResourceBaseImpl(ResourceType::TrueTypeFont, name), m_glyphmgr(p_mgr), m_BlendMode(BlendMode::MulAlpha), m_BlendColor(core::Color4B(0xFFFFFFFFu))
     {
     }
 }

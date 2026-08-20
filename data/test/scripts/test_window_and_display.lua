@@ -10,14 +10,20 @@ local resources = require("resource_pool")
 local M = {}
 
 function M:onCreate()
-    resources.loadTTF("body", "C:/Windows/Fonts/msyh.ttc", 0, 24)
+    local font, font_error = resources.loadDynamicFont("body", {
+        pixelWidth = 0,
+        pixelHeight = 24,
+        sources = { { path = "C:/Windows/Fonts/msyh.ttc", faceIndex = 0 } },
+    })
+    self.body_font = assert(font, font_error)
     self.main_window = Window.getMain()
     self.main_swap_chain = SwapChain.getMain()
     self.has_key_down = false
 end
 
 function M:onDestroy()
-    resources.removeResource("test", 8, "body")
+    resources.pool:remove(self.body_font)
+    self.body_font = nil
 end
 
 function M:onUpdate()
@@ -127,8 +133,9 @@ function M:onRender()
         info("    display scale: %.2f", display:getDisplayScale())
         info("    primary: %s", tostring(display:isPrimary()))
     end
-    local x, y = 0, window.height -- window.width / 2, window.height / 2
-    lstg.RenderTTF("body", message, x, x, y, y, 0 + 0, lstg.Color(255, 0, 0, 0), 2)
+    self.body_font:draw(message, 0, window.height, {
+        color = lstg.Color(255, 0, 0, 0),
+    })
 end
 
 test.registerTest("test.Module.WindowAndDisplay", M)
