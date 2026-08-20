@@ -113,13 +113,9 @@ namespace luastg
                 break;
 
             case AsyncResourceRequestType::TrueTypeFont:
-                if(m_request.fonts.empty()) {
-                    add_file(m_request.path);
-                } else {
-                    for(size_t i = 0; i < m_request.fonts.size() && i < m_request.font_sources.size(); ++i) {
-                        if(!m_request.fonts[i].is_buffer) {
-                            add_file(m_request.font_sources[i]);
-                        }
+                for(size_t i = 0; i < m_request.fonts.size() && i < m_request.font_sources.size(); ++i) {
+                    if(!m_request.fonts[i].is_buffer) {
+                        add_file(m_request.font_sources[i]);
                     }
                 }
                 break;
@@ -450,21 +446,14 @@ namespace luastg
                 break;
 
             case AsyncResourceRequestType::TrueTypeFont:
-                if(request.fonts.empty()) {
-                    if(!readFile(request.path, job.m_data, error)) {
-                        job.fail(error);
-                        return;
+                job.m_font_data.resize(request.fonts.size());
+                for(size_t i = 0; i < request.fonts.size(); ++i) {
+                    if(request.fonts[i].is_buffer || i >= request.font_sources.size()) {
+                        continue;
                     }
-                } else {
-                    job.m_font_data.resize(request.fonts.size());
-                    for(size_t i = 0; i < request.fonts.size(); ++i) {
-                        if(request.fonts[i].is_buffer || i >= request.font_sources.size()) {
-                            continue;
-                        }
-                        if(!core::FileSystemManager::readFile(request.font_sources[i], job.m_font_data[i].put())) {
-                            job.fail("failed to read font file");
-                            return;
-                        }
+                    if(!core::FileSystemManager::readFile(request.font_sources[i], job.m_font_data[i].put())) {
+                        job.fail("failed to read font file");
+                        return;
                     }
                 }
                 break;
@@ -625,35 +614,23 @@ namespace luastg
                 }
                 break;
 
-            case AsyncResourceRequestType::TrueTypeFont:
-                if(request.fonts.empty()) {
-                    bool result = false;
-                    if(job.m_data) {
-                        result = pool->LoadTTFFont(request.name.c_str(), job.m_data.get(), request.font_width, request.font_height);
-                    } else {
-                        result = pool->LoadTTFFont(request.name.c_str(), request.path.c_str(), request.font_width, request.font_height);
-                    }
-                    if(!result) {
-                        job.fail("failed to load TTF font");
-                        return false;
-                    }
-                } else {
-                    auto fonts = request.fonts;
-                    for(size_t i = 0; i < fonts.size(); ++i) {
-                        if(i < job.m_font_data.size() && job.m_font_data[i]) {
-                            fonts[i].source = core::StringView(static_cast<char const*>(job.m_font_data[i]->data()), job.m_font_data[i]->size());
-                            fonts[i].is_buffer = true;
-                            fonts[i].is_force_to_file = false;
-                        } else if(i < request.font_sources.size()) {
-                            fonts[i].source = request.font_sources[i];
-                        }
-                    }
-                    if(!pool->LoadTrueTypeFont(request.name.c_str(), fonts.data(), fonts.size())) {
-                        job.fail("failed to load TrueType font");
-                        return false;
+            case AsyncResourceRequestType::TrueTypeFont: {
+                auto fonts = request.fonts;
+                for(size_t i = 0; i < fonts.size(); ++i) {
+                    if(i < job.m_font_data.size() && job.m_font_data[i]) {
+                        fonts[i].source = core::StringView(static_cast<char const*>(job.m_font_data[i]->data()), job.m_font_data[i]->size());
+                        fonts[i].is_buffer = true;
+                        fonts[i].is_force_to_file = false;
+                    } else if(i < request.font_sources.size()) {
+                        fonts[i].source = request.font_sources[i];
                     }
                 }
-                break;
+                if(!pool->LoadTrueTypeFont(
+                       request.name.c_str(), fonts.data(), fonts.size(), request.dynamic_font_options)) {
+                    job.fail("failed to load TrueType font");
+                    return false;
+                }
+            } break;
 
             case AsyncResourceRequestType::FX:
                 if(!pool->LoadFXFromSource(request.name.c_str(),

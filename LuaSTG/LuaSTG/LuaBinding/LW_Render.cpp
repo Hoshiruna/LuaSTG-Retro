@@ -24,22 +24,6 @@ luastg::binding::Render::Register(lua_State* L) noexcept
             }
             return 0;
         }
-        static int RenderTTF(lua_State* L) noexcept
-        {
-            if(!LAPP.RenderTTF(
-                   luaL_checkstring(L, 1),
-                   luaL_checkstring(L, 2),
-                   (float)luaL_checknumber(L, 3),
-                   (float)luaL_checknumber(L, 4),
-                   (float)luaL_checknumber(L, 5),
-                   (float)luaL_checknumber(L, 6),
-                   LRES.GetGlobalImageScaleFactor() * (float)luaL_optnumber(L, 9, 1.0),
-                   luaL_checkinteger(L, 7),
-                   *Color::Cast(L, 8))) {
-                return luaL_error(L, "can't render font '%s'.", luaL_checkstring(L, 1));
-            }
-            return 0;
-        }
         //EX
         static int Snapshot(lua_State* L) noexcept
         {
@@ -78,7 +62,6 @@ luastg::binding::Render::Register(lua_State* L) noexcept
         { "RenderGroupCollider", &Wrapper::RenderGroupCollider },
 
         { "RenderText", &Wrapper::RenderText },
-        { "RenderTTF", &Wrapper::RenderTTF },
         //EX
         { "Snapshot", &Wrapper::Snapshot },
         { "SaveTexture", &Wrapper::SaveTexture },

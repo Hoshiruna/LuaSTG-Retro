@@ -8,6 +8,7 @@ local lstg = require("lstg")
 
 local GROUP_ENEMY_BULLET = 1
 local GROUP_PLAYER = 2
+local dynamic_font
 
 local function registerGameObjectClass(c)
     local f = function() end
@@ -51,7 +52,11 @@ function Follower:late_frame()
 end
 function Follower:render()
     lstg.DefaultRenderFunc(self)
-    lstg.RenderTTF("sans", ("%d"):format(self.counter), self.x, self.x, self.y, self.y, 1 + 4, lstg.Color(255, 0, 0, 0), 2)
+    dynamic_font:draw(("%d"):format(self.counter), self.x, self.y, {
+        color = lstg.Color(255, 0, 0, 0),
+        horizontalAlign = "center",
+        verticalAlign = "middle",
+    })
 end
 function Follower:del()
     print(("Follower %d deleted"):format(self.counter))
@@ -69,7 +74,11 @@ function Runner:init()
 end
 function Runner:render()
     lstg.DefaultRenderFunc(self)
-    lstg.RenderTTF("sans", ("%d"):format(self.counter), self.x, self.x, self.y, self.y, 1 + 4, lstg.Color(255, 0, 0, 0), 2)
+    dynamic_font:draw(("%d"):format(self.counter), self.x, self.y, {
+        color = lstg.Color(255, 0, 0, 0),
+        horizontalAlign = "center",
+        verticalAlign = "middle",
+    })
 end
 function Runner:del()
     print(("Runner %d deleted"):format(self.counter))
@@ -84,7 +93,13 @@ local M = {}
 function M:onCreate()
     resources.loadTexture("block", "res/block.png", true)
     resources.createSprite("block", "block", 0, 0, 256, 256)
-    resources.loadTTF("sans", "C:/Windows/Fonts/msyh.ttc", 0, 16)
+    local font_error
+    dynamic_font, font_error = resources.loadDynamicFont("sans", {
+        pixelWidth = 0,
+        pixelHeight = 16,
+        sources = { { path = "C:/Windows/Fonts/msyh.ttc", faceIndex = 0 } },
+    })
+    assert(dynamic_font, font_error)
 
     lstg.SetBound(0, window.width, 0, window.height)
     lstg.ResetPool()
@@ -110,7 +125,8 @@ function M:onDestroy()
 
     resources.removeResource("test", 2, "block")
     resources.removeResource("test", 1, "block")
-    resources.removeResource("test", 8, "sans")
+    resources.pool:remove(dynamic_font)
+    dynamic_font = nil
 end
 
 function M:dispatchLateFrame()

@@ -247,11 +247,6 @@ namespace luastg
         return findResource(m_resourcePools, m_lookupOrder, name, &ResourcePool::GetSpriteFont);
     }
 
-    core::SmartReference<IResourceFont> ResourceMgr::FindTTFFont(const char* name) noexcept
-    {
-        return findResource(m_resourcePools, m_lookupOrder, name, &ResourcePool::GetTTFFont);
-    }
-
     core::SmartReference<IResourcePostEffectShader> ResourceMgr::FindFX(const char* name) noexcept
     {
         return findResource(m_resourcePools, m_lookupOrder, name, &ResourcePool::GetFX);
@@ -271,15 +266,6 @@ namespace luastg
             return false;
         out = tRet->GetTexture()->getSize();
         return true;
-    }
-
-    void ResourceMgr::CacheTTFFontString(const char* name, const char* text, size_t len) noexcept
-    {
-        core::SmartReference<IResourceFont> f = FindTTFFont(name);
-        if(f)
-            f->GetGlyphManager()->cacheString(core::StringView(text, len));
-        else
-            spdlog::error("[luastg] CacheTTFFontString: 缓存字形时未找到指定字体'{}'", name);
     }
 
     void ResourceMgr::UpdateVideo(double const delta_seconds)

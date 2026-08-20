@@ -57,6 +57,8 @@ set(LUASTG_ENGINE_SOURCES
     LuaSTG/GameResource/ResourceSoundEffect.hpp
     LuaSTG/GameResource/ResourceParticle.hpp
     LuaSTG/GameResource/ResourceFont.hpp
+    LuaSTG/GameResource/DynamicFontRenderer.hpp
+    LuaSTG/GameResource/DynamicFontRenderer.cpp
     LuaSTG/GameResource/ResourcePostEffectShader.hpp
     LuaSTG/GameResource/ResourceModel.hpp
     LuaSTG/GameResource/ResourceModel.cpp
@@ -163,6 +165,8 @@ set(LUASTG_ENGINE_SOURCES
     LuaSTG/LuaBinding/modern/Well512.cpp
     LuaSTG/LuaBinding/modern/ShellIntegration.hpp
     LuaSTG/LuaBinding/modern/ShellIntegration.cpp
+    LuaSTG/LuaBinding/modern/DynamicFont.hpp
+    LuaSTG/LuaBinding/modern/DynamicFont.cpp
 
     LuaSTG/LuaBinding/generated/BlendModeX.cpp
     LuaSTG/LuaBinding/generated/BlendModeX.hpp

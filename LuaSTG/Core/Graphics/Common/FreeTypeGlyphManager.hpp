@@ -48,6 +48,12 @@ namespace core::Graphics::Common
         Vector2F advance; // 前进量
         // 私有
         uint32_t codepoint = 0; // 当前的字符
+        uint32_t source_index{};
+        uint32_t atlas_x{};
+        uint32_t atlas_y{};
+        uint32_t bitmap_width{};
+        uint32_t bitmap_height{};
+        bool missing{};
     };
 
     struct FreeTypeFontData
@@ -91,10 +97,13 @@ namespace core::Graphics::Common
         bool flush() override;
 
         bool getGlyph(uint32_t codepoint, GlyphInfo* p_ref_info, bool no_render) override;
+        bool getGlyphBitmap(uint32_t codepoint, GlyphBitmap* output) override;
+        void setSamplerState(ISamplerState* sampler) override;
+        ISamplerState* getSamplerState() override;
 
         // FreeTypeGlyphManager
 
-        FreeTypeGlyphManager(IDevice* p_device, TrueTypeFontInfo const* p_arr_info, size_t info_count);
+        FreeTypeGlyphManager(IDevice* p_device, TrueTypeFontInfo const* p_arr_info, size_t info_count, GlyphRasterizationOptions const& rasterization, ISamplerState* sampler);
         FreeTypeGlyphManager(FreeTypeGlyphManager const&) = delete;
         FreeTypeGlyphManager(FreeTypeGlyphManager&&) = delete;
         ~FreeTypeGlyphManager();
@@ -106,12 +115,14 @@ namespace core::Graphics::Common
         void closeFonts();
         bool openFonts(TrueTypeFontInfo const* fonts, size_t count);
         bool addTexture();
-        bool findGlyph(FT_ULong code, FT_Face& face, FT_UInt& index) const;
+        bool findGlyph(FT_ULong code, FT_Face& face, FT_UInt& index, uint32_t& source_index, bool& missing) const;
         bool writeBitmapToCache(GlyphCacheInfo& info, FT_Bitmap const& bitmap);
         GlyphCacheInfo* getGlyphCacheInfo(uint32_t codepoint);
         bool renderCache(uint32_t codepoint);
 
         SmartReference<IDevice> m_device;
+        SmartReference<ISamplerState> m_sampler;
+        GlyphRasterizationOptions m_rasterization;
         FreeTypeFontCommonInfo m_common_info;
         std::vector<FreeTypeFontData> m_font;
         std::vector<GlyphCache2D> m_tex;

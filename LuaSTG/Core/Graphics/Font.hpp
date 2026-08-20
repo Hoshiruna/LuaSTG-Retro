@@ -2,6 +2,7 @@
 #include "Core/Graphics/Device.hpp"
 #include "Core/Graphics/Renderer.hpp"
 #include "core/ReferenceCounted.hpp"
+#include <vector>
 
 namespace core::Graphics
 {
@@ -12,6 +13,46 @@ namespace core::Graphics
         Vector2F size; // 字形大小
         Vector2F position; // 笔触距离字形左上角坐标
         Vector2F advance; // 前进量
+    };
+
+    enum class GlyphRasterMode : uint8_t
+    {
+        Grayscale,
+        Monochrome,
+    };
+
+    enum class GlyphHintingMode : uint8_t
+    {
+        Native,
+        Auto,
+        None,
+    };
+
+    enum class GlyphHintingTarget : uint8_t
+    {
+        Normal,
+        Light,
+        Monochrome,
+    };
+
+    struct GlyphRasterizationOptions
+    {
+        GlyphRasterMode raster_mode{ GlyphRasterMode::Grayscale };
+        GlyphHintingMode hinting{ GlyphHintingMode::Native };
+        GlyphHintingTarget hinting_target{ GlyphHintingTarget::Normal };
+        uint8_t alpha_threshold{};
+    };
+
+    struct GlyphBitmap
+    {
+        GlyphInfo info;
+        uint32_t codepoint{};
+        uint32_t source_index{};
+        bool missing{};
+        uint32_t width{};
+        uint32_t height{};
+        uint32_t stride{};
+        std::vector<uint8_t> pixels;
     };
 
     struct TrueTypeFontInfo
@@ -38,7 +79,12 @@ namespace core::Graphics
 
         virtual bool getGlyph(uint32_t codepoint, GlyphInfo* p_ref_info, bool no_render) = 0;
 
+        virtual bool getGlyphBitmap(uint32_t, GlyphBitmap*) { return false; }
+        virtual void setSamplerState(ISamplerState*) {}
+        virtual ISamplerState* getSamplerState() { return nullptr; }
+
         static bool create(IDevice* p_device, TrueTypeFontInfo const* p_arr_info, size_t info_count, IGlyphManager** output);
+        static bool create(IDevice* p_device, TrueTypeFontInfo const* p_arr_info, size_t info_count, GlyphRasterizationOptions const& rasterization, ISamplerState* sampler, IGlyphManager** output);
     };
 
     struct ITextRenderer : public IReferenceCounted

@@ -20,6 +20,56 @@ namespace
         return static_cast<float>((static_cast<double>(size) / 64.0) * scale);
     }
 
+    constexpr FT_Int32 makeLoadFlags(core::Graphics::GlyphHintingMode const hinting,
+        core::Graphics::GlyphHintingTarget const target,
+        core::Graphics::GlyphRasterMode const raster_mode) noexcept
+    {
+        FT_Int32 flags = FT_LOAD_DEFAULT;
+        if(hinting == core::Graphics::GlyphHintingMode::Auto) {
+            flags |= FT_LOAD_FORCE_AUTOHINT;
+        } else if(hinting == core::Graphics::GlyphHintingMode::None) {
+            flags |= FT_LOAD_NO_HINTING | FT_LOAD_NO_AUTOHINT;
+        }
+        if(hinting != core::Graphics::GlyphHintingMode::None) {
+            if(target == core::Graphics::GlyphHintingTarget::Light) {
+                flags |= FT_LOAD_TARGET_LIGHT;
+            } else if(target == core::Graphics::GlyphHintingTarget::Monochrome) {
+                flags |= FT_LOAD_TARGET_MONO;
+            } else {
+                flags |= FT_LOAD_TARGET_NORMAL;
+            }
+        }
+        if(raster_mode == core::Graphics::GlyphRasterMode::Monochrome) {
+            flags |= FT_LOAD_MONOCHROME;
+        }
+        return flags;
+    }
+
+    static_assert((makeLoadFlags(core::Graphics::GlyphHintingMode::Auto,
+                       core::Graphics::GlyphHintingTarget::Normal,
+                       core::Graphics::GlyphRasterMode::Grayscale) &
+                      FT_LOAD_FORCE_AUTOHINT) != 0);
+    static_assert((makeLoadFlags(core::Graphics::GlyphHintingMode::None,
+                       core::Graphics::GlyphHintingTarget::Light,
+                       core::Graphics::GlyphRasterMode::Grayscale) &
+                      (FT_LOAD_NO_HINTING | FT_LOAD_NO_AUTOHINT)) == (FT_LOAD_NO_HINTING | FT_LOAD_NO_AUTOHINT));
+    static_assert(FT_LOAD_TARGET_MODE(makeLoadFlags(core::Graphics::GlyphHintingMode::None,
+                      core::Graphics::GlyphHintingTarget::Light,
+                      core::Graphics::GlyphRasterMode::Grayscale)) == FT_RENDER_MODE_NORMAL);
+    static_assert((makeLoadFlags(core::Graphics::GlyphHintingMode::Native,
+                       core::Graphics::GlyphHintingTarget::Monochrome,
+                       core::Graphics::GlyphRasterMode::Monochrome) &
+                      FT_LOAD_MONOCHROME) != 0);
+    static_assert(FT_LOAD_TARGET_MODE(makeLoadFlags(core::Graphics::GlyphHintingMode::Native,
+                      core::Graphics::GlyphHintingTarget::Normal,
+                      core::Graphics::GlyphRasterMode::Grayscale)) == FT_RENDER_MODE_NORMAL);
+    static_assert(FT_LOAD_TARGET_MODE(makeLoadFlags(core::Graphics::GlyphHintingMode::Native,
+                      core::Graphics::GlyphHintingTarget::Light,
+                      core::Graphics::GlyphRasterMode::Grayscale)) == FT_RENDER_MODE_LIGHT);
+    static_assert(FT_LOAD_TARGET_MODE(makeLoadFlags(core::Graphics::GlyphHintingMode::Native,
+                      core::Graphics::GlyphHintingTarget::Monochrome,
+                      core::Graphics::GlyphRasterMode::Grayscale)) == FT_RENDER_MODE_MONO);
+
     class FreeTypeBitmapAccessor
     {
     public:
@@ -34,18 +84,28 @@ namespace
 
         [[nodiscard]] uint32_t width() const noexcept { return m_bitmap->width; }
         [[nodiscard]] uint32_t height() const noexcept { return m_bitmap->rows; }
-        [[nodiscard]] uint32_t pixel(uint32_t const x, uint32_t const y) const noexcept
+        [[nodiscard]] bool supported() const noexcept
         {
-            // FT_Bitmap::pitch 是有符号的，也许有负数的可能性？
+            return m_bitmap->pixel_mode == FT_PIXEL_MODE_GRAY || m_bitmap->pixel_mode == FT_PIXEL_MODE_MONO;
+        }
+        [[nodiscard]] uint8_t alpha(uint32_t const x, uint32_t const y) const noexcept
+        {
+            auto const pitch = static_cast<ptrdiff_t>(m_bitmap->pitch);
+            auto const row = pitch >= 0 ? y : (height() - 1 - y);
+            auto const row_size = pitch >= 0 ? pitch : -pitch;
+            auto const line = static_cast<uint8_t const*>(m_bitmap->buffer) +
+                static_cast<ptrdiff_t>(row) * row_size;
             if(m_bitmap->pixel_mode == FT_PIXEL_MODE_GRAY) {
-                auto const line = static_cast<uint8_t const*>(m_bitmap->buffer) + (static_cast<ptrdiff_t>(y) * static_cast<ptrdiff_t>(m_bitmap->pitch));
-                return (line[x] << 24) | 0x00FFFFFF;
+                if(m_bitmap->num_grays <= 1) {
+                    return line[x] == 0 ? 0 : 255;
+                }
+                return static_cast<uint8_t>((static_cast<uint32_t>(line[x]) * 255u) /
+                    static_cast<uint32_t>(m_bitmap->num_grays - 1));
             }
             if(m_bitmap->pixel_mode == FT_PIXEL_MODE_MONO) {
-                auto const line = static_cast<uint8_t const*>(m_bitmap->buffer) + (static_cast<ptrdiff_t>(y) * static_cast<ptrdiff_t>(m_bitmap->pitch));
                 auto const block = line[x / 8];
                 auto const flag = (1 << (7 - (x % 8))) & block; // 最左边的像素在最高位
-                return flag ? 0xFFFFFFFF : 0x00FFFFFF;
+                return flag ? 255 : 0;
             }
             return 0;
         }
@@ -201,10 +261,55 @@ namespace core::Graphics::Common
         return false;
     }
 
+    bool FreeTypeGlyphManager::getGlyphBitmap(uint32_t const codepoint, GlyphBitmap* const output)
+    {
+        if(!output) {
+            assert(false);
+            return false;
+        }
+        GlyphCacheInfo const* const info = getGlyphCacheInfo(codepoint);
+        if(!info || info->texture_index >= m_tex.size()) {
+            return false;
+        }
+        output->info.texture_index = info->texture_index;
+        output->info.texture_rect = info->texture_rect;
+        output->info.size = info->size;
+        output->info.position = info->position;
+        output->info.advance = info->advance;
+        output->codepoint = codepoint;
+        output->source_index = info->source_index;
+        output->missing = info->missing;
+        output->width = info->bitmap_width;
+        output->height = info->bitmap_height;
+        output->stride = info->bitmap_width;
+        output->pixels.resize(static_cast<size_t>(output->stride) * output->height);
+        Image2D const& image = m_tex[info->texture_index].image;
+        for(uint32_t y = 0; y < output->height; ++y) {
+            for(uint32_t x = 0; x < output->width; ++x) {
+                output->pixels[static_cast<size_t>(y) * output->stride + x] =
+                    image.data[(info->atlas_y + y) * Image2D::texture_size + info->atlas_x + x].a;
+            }
+        }
+        return true;
+    }
+
+    void FreeTypeGlyphManager::setSamplerState(ISamplerState* const sampler)
+    {
+        m_sampler = sampler;
+        for(auto& texture : m_tex) {
+            texture.texture->setSamplerState(sampler);
+        }
+    }
+
+    ISamplerState* FreeTypeGlyphManager::getSamplerState()
+    {
+        return m_sampler.get();
+    }
+
     // FreeTypeGlyphManager
 
-    FreeTypeGlyphManager::FreeTypeGlyphManager(IDevice* const p_device, TrueTypeFontInfo const* const p_arr_info, size_t const info_count)
-        : m_device(p_device)
+    FreeTypeGlyphManager::FreeTypeGlyphManager(IDevice* const p_device, TrueTypeFontInfo const* const p_arr_info, size_t const info_count, GlyphRasterizationOptions const& rasterization, ISamplerState* const sampler)
+        : m_device(p_device), m_sampler(sampler), m_rasterization(rasterization)
     {
         if(!openFonts(p_arr_info, info_count)) {
             throw std::runtime_error("FreeTypeGlyphManager::FreeTypeGlyphManager (openFonts)");
@@ -333,16 +438,20 @@ namespace core::Graphics::Common
         if(!m_device->createTexture(Vector2U(t.image.width, t.image.height), t.texture.put())) {
             return false;
         }
+        t.texture->setSamplerState(m_sampler.get());
         //t.texture->setPremultipliedAlpha(true); // 为了支持彩色文本，需要使用预乘 alpha 模式
         return true;
     }
-    bool FreeTypeGlyphManager::findGlyph(FT_ULong const code, FT_Face& face, FT_UInt& index) const
+    bool FreeTypeGlyphManager::findGlyph(FT_ULong const code, FT_Face& face, FT_UInt& index, uint32_t& source_index, bool& missing) const
     {
-        for(auto const& f : m_font) {
+        for(size_t source = 0; source < m_font.size(); ++source) {
+            auto const& f = m_font[source];
             if(f.ft_face) {
                 if(FT_UInt const i = FT_Get_Char_Index(f.ft_face, code); i != 0 || f.is_fallback) {
                     face = f.ft_face;
                     index = i;
+                    source_index = static_cast<uint32_t>(source);
+                    missing = i == 0;
                     return true;
                 }
             }
@@ -393,12 +502,19 @@ namespace core::Graphics::Common
         GlyphCache2D& t = *pt;
         // 写入字形数据
         info.texture_index = (uint32_t)(pt - m_tex.data());
+        info.atlas_x = t.pen_x;
+        info.atlas_y = t.pen_y;
+        info.bitmap_width = bitmap.width;
+        info.bitmap_height = bitmap.rows;
         info.texture_rect.a.x = (float)t.pen_x / (float)t.image.width;
         info.texture_rect.a.y = (float)t.pen_y / (float)t.image.height;
         info.texture_rect.b.x = (float)(t.pen_x + bitmap.width) / (float)t.image.width;
         info.texture_rect.b.y = (float)(t.pen_y + bitmap.rows) / (float)t.image.height;
         // 写入 bitmap 数据，同时写入 1 像素宽的透明边缘，写的有点乱，主要是为了最大化减少 CPU Cache Miss
         FreeTypeBitmapAccessor const accessor(bitmap);
+        if(!accessor.supported()) {
+            return false;
+        }
         for(int x = 0; x < (int)(accessor.width() + 2); x += 1) // 上 1 像素宽的边，宽度是 bitmap 的宽度再加 2 像素
         {
             t.image.pixel(t.pen_x - 1 + x, t.pen_y - 1) = Color4B(0x00FFFFFF);
@@ -406,7 +522,12 @@ namespace core::Graphics::Common
         for(int y = 0; y < (int)accessor.height(); y += 1) {
             t.image.pixel(t.pen_x - 1, t.pen_y + y) = Color4B(0x00FFFFFF); // 左 1 像素宽的边
             for(int x = 0; x < (int)accessor.width(); x += 1) {
-                t.image.pixel(t.pen_x + x, t.pen_y + y) = accessor.pixel(x, y);
+                uint8_t alpha = accessor.alpha(x, y);
+                if(m_rasterization.alpha_threshold != 0 && alpha < m_rasterization.alpha_threshold) {
+                    alpha = 0;
+                }
+                t.image.pixel(t.pen_x + x, t.pen_y + y) = Color4B(
+                    (static_cast<uint32_t>(alpha) << 24) | 0x00FFFFFF);
             }
             t.image.pixel(t.pen_x + accessor.width(), t.pen_y + y) = Color4B(0x00FFFFFF); // 右 1 像素宽的边
         }
@@ -447,9 +568,18 @@ namespace core::Graphics::Common
         FT_Face face{};
         // ReSharper disable once CppTooWideScopeInitStatement
         FT_UInt index{};
-        if(findGlyph(codepoint, face, index)) {
-            // 加载文字到字形槽并渲染
-            FT_Load_Glyph(face, index, FT_LOAD_RENDER); // 需要处理错误吗？
+        uint32_t source_index{};
+        bool missing{};
+        if(findGlyph(codepoint, face, index, source_index, missing)) {
+            FT_Int32 const load_flags = makeLoadFlags(
+                m_rasterization.hinting, m_rasterization.hinting_target, m_rasterization.raster_mode);
+            if(FT_Load_Glyph(face, index, load_flags) != FT_Err_Ok) {
+                return false;
+            }
+            FT_Render_Mode const render_mode = m_rasterization.raster_mode == GlyphRasterMode::Monochrome ? FT_RENDER_MODE_MONO : FT_RENDER_MODE_NORMAL;
+            if(FT_Render_Glyph(face->glyph, render_mode) != FT_Err_Ok) {
+                return false;
+            }
             FT_GlyphSlot const& glyph = face->glyph;
             FT_Bitmap const& bitmap = glyph->bitmap;
             // 写入对应属性
@@ -458,10 +588,13 @@ namespace core::Graphics::Common
             cache.position = Vector2F(static_cast<float>(glyph->bitmap_left), static_cast<float>(glyph->bitmap_top));
             cache.advance = Vector2F(static_cast<float>(glyph->advance.x) / 64.f, static_cast<float>(glyph->advance.y) / 64.f);
             cache.codepoint = codepoint;
+            cache.source_index = source_index;
+            cache.missing = missing;
             if(!writeBitmapToCache(cache, bitmap)) {
                 return false;
             }
             m_map.emplace(codepoint, cache);
+            return true;
         }
         return false;
     }
@@ -470,8 +603,13 @@ namespace core::Graphics
 {
     bool IGlyphManager::create(IDevice* const p_device, TrueTypeFontInfo const* const p_arr_info, size_t const info_count, IGlyphManager** const output)
     {
+        return create(p_device, p_arr_info, info_count, GlyphRasterizationOptions{}, nullptr, output);
+    }
+
+    bool IGlyphManager::create(IDevice* const p_device, TrueTypeFontInfo const* const p_arr_info, size_t const info_count, GlyphRasterizationOptions const& rasterization, ISamplerState* const sampler, IGlyphManager** const output)
+    {
         try {
-            *output = new Common::FreeTypeGlyphManager(p_device, p_arr_info, info_count);
+            *output = new Common::FreeTypeGlyphManager(p_device, p_arr_info, info_count, rasterization, sampler);
             return true;
         } catch(...) {
             *output = nullptr;

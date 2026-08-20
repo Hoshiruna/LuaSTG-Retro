@@ -3,7 +3,6 @@
 #include "lua/plus.hpp"
 #include "core/FileSystem.hpp"
 #include "utility/path.hpp"
-#include "AppFrame.h"
 #include "utf8.hpp"
 #include "GameResource/ResourcePassword.hpp"
 
@@ -490,104 +489,6 @@ luastg::binding::FileManager::Register(lua_State* L) noexcept
         { NULL, NULL },
     };
 
-    struct FR_Wrapper
-    {
-        static int SetFontProvider(lua_State* L)
-        {
-            lua_pushboolean(L, LAPP.FontRenderer_SetFontProvider(luaL_checkstring(L, 1)));
-            return 1;
-        }
-        static int SetScale(lua_State* L)
-        {
-            float a = (float)luaL_checknumber(L, 1);
-            float b = (float)luaL_checknumber(L, 2);
-            LAPP.FontRenderer_SetScale(core::Vector2F(a, b));
-            return 0;
-        }
-        static int MeasureTextBoundary(lua_State* L)
-        {
-            size_t len = 0;
-            const char* str = luaL_checklstring(L, 1, &len);
-            const core::RectF v = LAPP.FontRenderer_MeasureTextBoundary(str, len);
-            lua_pushnumber(L, v.a.x);
-            lua_pushnumber(L, v.b.x);
-            lua_pushnumber(L, v.b.y);
-            lua_pushnumber(L, v.a.y);
-            return 4;
-        }
-        static int MeasureTextAdvance(lua_State* L)
-        {
-            size_t len = 0;
-            const char* str = luaL_checklstring(L, 1, &len);
-            const core::Vector2F v = LAPP.FontRenderer_MeasureTextAdvance(str, len);
-            lua_pushnumber(L, v.x);
-            lua_pushnumber(L, v.y);
-            return 2;
-        }
-        static int RenderText(lua_State* L)
-        {
-            size_t len = 0;
-            const char* str = luaL_checklstring(L, 1, &len);
-            auto pos = core::Vector2F((float)luaL_checknumber(L, 2), (float)luaL_checknumber(L, 3));
-            const bool ret = LAPP.FontRenderer_RenderText(
-                str, len, pos, (float)luaL_checknumber(L, 4), TranslateBlendMode(L, 5), *Color::Cast(L, 6));
-            lua_pushboolean(L, ret);
-            lua_pushnumber(L, (lua_Number)pos.x);
-            lua_pushnumber(L, (lua_Number)pos.y);
-            return 3;
-        }
-        static int RenderTextInSpace(lua_State* L)
-        {
-            size_t len = 0;
-            const char* str = luaL_checklstring(L, 1, &len);
-
-            auto pos = core::Vector3F((float)luaL_checknumber(L, 2), (float)luaL_checknumber(L, 3), (float)luaL_checknumber(L, 4));
-            auto const rvec = core::Vector3F((float)luaL_checknumber(L, 5), (float)luaL_checknumber(L, 6), (float)luaL_checknumber(L, 7));
-            auto const dvec = core::Vector3F((float)luaL_checknumber(L, 8), (float)luaL_checknumber(L, 9), (float)luaL_checknumber(L, 10));
-
-            BlendMode blend = TranslateBlendMode(L, 11);
-            const bool ret = LAPP.FontRenderer_RenderTextInSpace(
-                str, len, pos, rvec, dvec, blend, *Color::Cast(L, 12));
-            lua_pushboolean(L, ret);
-            lua_pushnumber(L, (lua_Number)pos.x);
-            lua_pushnumber(L, (lua_Number)pos.y);
-            lua_pushnumber(L, (lua_Number)pos.z);
-            return 4;
-        }
-
-        static int GetFontLineHeight(lua_State* L)
-        {
-            lua_pushnumber(L, LAPP.FontRenderer_GetFontLineHeight());
-            return 1;
-        };
-        static int GetFontAscender(lua_State* L)
-        {
-            lua_pushnumber(L, LAPP.FontRenderer_GetFontAscender());
-            return 1;
-        };
-        static int GetFontDescender(lua_State* L)
-        {
-            lua_pushnumber(L, LAPP.FontRenderer_GetFontDescender());
-            return 1;
-        };
-    };
-
-    luaL_Reg FR_Method[] = {
-        { "SetFontProvider", &FR_Wrapper::SetFontProvider },
-        { "SetScale", &FR_Wrapper::SetScale },
-
-        { "MeasureTextBoundary", &FR_Wrapper::MeasureTextBoundary },
-        { "MeasureTextAdvance", &FR_Wrapper::MeasureTextAdvance },
-        { "RenderText", &FR_Wrapper::RenderText },
-        { "RenderTextInSpace", &FR_Wrapper::RenderTextInSpace },
-
-        { "GetFontLineHeight", &FR_Wrapper::GetFontLineHeight },
-        { "GetFontAscender", &FR_Wrapper::GetFontAscender },
-        { "GetFontDescender", &FR_Wrapper::GetFontDescender },
-
-        { NULL, NULL },
-    };
-
     struct C_Wrapper
     {
         static int LoadPackSub(lua_State* L) noexcept
@@ -634,10 +535,6 @@ luastg::binding::FileManager::Register(lua_State* L) noexcept
     lua_newtable(L); // ??? t t
     luaL_register(L, NULL, tMethods); // ??? t t
     lua_setfield(L, -2, "FileManager"); // ??? t
-
-    lua_newtable(L); // ??? t t
-    luaL_register(L, NULL, FR_Method); // ??? t t
-    lua_setfield(L, -2, "FontRenderer"); // ??? t
 
     lua_pop(L, 1); // ???
 }
