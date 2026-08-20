@@ -518,7 +518,7 @@ namespace luastg
                         ImGui::EndTabItem();
                     }
 
-                    if(ImGui::BeginTabItem("Vector Font")) {
+                    if(ImGui::BeginTabItem("Dynamic Font")) {
                         ImGui::Text("Total Resources: %u", p_pool->m_TTFFontPool.size());
 
                         static ImGuiTextFilter filter;

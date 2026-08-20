@@ -10,13 +10,25 @@ function M:onCreate()
     self.text = "..."
     self.timer = 0
 
-    if not resources.loadTTF("sans", "C:\\Windows\\Fonts\\msyh.ttc", 32, 32) then
-        resources.loadTTF("sans", "C:\\Windows\\Fonts\\msyh.ttf", 32, 32)
+    local font_error
+    self.font, font_error = resources.loadDynamicFont("sans", {
+        pixelWidth = 32,
+        pixelHeight = 32,
+        sources = { { path = "C:\\Windows\\Fonts\\msyh.ttc", faceIndex = 0 } },
+    })
+    if not self.font then
+        self.font, font_error = resources.loadDynamicFont("sans", {
+            pixelWidth = 32,
+            pixelHeight = 32,
+            sources = { { path = "C:\\Windows\\Fonts\\msyh.ttf", faceIndex = 0 } },
+        })
     end
+    assert(self.font, font_error)
 end
 
 function M:onDestroy()
-    resources.removeResource("test", 8, "sans")
+    resources.pool:remove(self.font)
+    self.font = nil
 end
 
 function M:onUpdate()
@@ -50,7 +62,10 @@ end
 function M:onRender()
     window:applyCameraV()
     local edge = 16
-    lstg.RenderTTF("sans", self.text, edge, window.width - edge, edge, window.height - edge, 0 + 8, lstg.Color(255, 0, 0, 0), 2)
+    self.font:drawInRect(self.text, edge, window.width - edge, edge, window.height - edge, {
+        color = lstg.Color(255, 0, 0, 0),
+        verticalAlign = "bottom",
+    })
 end
 
 test.registerTest("test.input.Clipboard", M, "Input: Clipboard")

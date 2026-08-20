@@ -31,8 +31,8 @@ function M.loadSpriteFont(...)
     return M.pool:loadSpriteFont(...)
 end
 
-function M.loadTTF(...)
-    return M.pool:loadTTF(...)
+function M.loadDynamicFont(...)
+    return M.pool:loadDynamicFont(...)
 end
 
 function M.loadFX(...)

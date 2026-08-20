@@ -1,6 +1,7 @@
 #include "lua/plus.hpp"
 #include "AppFrame.h"
 #include "LuaBinding/Resource.hpp"
+#include "LuaBinding/modern/DynamicFont.hpp"
 
 namespace luastg::binding
 {
@@ -613,6 +614,9 @@ namespace luastg::binding
             } else if(ResourceSpriteSequence::test(L, 2)) {
                 auto* resource = ResourceSpriteSequence::cast(L, 2)->data;
                 pool->RemoveResource(luastg::ResourceType::Animation, resource->GetResName().data());
+            } else if(DynamicFont::is(L, 2)) {
+                auto* resource = DynamicFont::as(L, 2)->data;
+                pool->RemoveResource(luastg::ResourceType::TrueTypeFont, resource->GetResName().data());
             } else {
                 return luaL_error(L, "expected a resource object");
             }
