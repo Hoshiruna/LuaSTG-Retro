@@ -103,8 +103,7 @@ namespace core::Graphics::Common
 
         // FreeTypeGlyphManager
 
-        FreeTypeGlyphManager(IDevice* p_device, TrueTypeFontInfo const* p_arr_info, size_t info_count,
-            GlyphRasterizationOptions const& rasterization, ISamplerState* sampler);
+        FreeTypeGlyphManager(IDevice* p_device, TrueTypeFontInfo const* p_arr_info, size_t info_count, GlyphRasterizationOptions const& rasterization, ISamplerState* sampler);
         FreeTypeGlyphManager(FreeTypeGlyphManager const&) = delete;
         FreeTypeGlyphManager(FreeTypeGlyphManager&&) = delete;
         ~FreeTypeGlyphManager();

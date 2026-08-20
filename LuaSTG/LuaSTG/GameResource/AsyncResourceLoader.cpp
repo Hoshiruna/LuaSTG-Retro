@@ -614,25 +614,23 @@ namespace luastg
                 }
                 break;
 
-            case AsyncResourceRequestType::TrueTypeFont:
-                {
-                    auto fonts = request.fonts;
-                    for(size_t i = 0; i < fonts.size(); ++i) {
-                        if(i < job.m_font_data.size() && job.m_font_data[i]) {
-                            fonts[i].source = core::StringView(static_cast<char const*>(job.m_font_data[i]->data()), job.m_font_data[i]->size());
-                            fonts[i].is_buffer = true;
-                            fonts[i].is_force_to_file = false;
-                        } else if(i < request.font_sources.size()) {
-                            fonts[i].source = request.font_sources[i];
-                        }
-                    }
-                    if(!pool->LoadTrueTypeFont(
-                           request.name.c_str(), fonts.data(), fonts.size(), request.dynamic_font_options)) {
-                        job.fail("failed to load TrueType font");
-                        return false;
+            case AsyncResourceRequestType::TrueTypeFont: {
+                auto fonts = request.fonts;
+                for(size_t i = 0; i < fonts.size(); ++i) {
+                    if(i < job.m_font_data.size() && job.m_font_data[i]) {
+                        fonts[i].source = core::StringView(static_cast<char const*>(job.m_font_data[i]->data()), job.m_font_data[i]->size());
+                        fonts[i].is_buffer = true;
+                        fonts[i].is_force_to_file = false;
+                    } else if(i < request.font_sources.size()) {
+                        fonts[i].source = request.font_sources[i];
                     }
                 }
-                break;
+                if(!pool->LoadTrueTypeFont(
+                       request.name.c_str(), fonts.data(), fonts.size(), request.dynamic_font_options)) {
+                    job.fail("failed to load TrueType font");
+                    return false;
+                }
+            } break;
 
             case AsyncResourceRequestType::FX:
                 if(!pool->LoadFXFromSource(request.name.c_str(),

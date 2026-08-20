@@ -270,8 +270,7 @@ namespace luastg::binding
             if(name == "linear+clamp") {
                 return core::Graphics::IRenderer::SamplerState::LinearClamp;
             }
-            luaL_argerror(vm, index,
-                "sampler must be 'point+wrap', 'point+clamp', 'linear+wrap', or 'linear+clamp'");
+            luaL_argerror(vm, index, "sampler must be 'point+wrap', 'point+clamp', 'linear+wrap', or 'linear+clamp'");
             return core::Graphics::IRenderer::SamplerState::LinearClamp;
         }
 
@@ -368,9 +367,7 @@ namespace luastg::binding
             setNumberField(vm, "advanceY", glyph.info.advance.y);
             lua_pushliteral(vm, "a8");
             lua_setfield(vm, -2, "format");
-            auto const* const pixels = glyph.pixels.empty()
-                ? ""
-                : reinterpret_cast<char const*>(glyph.pixels.data());
+            auto const* const pixels = glyph.pixels.empty() ? "" : reinterpret_cast<char const*>(glyph.pixels.data());
             lua_pushlstring(vm, pixels, glyph.pixels.size());
             lua_setfield(vm, -2, "pixels");
             return 1;

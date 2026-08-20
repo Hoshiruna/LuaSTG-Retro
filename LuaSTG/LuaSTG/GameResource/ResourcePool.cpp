@@ -738,8 +738,7 @@ namespace luastg
 
     // 加载TrueType字体
 
-    bool ResourcePool::LoadDynamicFont(const char* name, core::Graphics::TrueTypeFontInfo const* fonts, size_t count,
-        DynamicFontLoadOptions const& options) noexcept
+    bool ResourcePool::LoadDynamicFont(const char* name, core::Graphics::TrueTypeFontInfo const* fonts, size_t count, DynamicFontLoadOptions const& options) noexcept
     {
         if(!fonts || count == 0) {
             spdlog::error("[luastg] LoadDynamicFont: no font sources were provided for '{}' (resource pool '{}')", name, getResourcePoolName());
@@ -771,8 +770,7 @@ namespace luastg
         return LoadTrueTypeFont(name, buffered_fonts.data(), buffered_fonts.size(), options);
     }
 
-    bool ResourcePool::LoadTrueTypeFont(const char* name, core::Graphics::TrueTypeFontInfo* fonts, size_t count,
-        DynamicFontLoadOptions const& options) noexcept
+    bool ResourcePool::LoadTrueTypeFont(const char* name, core::Graphics::TrueTypeFontInfo* fonts, size_t count, DynamicFontLoadOptions const& options) noexcept
     {
         if(m_TTFFontPool.find(std::string_view(name)) != m_TTFFontPool.end()) {
             if(ResourceMgr::GetResourceLoadingLog()) {

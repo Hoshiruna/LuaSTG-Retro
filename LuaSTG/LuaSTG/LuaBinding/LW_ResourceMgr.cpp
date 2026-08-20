@@ -46,18 +46,14 @@ namespace
         auto const value = luaL_checknumber(L, -1);
         luaL_argcheck(
             L,
-            std::isfinite(value)
-                && value >= 0
-                && value <= std::numeric_limits<uint32_t>::max()
-                && std::floor(value) == value,
+            std::isfinite(value) && value >= 0 && value <= std::numeric_limits<uint32_t>::max() && std::floor(value) == value,
             table_index,
             "faceIndex must be a non-negative 32-bit integer");
         lua_pop(L, 1);
         return static_cast<uint32_t>(value);
     }
 
-    std::string_view optionalStringField(lua_State* const L, int const table_index, char const* const name,
-        std::string_view const fallback, bool* const was_present = nullptr)
+    std::string_view optionalStringField(lua_State* const L, int const table_index, char const* const name, std::string_view const fallback, bool* const was_present = nullptr)
     {
         lua_getfield(L, table_index, name);
         if(lua_isnil(L, -1)) {
@@ -84,8 +80,7 @@ namespace
             return 0;
         }
         auto const value = luaL_checknumber(L, -1);
-        luaL_argcheck(L, std::isfinite(value) && value >= 0 && value <= 255 && std::floor(value) == value,
-            table_index, "alphaThreshold must be an integer from 0 through 255");
+        luaL_argcheck(L, std::isfinite(value) && value >= 0 && value <= 255 && std::floor(value) == value, table_index, "alphaThreshold must be an integer from 0 through 255");
         lua_pop(L, 1);
         return static_cast<uint8_t>(value);
     }
@@ -142,9 +137,7 @@ namespace
             luaL_argerror(L, descriptor_index, "hinting must be 'native', 'auto', or 'none'");
         }
 
-        auto const default_target = result.options.rasterization.raster_mode == core::Graphics::GlyphRasterMode::Monochrome
-            ? std::string_view("monochrome")
-            : std::string_view("normal");
+        auto const default_target = result.options.rasterization.raster_mode == core::Graphics::GlyphRasterMode::Monochrome ? std::string_view("monochrome") : std::string_view("normal");
         auto const hinting_target = optionalStringField(L, descriptor, "hintingTarget", default_target);
         if(hinting_target == "normal") {
             result.options.rasterization.hinting_target = core::Graphics::GlyphHintingTarget::Normal;
@@ -167,8 +160,7 @@ namespace
         } else if(sampler == "linear+clamp") {
             result.options.sampler = core::Graphics::IRenderer::SamplerState::LinearClamp;
         } else {
-            luaL_argerror(L, descriptor_index,
-                "sampler must be 'point+wrap', 'point+clamp', 'linear+wrap', or 'linear+clamp'");
+            luaL_argerror(L, descriptor_index, "sampler must be 'point+wrap', 'point+clamp', 'linear+wrap', or 'linear+clamp'");
         }
 
         result.fonts.resize(count);
@@ -988,7 +980,6 @@ luastg::binding::ResourceManager::Register(lua_State* L) noexcept
             }
             return 0;
         }
-
     };
 
     luaL_Reg const lib[] = {

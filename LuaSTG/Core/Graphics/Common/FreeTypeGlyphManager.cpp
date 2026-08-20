@@ -21,7 +21,8 @@ namespace
     }
 
     constexpr FT_Int32 makeLoadFlags(core::Graphics::GlyphHintingMode const hinting,
-        core::Graphics::GlyphHintingTarget const target, core::Graphics::GlyphRasterMode const raster_mode) noexcept
+        core::Graphics::GlyphHintingTarget const target,
+        core::Graphics::GlyphRasterMode const raster_mode) noexcept
     {
         FT_Int32 flags = FT_LOAD_DEFAULT;
         if(hinting == core::Graphics::GlyphHintingMode::Auto) {
@@ -46,35 +47,28 @@ namespace
 
     static_assert((makeLoadFlags(core::Graphics::GlyphHintingMode::Auto,
                        core::Graphics::GlyphHintingTarget::Normal,
-                       core::Graphics::GlyphRasterMode::Grayscale)
-                      & FT_LOAD_FORCE_AUTOHINT)
-        != 0);
+                       core::Graphics::GlyphRasterMode::Grayscale) &
+                      FT_LOAD_FORCE_AUTOHINT) != 0);
     static_assert((makeLoadFlags(core::Graphics::GlyphHintingMode::None,
                        core::Graphics::GlyphHintingTarget::Light,
-                       core::Graphics::GlyphRasterMode::Grayscale)
-                      & (FT_LOAD_NO_HINTING | FT_LOAD_NO_AUTOHINT))
-        == (FT_LOAD_NO_HINTING | FT_LOAD_NO_AUTOHINT));
+                       core::Graphics::GlyphRasterMode::Grayscale) &
+                      (FT_LOAD_NO_HINTING | FT_LOAD_NO_AUTOHINT)) == (FT_LOAD_NO_HINTING | FT_LOAD_NO_AUTOHINT));
     static_assert(FT_LOAD_TARGET_MODE(makeLoadFlags(core::Graphics::GlyphHintingMode::None,
                       core::Graphics::GlyphHintingTarget::Light,
-                      core::Graphics::GlyphRasterMode::Grayscale))
-        == FT_RENDER_MODE_NORMAL);
+                      core::Graphics::GlyphRasterMode::Grayscale)) == FT_RENDER_MODE_NORMAL);
     static_assert((makeLoadFlags(core::Graphics::GlyphHintingMode::Native,
                        core::Graphics::GlyphHintingTarget::Monochrome,
-                       core::Graphics::GlyphRasterMode::Monochrome)
-                      & FT_LOAD_MONOCHROME)
-        != 0);
+                       core::Graphics::GlyphRasterMode::Monochrome) &
+                      FT_LOAD_MONOCHROME) != 0);
     static_assert(FT_LOAD_TARGET_MODE(makeLoadFlags(core::Graphics::GlyphHintingMode::Native,
                       core::Graphics::GlyphHintingTarget::Normal,
-                      core::Graphics::GlyphRasterMode::Grayscale))
-        == FT_RENDER_MODE_NORMAL);
+                      core::Graphics::GlyphRasterMode::Grayscale)) == FT_RENDER_MODE_NORMAL);
     static_assert(FT_LOAD_TARGET_MODE(makeLoadFlags(core::Graphics::GlyphHintingMode::Native,
                       core::Graphics::GlyphHintingTarget::Light,
-                      core::Graphics::GlyphRasterMode::Grayscale))
-        == FT_RENDER_MODE_LIGHT);
+                      core::Graphics::GlyphRasterMode::Grayscale)) == FT_RENDER_MODE_LIGHT);
     static_assert(FT_LOAD_TARGET_MODE(makeLoadFlags(core::Graphics::GlyphHintingMode::Native,
                       core::Graphics::GlyphHintingTarget::Monochrome,
-                      core::Graphics::GlyphRasterMode::Grayscale))
-        == FT_RENDER_MODE_MONO);
+                      core::Graphics::GlyphRasterMode::Grayscale)) == FT_RENDER_MODE_MONO);
 
     class FreeTypeBitmapAccessor
     {
@@ -314,8 +308,7 @@ namespace core::Graphics::Common
 
     // FreeTypeGlyphManager
 
-    FreeTypeGlyphManager::FreeTypeGlyphManager(IDevice* const p_device, TrueTypeFontInfo const* const p_arr_info,
-        size_t const info_count, GlyphRasterizationOptions const& rasterization, ISamplerState* const sampler)
+    FreeTypeGlyphManager::FreeTypeGlyphManager(IDevice* const p_device, TrueTypeFontInfo const* const p_arr_info, size_t const info_count, GlyphRasterizationOptions const& rasterization, ISamplerState* const sampler)
         : m_device(p_device), m_sampler(sampler), m_rasterization(rasterization)
     {
         if(!openFonts(p_arr_info, info_count)) {
@@ -449,8 +442,7 @@ namespace core::Graphics::Common
         //t.texture->setPremultipliedAlpha(true); // 为了支持彩色文本，需要使用预乘 alpha 模式
         return true;
     }
-    bool FreeTypeGlyphManager::findGlyph(FT_ULong const code, FT_Face& face, FT_UInt& index,
-        uint32_t& source_index, bool& missing) const
+    bool FreeTypeGlyphManager::findGlyph(FT_ULong const code, FT_Face& face, FT_UInt& index, uint32_t& source_index, bool& missing) const
     {
         for(size_t source = 0; source < m_font.size(); ++source) {
             auto const& f = m_font[source];
@@ -584,9 +576,7 @@ namespace core::Graphics::Common
             if(FT_Load_Glyph(face, index, load_flags) != FT_Err_Ok) {
                 return false;
             }
-            FT_Render_Mode const render_mode = m_rasterization.raster_mode == GlyphRasterMode::Monochrome
-                ? FT_RENDER_MODE_MONO
-                : FT_RENDER_MODE_NORMAL;
+            FT_Render_Mode const render_mode = m_rasterization.raster_mode == GlyphRasterMode::Monochrome ? FT_RENDER_MODE_MONO : FT_RENDER_MODE_NORMAL;
             if(FT_Render_Glyph(face->glyph, render_mode) != FT_Err_Ok) {
                 return false;
             }
@@ -616,9 +606,7 @@ namespace core::Graphics
         return create(p_device, p_arr_info, info_count, GlyphRasterizationOptions{}, nullptr, output);
     }
 
-    bool IGlyphManager::create(IDevice* const p_device, TrueTypeFontInfo const* const p_arr_info,
-        size_t const info_count, GlyphRasterizationOptions const& rasterization, ISamplerState* const sampler,
-        IGlyphManager** const output)
+    bool IGlyphManager::create(IDevice* const p_device, TrueTypeFontInfo const* const p_arr_info, size_t const info_count, GlyphRasterizationOptions const& rasterization, ISamplerState* const sampler, IGlyphManager** const output)
     {
         try {
             *output = new Common::FreeTypeGlyphManager(p_device, p_arr_info, info_count, rasterization, sampler);

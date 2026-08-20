@@ -84,8 +84,7 @@ namespace core::Graphics
         virtual ISamplerState* getSamplerState() { return nullptr; }
 
         static bool create(IDevice* p_device, TrueTypeFontInfo const* p_arr_info, size_t info_count, IGlyphManager** output);
-        static bool create(IDevice* p_device, TrueTypeFontInfo const* p_arr_info, size_t info_count,
-            GlyphRasterizationOptions const& rasterization, ISamplerState* sampler, IGlyphManager** output);
+        static bool create(IDevice* p_device, TrueTypeFontInfo const* p_arr_info, size_t info_count, GlyphRasterizationOptions const& rasterization, ISamplerState* sampler, IGlyphManager** output);
     };
 
     struct ITextRenderer : public IReferenceCounted

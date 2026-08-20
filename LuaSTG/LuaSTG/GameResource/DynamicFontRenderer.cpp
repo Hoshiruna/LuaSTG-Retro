@@ -39,11 +39,7 @@ namespace luastg
         {
         public:
             explicit TextRendererStateGuard(core::Graphics::ITextRenderer* const renderer)
-                : m_renderer(renderer)
-                , m_glyph_manager(renderer->getGlyphManager())
-                , m_scale(renderer->getScale())
-                , m_color(renderer->getColor())
-                , m_z(renderer->getZ())
+                : m_renderer(renderer), m_glyph_manager(renderer->getGlyphManager()), m_scale(renderer->getScale()), m_color(renderer->getColor()), m_z(renderer->getZ())
             {
             }
 
@@ -82,12 +78,10 @@ namespace luastg
             } else if(first >= 0xC2u && first <= 0xDFu && remaining >= 2 && isContinuation(bytes[1])) {
                 codepoint = static_cast<char32_t>(((first & 0x1Fu) << 6) | (bytes[1] & 0x3Fu));
                 length = 2;
-            } else if(first >= 0xE0u && first <= 0xEFu && remaining >= 3 && isContinuation(bytes[1]) && isContinuation(bytes[2])
-                && !(first == 0xE0u && bytes[1] < 0xA0u) && !(first == 0xEDu && bytes[1] >= 0xA0u)) {
+            } else if(first >= 0xE0u && first <= 0xEFu && remaining >= 3 && isContinuation(bytes[1]) && isContinuation(bytes[2]) && !(first == 0xE0u && bytes[1] < 0xA0u) && !(first == 0xEDu && bytes[1] >= 0xA0u)) {
                 codepoint = static_cast<char32_t>(((first & 0x0Fu) << 12) | ((bytes[1] & 0x3Fu) << 6) | (bytes[2] & 0x3Fu));
                 length = 3;
-            } else if(first >= 0xF0u && first <= 0xF4u && remaining >= 4 && isContinuation(bytes[1]) && isContinuation(bytes[2]) && isContinuation(bytes[3])
-                && !(first == 0xF0u && bytes[1] < 0x90u) && !(first == 0xF4u && bytes[1] > 0x8Fu)) {
+            } else if(first >= 0xF0u && first <= 0xF4u && remaining >= 4 && isContinuation(bytes[1]) && isContinuation(bytes[2]) && isContinuation(bytes[3]) && !(first == 0xF0u && bytes[1] < 0x90u) && !(first == 0xF4u && bytes[1] > 0x8Fu)) {
                 codepoint = static_cast<char32_t>(((first & 0x07u) << 18) | ((bytes[1] & 0x3Fu) << 12) | ((bytes[2] & 0x3Fu) << 6) | (bytes[3] & 0x3Fu));
                 length = 4;
             } else {
@@ -244,13 +238,7 @@ namespace luastg
             DynamicFontLayoutOptions const& options,
             TextLayout& output)
         {
-            if(!glyph_manager
-                || !std::isfinite(options.scale.x)
-                || !std::isfinite(options.scale.y)
-                || !std::isfinite(options.line_spacing)
-                || options.line_spacing <= 0.0f
-                || !std::isfinite(options.max_width)
-                || (options.wrap != DynamicFontWrapMode::None && options.max_width < 0.0f)) {
+            if(!glyph_manager || !std::isfinite(options.scale.x) || !std::isfinite(options.scale.y) || !std::isfinite(options.line_spacing) || options.line_spacing <= 0.0f || !std::isfinite(options.max_width) || (options.wrap != DynamicFontWrapMode::None && options.max_width < 0.0f)) {
                 return false;
             }
 
@@ -446,9 +434,14 @@ namespace luastg
                 auto const width = options.outline_width;
                 auto const diagonal = width * 0.7071067811865475f;
                 std::array const offsets{
-                    core::Vector2F(-width, 0.0f), core::Vector2F(width, 0.0f), core::Vector2F(0.0f, -width), core::Vector2F(0.0f, width),
-                    core::Vector2F(-diagonal, -diagonal), core::Vector2F(-diagonal, diagonal),
-                    core::Vector2F(diagonal, -diagonal), core::Vector2F(diagonal, diagonal),
+                    core::Vector2F(-width, 0.0f),
+                    core::Vector2F(width, 0.0f),
+                    core::Vector2F(0.0f, -width),
+                    core::Vector2F(0.0f, width),
+                    core::Vector2F(-diagonal, -diagonal),
+                    core::Vector2F(-diagonal, diagonal),
+                    core::Vector2F(diagonal, -diagonal),
+                    core::Vector2F(diagonal, diagonal),
                 };
                 for(auto const offset : offsets) {
                     if(!draw_pass(options.outline_color, offset, nullptr)) {

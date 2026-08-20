@@ -115,10 +115,8 @@ namespace luastg
         bool LoadSpriteFont(const char* name, const char* path, const char* tex_path, bool mipmaps = true) noexcept;
         bool LoadSpriteFont(const char* name, core::IData* font_data, const char* path, const char* tex_path, core::IData* texture_data, bool mipmaps = true) noexcept;
         // 加载矢量字体
-        bool LoadDynamicFont(const char* name, core::Graphics::TrueTypeFontInfo const* fonts, size_t count,
-            DynamicFontLoadOptions const& options = {}) noexcept;
-        bool LoadTrueTypeFont(const char* name, core::Graphics::TrueTypeFontInfo* fonts, size_t count,
-            DynamicFontLoadOptions const& options = {}) noexcept;
+        bool LoadDynamicFont(const char* name, core::Graphics::TrueTypeFontInfo const* fonts, size_t count, DynamicFontLoadOptions const& options = {}) noexcept;
+        bool LoadTrueTypeFont(const char* name, core::Graphics::TrueTypeFontInfo* fonts, size_t count, DynamicFontLoadOptions const& options = {}) noexcept;
         // 特效
         bool LoadFX(const char* name, const char* path) noexcept;
         bool LoadFXFromSource(const char* name, std::string_view source, const char* path) noexcept;
