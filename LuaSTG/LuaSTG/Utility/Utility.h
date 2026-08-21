@@ -4,12 +4,10 @@
 
 namespace luastg
 {
-    // 计时域，离开作用域自动计算流逝的时间
     class TimerScope
     {
     private:
-        int64_t _freq;
-        int64_t _time;
+        uint64_t _start;
         float& _out;
 
     public:
@@ -18,7 +16,6 @@ namespace luastg
         ~TimerScope();
     };
 
-    // 自动配对调用 CoInitializeEx 和 CoUninitialize
     class CoInitializeScope
     {
     private:

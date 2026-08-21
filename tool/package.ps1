@@ -1,24 +1,19 @@
 param(
-    [ValidateSet("vs2022", "vs2026-v143", "vs2026")]
-    [string]$Toolchain = "vs2026-v143",
-
     [ValidateSet("zip", "dat")]
     [string]$ArchiveFormat = "zip"
 )
 
 $ProjectRoot = [System.IO.Path]::GetFullPath([System.IO.Path]::Join($PSScriptRoot, ".."))
 $ReleasesRoot = [System.IO.Path]::Join($ProjectRoot, "build", "releases")
-$BuildRootAMD64 = [System.IO.Path]::Join($ProjectRoot, "build", "amd64")
-$BinaryRootX86 = [System.IO.Path]::Join($ProjectRoot, "build", "x86", "bin")
-$BinaryRootAMD64 = [System.IO.Path]::Join($ProjectRoot, "build", "amd64", "bin")
+$BuildRootX64 = [System.IO.Path]::Join($ProjectRoot, "build", "windows-x64")
+$BinaryRootX64 = [System.IO.Path]::Join($BuildRootX64, "bin")
 $ExampleRoot = [System.IO.Path]::Join($ProjectRoot, "data", "example")
 $PackageName = "LuaSTG-Retro"
 $ExecutableName = "LuastgRetro.exe"
 
 Write-Output "Project Root       : $ProjectRoot"
 Write-Output "Releases Root      : $ReleasesRoot"
-Write-Output "Binary Root (x86)  : $BinaryRootX86"
-Write-Output "Binary Root (amd64): $BinaryRootAMD64"
+Write-Output "Binary Root (x64)  : $BinaryRootX64"
 Write-Output "Example Root       : $ExampleRoot"
 Write-Output "Package Name       : $PackageName"
 Write-Output "Executable Name    : $ExecutableName"
@@ -28,17 +23,13 @@ Write-Output "Archive Format     : $ArchiveFormat"
 
 Set-Location $ProjectRoot
 
-$Presets = switch ($Toolchain) {
-    "vs2022"     { @{ AMD64 = "windows-amd64-release"; X86 = "windows-x86-release" } }
-    "vs2026-v143"{ @{ AMD64 = "windows-vs2026-v143-amd64-release"; X86 = "windows-vs2026-v143-x86-release" } }
-    "vs2026"     { @{ AMD64 = "windows-vs2026-amd64-release"; X86 = "windows-vs2026-x86-release" } }
+cmake --workflow --preset windows-x64-release
+if ($LASTEXITCODE -ne 0) {
+    throw "Failed to build the Windows x64 release"
 }
 
-cmake --workflow --preset $Presets.AMD64
-cmake --workflow --preset $Presets.X86
-
 if ($ArchiveFormat -eq "dat") {
-    cmake --build $BuildRootAMD64 --config Release --target dat-archive-builder
+    cmake --build $BuildRootX64 --config Release --target dat-archive-builder
     if ($LASTEXITCODE -ne 0) {
         throw "Failed to build dat-archive-builder"
     }
@@ -74,41 +65,18 @@ if (-not [System.IO.Directory]::Exists($ReleaseRoot)) {
 
 # copy engine binary file
 
-$BinaryFilesAMD64 = @(
+$BinaryFilesX64 = @(
     @{
-        Source = [System.IO.Path]::Join($BinaryRootAMD64, $ExecutableName)
+        Source = [System.IO.Path]::Join($BinaryRootX64, $ExecutableName)
         Destination = [System.IO.Path]::Join($ReleaseRoot, $ExecutableName)
     },
     @{
-        Source = [System.IO.Path]::Join($BinaryRootAMD64, "d3dcompiler_47.dll")
+        Source = [System.IO.Path]::Join($BinaryRootX64, "d3dcompiler_47.dll")
         Destination = [System.IO.Path]::Join($ReleaseRoot, "d3dcompiler_47.dll")
     }
 )
 
-foreach ($BinaryFile in $BinaryFilesAMD64) {
-    if (Test-Path -Path $BinaryFile.Destination) {
-        Remove-Item -Path $BinaryFile.Destination
-    }
-    Copy-Item -Path $BinaryFile.Source -Destination $BinaryFile.Destination
-}
-
-$Release32Root = [System.IO.Path]::Join($ReleaseRoot, "windows-32bit")
-$BinaryFilesX86 = @(
-    @{
-        Source = [System.IO.Path]::Join($BinaryRootX86, $ExecutableName)
-        Destination = [System.IO.Path]::Join($Release32Root, $ExecutableName)
-    },
-    @{
-        Source = [System.IO.Path]::Join($BinaryRootX86, "d3dcompiler_47.dll")
-        Destination = [System.IO.Path]::Join($Release32Root, "d3dcompiler_47.dll")
-    }
-)
-
-if (-not [System.IO.Directory]::Exists($Release32Root)) {
-    [System.IO.Directory]::CreateDirectory($Release32Root)
-}
-
-foreach ($BinaryFile in $BinaryFilesX86) {
+foreach ($BinaryFile in $BinaryFilesX64) {
     if (Test-Path -Path $BinaryFile.Destination) {
         Remove-Item -Path $BinaryFile.Destination
     }
@@ -157,7 +125,7 @@ switch ($ArchiveFormat) {
     }
     "dat" {
         $ArchivePath = [System.IO.Path]::Join($ReleasesRoot, "$PackageName-v$VersionFull.dat")
-        $DatArchiveBuilder = [System.IO.Path]::Join($BuildRootAMD64, "tool", "dat-archive-builder", "Release", "dat-archive-builder.exe")
+        $DatArchiveBuilder = [System.IO.Path]::Join($BuildRootX64, "tool", "dat-archive-builder", "Release", "dat-archive-builder.exe")
         if (-not [System.IO.File]::Exists($DatArchiveBuilder)) {
             throw "Cannot find dat-archive-builder.exe: $DatArchiveBuilder"
         }

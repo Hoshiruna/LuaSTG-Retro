@@ -40,8 +40,8 @@ add_custom_command(
         -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded$<$<CONFIG:Debug>:Debug>
         # install
         -DCMAKE_INSTALL_PREFIX=${minizip_ng_install_directory}
-        # force utf-8, win7
-        "-DCMAKE_C_FLAGS=/utf-8 /D_WIN32_WINNT=0x0601"
+        # Windows 10 baseline and UTF-8 source files
+        "-DCMAKE_C_FLAGS=/utf-8 /D_WIN32_WINNT=0x0A00"
         # options
         -DMZ_COMPAT=OFF
         -DMZ_BZIP2=OFF

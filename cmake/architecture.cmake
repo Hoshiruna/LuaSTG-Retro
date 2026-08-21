@@ -1,38 +1,24 @@
-if (NOT (DEFINED LUASTG_ARCH))
-    try_compile(LUASTG_IS_X86
-        ${CMAKE_CURRENT_BINARY_DIR}/is_x86
-        SOURCES ${CMAKE_CURRENT_LIST_DIR}/architecture/is_x86.c
-        C_STANDARD 17
-        C_STANDARD_REQUIRED ON
-        C_EXTENSIONS OFF
-    )
-    try_compile(LUASTG_IS_AMD64
-        ${CMAKE_CURRENT_BINARY_DIR}/is_amd64
-        SOURCES ${CMAKE_CURRENT_LIST_DIR}/architecture/is_amd64.c
-        C_STANDARD 17
-        C_STANDARD_REQUIRED ON
-        C_EXTENSIONS OFF
-    )
-    try_compile(LUASTG_IS_ARM64
-        ${CMAKE_CURRENT_BINARY_DIR}/is_arm64
-        SOURCES ${CMAKE_CURRENT_LIST_DIR}/architecture/is_arm64.c
-        C_STANDARD 17
-        C_STANDARD_REQUIRED ON
-        C_EXTENSIONS OFF
-    )
-    if (LUASTG_IS_X86 AND (NOT LUASTG_IS_AMD64) AND (NOT LUASTG_IS_ARM64))
-        set(LUASTG_ARCH "x86" CACHE STRING "LuaSTG: current architecture" FORCE)
-    elseif ((NOT LUASTG_IS_X86) AND LUASTG_IS_AMD64 AND (NOT LUASTG_IS_ARM64))
-        set(LUASTG_ARCH "amd64" CACHE STRING "LuaSTG: current architecture" FORCE)
-    elseif ((NOT LUASTG_IS_X86) AND (NOT LUASTG_IS_AMD64) AND LUASTG_IS_ARM64)
-        set(LUASTG_ARCH "arm64" CACHE STRING "LuaSTG: current architecture" FORCE)
-    else ()
-        message(FATAL_ERROR "LuaSTG: what's your architecture?")
-    endif ()
-    message(STATUS "LuaSTG: architecture test result")
-    message(STATUS "-- x86  : ${LUASTG_IS_X86}")
-    message(STATUS "-- amd64: ${LUASTG_IS_AMD64}")
-    message(STATUS "-- arm64: ${LUASTG_IS_ARM64}")
+if (NOT CMAKE_SIZEOF_VOID_P EQUAL 8)
+    message(FATAL_ERROR "LuaSTG Retro requires a 64-bit target")
 endif ()
 
-message(STATUS "LuaSTG: current architecture is ${LUASTG_ARCH}")
+if (NOT DEFINED LUASTG_ARCH)
+    if (APPLE AND CMAKE_OSX_ARCHITECTURES MATCHES "x86_64" AND CMAKE_OSX_ARCHITECTURES MATCHES "arm64")
+        set(detected_arch "universal")
+    elseif (CMAKE_GENERATOR_PLATFORM MATCHES "^[Xx]64$")
+        set(detected_arch "amd64")
+    elseif (CMAKE_GENERATOR_PLATFORM MATCHES "^[Aa][Rr][Mm]64$")
+        set(detected_arch "arm64")
+    elseif (CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|AMD64|amd64)$")
+        set(detected_arch "amd64")
+    elseif (CMAKE_SYSTEM_PROCESSOR MATCHES "^(arm64|ARM64|aarch64|AARCH64)$")
+        set(detected_arch "arm64")
+    else ()
+        message(FATAL_ERROR "LuaSTG Retro does not support architecture '${CMAKE_SYSTEM_PROCESSOR}'")
+    endif ()
+
+    set(LUASTG_ARCH "${detected_arch}" CACHE STRING "LuaSTG Retro target architecture" FORCE)
+    unset(detected_arch)
+endif ()
+
+message(STATUS "LuaSTG Retro target architecture: ${LUASTG_ARCH}")

@@ -1,6 +1,5 @@
 # LuaSTG configurer
 
-include(shaders.cmake)
 add_subdirectory(Shader)
 include(Platform.cmake)
 include(Core.cmake)
@@ -218,7 +217,6 @@ target_link_libraries(LuaSTG PRIVATE
     utf8
     win32
     PlatformAPI
-    DirectX::TextureMini
     Core
     xmath
     lua51_static

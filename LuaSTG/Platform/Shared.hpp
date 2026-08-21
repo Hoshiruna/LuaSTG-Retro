@@ -1,12 +1,5 @@
 #pragma once
 
-#ifdef _WIN32_WINNT
-#undef _WIN32_WINNT
-#endif
-#ifdef NTDDI_VERSION
-#undef NTDDI_VERSION
-#endif
-
 #include <cassert>
 #include <tuple>
 #include <array>

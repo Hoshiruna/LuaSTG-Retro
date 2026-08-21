@@ -1,4 +1,4 @@
-# simdutf
+# simdutf (Apache-2.0 OR MIT)
 
 CPMAddPackage(
     NAME simdutf
@@ -9,7 +9,7 @@ CPMAddPackage(
 )
 
 if (NOT simdutf_ADDED)
-    message(FATAL_ERROR "simdutf is requied")
+    message(FATAL_ERROR "simdutf is required")
 endif ()
 
 set(_root ${simdutf_SOURCE_DIR})

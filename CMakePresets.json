@@ -2,7 +2,7 @@
   "version": 6,
   "configurePresets": [
     {
-      "name": "cpm-cache",
+      "name": "common",
       "hidden": true,
       "cacheVariables": {
         "CPM_SOURCE_CACHE": {
@@ -11,106 +11,133 @@
         }
       }
     },
-
     {
-      "name": "vs2022",
-      "hidden": true,
-      "inherits": [
-        "cpm-cache"
-      ],
-      "generator": "Visual Studio 17 2022"
-    },
-
-    { "name": "vs2022-x86"  , "inherits": [ "vs2022" ], "architecture": "Win32", "binaryDir": "${sourceDir}/build/x86"   },
-    { "name": "vs2022-amd64", "inherits": [ "vs2022" ], "architecture": "x64"  , "binaryDir": "${sourceDir}/build/amd64" },
-    { "name": "vs2022-arm64", "inherits": [ "vs2022" ], "architecture": "ARM64", "binaryDir": "${sourceDir}/build/arm64" },
-
-    {
-      "name": "vs2026-v143",
-      "hidden": true,
-      "inherits": [
-        "cpm-cache"
-      ],
-      "generator": "Visual Studio 18 2026",
-      "toolset": "v143"
-    },
-
-    { "name": "vs2026-v143-x86"  , "inherits": [ "vs2026-v143" ], "architecture": "Win32", "binaryDir": "${sourceDir}/build/x86"   },
-    { "name": "vs2026-v143-amd64", "inherits": [ "vs2026-v143" ], "architecture": "x64"  , "binaryDir": "${sourceDir}/build/amd64" },
-    { "name": "vs2026-v143-arm64", "inherits": [ "vs2026-v143" ], "architecture": "ARM64", "binaryDir": "${sourceDir}/build/arm64" },
-
-    {
-      "name": "vs2026",
-      "hidden": true,
-      "inherits": [
-        "cpm-cache"
-      ],
-      "generator": "Visual Studio 18 2026"
-    },
-
-    { "name": "vs2026-x86"  , "inherits": [ "vs2026" ], "architecture": "Win32", "binaryDir": "${sourceDir}/build/x86"   },
-    { "name": "vs2026-amd64", "inherits": [ "vs2026" ], "architecture": "x64"  , "binaryDir": "${sourceDir}/build/amd64" },
-    { "name": "vs2026-arm64", "inherits": [ "vs2026" ], "architecture": "ARM64", "binaryDir": "${sourceDir}/build/arm64" },
-
-    {
-      "name": "ninja-amd64",
-      "hidden": true,
-      "inherits": [
-        "cpm-cache"
-      ],
-      "generator": "Ninja",
+      "name": "windows-x64",
+      "displayName": "Windows x64",
+      "inherits": "common",
+      "generator": "Visual Studio 17 2022",
+      "architecture": "x64",
+      "binaryDir": "${sourceDir}/build/windows-x64",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      },
       "cacheVariables": {
-        "CMAKE_C_COMPILER": "cl",
-        "CMAKE_CXX_COMPILER": "cl"
+        "LUASTG_BUILD_RUNTIME": true,
+        "LUASTG_BUILD_TESTS": true
       }
     },
-
-    { "name": "ninja-amd64-debug"  , "inherits": [ "ninja-amd64" ], "binaryDir": "${sourceDir}/build/amd64-ninja-debug"  , "cacheVariables": { "CMAKE_BUILD_TYPE": "Debug"   } },
-    { "name": "ninja-amd64-release", "inherits": [ "ninja-amd64" ], "binaryDir": "${sourceDir}/build/amd64-ninja-release", "cacheVariables": { "CMAKE_BUILD_TYPE": "Release" } }
+    {
+      "name": "linux-x64-debug",
+      "displayName": "Linux x64 Debug",
+      "inherits": "common",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/linux-x64-debug",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      },
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "LUASTG_BUILD_RUNTIME": false,
+        "LUASTG_BUILD_TESTS": true
+      }
+    },
+    {
+      "name": "linux-x64-release",
+      "displayName": "Linux x64 Release",
+      "inherits": "linux-x64-debug",
+      "binaryDir": "${sourceDir}/build/linux-x64-release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "macos-universal-debug",
+      "displayName": "macOS Universal Debug",
+      "inherits": "common",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/macos-universal-debug",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Darwin"
+      },
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_OSX_ARCHITECTURES": "x86_64;arm64",
+        "CMAKE_OSX_DEPLOYMENT_TARGET": "12.0",
+        "LUASTG_BUILD_RUNTIME": false,
+        "LUASTG_BUILD_TESTS": true
+      }
+    },
+    {
+      "name": "macos-universal-release",
+      "displayName": "macOS Universal Release",
+      "inherits": "macos-universal-debug",
+      "binaryDir": "${sourceDir}/build/macos-universal-release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    }
   ],
   "buildPresets": [
-    { "name": "debug"  , "hidden": true, "configuration": "Debug"   },
-    { "name": "release", "hidden": true, "configuration": "Release" },
-
-    { "name": "target-luastg", "hidden": true, "targets": [ "LuaSTG" ] },
-
-    { "name": "windows-x86-debug"    , "configurePreset": "vs2022-x86"  , "inherits": [ "debug"  , "target-luastg" ] },
-    { "name": "windows-x86-release"  , "configurePreset": "vs2022-x86"  , "inherits": [ "release", "target-luastg" ] },
-    { "name": "windows-amd64-debug"  , "configurePreset": "vs2022-amd64", "inherits": [ "debug"  , "target-luastg" ] },
-    { "name": "windows-amd64-release", "configurePreset": "vs2022-amd64", "inherits": [ "release", "target-luastg" ] },
-    { "name": "windows-arm64-debug"  , "configurePreset": "vs2022-arm64", "inherits": [ "debug"  , "target-luastg" ] },
-    { "name": "windows-arm64-release", "configurePreset": "vs2022-arm64", "inherits": [ "release", "target-luastg" ] },
-
-    { "name": "windows-vs2026-v143-x86-debug"    , "configurePreset": "vs2026-v143-x86"  , "inherits": [ "debug"  , "target-luastg" ] },
-    { "name": "windows-vs2026-v143-x86-release"  , "configurePreset": "vs2026-v143-x86"  , "inherits": [ "release", "target-luastg" ] },
-    { "name": "windows-vs2026-v143-amd64-debug"  , "configurePreset": "vs2026-v143-amd64", "inherits": [ "debug"  , "target-luastg" ] },
-    { "name": "windows-vs2026-v143-amd64-release", "configurePreset": "vs2026-v143-amd64", "inherits": [ "release", "target-luastg" ] },
-    { "name": "windows-vs2026-v143-arm64-debug"  , "configurePreset": "vs2026-v143-arm64", "inherits": [ "debug"  , "target-luastg" ] },
-    { "name": "windows-vs2026-v143-arm64-release", "configurePreset": "vs2026-v143-arm64", "inherits": [ "release", "target-luastg" ] },
-
-    { "name": "windows-vs2026-x86-debug"    , "configurePreset": "vs2026-x86"  , "inherits": [ "debug"  , "target-luastg" ] },
-    { "name": "windows-vs2026-x86-release"  , "configurePreset": "vs2026-x86"  , "inherits": [ "release", "target-luastg" ] },
-    { "name": "windows-vs2026-amd64-debug"  , "configurePreset": "vs2026-amd64", "inherits": [ "debug"  , "target-luastg" ] },
-    { "name": "windows-vs2026-amd64-release", "configurePreset": "vs2026-amd64", "inherits": [ "release", "target-luastg" ] },
-    { "name": "windows-vs2026-arm64-debug"  , "configurePreset": "vs2026-arm64", "inherits": [ "debug"  , "target-luastg" ] },
-    { "name": "windows-vs2026-arm64-release", "configurePreset": "vs2026-arm64", "inherits": [ "release", "target-luastg" ] },
-
-    { "name": "windows-ninja-amd64-debug"  , "configurePreset": "ninja-amd64-debug"  , "inherits": [ "debug"  , "target-luastg" ] },
-    { "name": "windows-ninja-amd64-release", "configurePreset": "ninja-amd64-release", "inherits": [ "release", "target-luastg" ] }
+    {
+      "name": "windows-x64-debug",
+      "configurePreset": "windows-x64",
+      "configuration": "Debug",
+      "targets": ["LuaSTG", "Setting"]
+    },
+    {
+      "name": "windows-x64-release",
+      "configurePreset": "windows-x64",
+      "configuration": "Release",
+      "targets": ["LuaSTG", "Setting"]
+    },
+    {
+      "name": "linux-x64-debug",
+      "configurePreset": "linux-x64-debug",
+      "targets": ["Core.WindowSystem", "Core.InputSystem"]
+    },
+    {
+      "name": "linux-x64-release",
+      "configurePreset": "linux-x64-release",
+      "targets": ["Core.WindowSystem", "Core.InputSystem"]
+    },
+    {
+      "name": "macos-universal-debug",
+      "configurePreset": "macos-universal-debug",
+      "targets": ["Core.WindowSystem", "Core.InputSystem"]
+    },
+    {
+      "name": "macos-universal-release",
+      "configurePreset": "macos-universal-release",
+      "targets": ["Core.WindowSystem", "Core.InputSystem"]
+    }
   ],
   "workflowPresets": [
-    { "name": "windows-x86-release"  , "steps": [ { "type": "configure", "name": "vs2022-x86"   }, { "type": "build", "name": "windows-x86-release"   } ] },
-    { "name": "windows-amd64-release", "steps": [ { "type": "configure", "name": "vs2022-amd64" }, { "type": "build", "name": "windows-amd64-release" } ] },
-    { "name": "windows-arm64-release", "steps": [ { "type": "configure", "name": "vs2022-arm64" }, { "type": "build", "name": "windows-arm64-release" } ] },
-
-    { "name": "windows-vs2026-v143-x86-release"  , "steps": [ { "type": "configure", "name": "vs2026-v143-x86"   }, { "type": "build", "name": "windows-vs2026-v143-x86-release"   } ] },
-    { "name": "windows-vs2026-v143-amd64-release", "steps": [ { "type": "configure", "name": "vs2026-v143-amd64" }, { "type": "build", "name": "windows-vs2026-v143-amd64-release" } ] },
-    { "name": "windows-vs2026-v143-arm64-release", "steps": [ { "type": "configure", "name": "vs2026-v143-arm64" }, { "type": "build", "name": "windows-vs2026-v143-arm64-release" } ] },
-
-    { "name": "windows-vs2026-x86-release"  , "steps": [ { "type": "configure", "name": "vs2026-x86"   }, { "type": "build", "name": "windows-vs2026-x86-release"   } ] },
-    { "name": "windows-vs2026-amd64-release", "steps": [ { "type": "configure", "name": "vs2026-amd64" }, { "type": "build", "name": "windows-vs2026-amd64-release" } ] },
-    { "name": "windows-vs2026-arm64-release", "steps": [ { "type": "configure", "name": "vs2026-arm64" }, { "type": "build", "name": "windows-vs2026-arm64-release" } ] },
-
-    { "name": "windows-ninja-amd64-release", "steps": [ { "type": "configure", "name": "ninja-amd64-release" }, { "type": "build", "name": "windows-ninja-amd64-release" } ] }
+    {
+      "name": "windows-x64-release",
+      "steps": [
+        {"type": "configure", "name": "windows-x64"},
+        {"type": "build", "name": "windows-x64-release"}
+      ]
+    },
+    {
+      "name": "linux-x64-release",
+      "steps": [
+        {"type": "configure", "name": "linux-x64-release"},
+        {"type": "build", "name": "linux-x64-release"}
+      ]
+    },
+    {
+      "name": "macos-universal-release",
+      "steps": [
+        {"type": "configure", "name": "macos-universal-release"},
+        {"type": "build", "name": "macos-universal-release"}
+      ]
+    }
   ]
 }

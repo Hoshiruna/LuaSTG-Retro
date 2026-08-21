@@ -14,8 +14,7 @@ target_sources(Setting PRIVATE
     Configurer.manifest
 )
 target_link_libraries(Setting PRIVATE
-    d3d11.lib
-    dxgi.lib
+    Core.Graphics
     spdlog
     utf8
     win32

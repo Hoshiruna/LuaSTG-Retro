@@ -1,19 +1,6 @@
 add_executable(ShaderCompiler)
-set_target_properties(ShaderCompiler PROPERTIES
-    C_STANDARD 17
-    C_STANDARD_REQUIRED ON
-    CXX_STANDARD 20
-    CXX_STANDARD_REQUIRED ON
-)
-target_compile_options(ShaderCompiler
-PRIVATE
-    "/utf-8"
-    "/W4" # 更多警告
-)
-#target_link_options(ShaderCompiler
-#PRIVATE
-#    "/DEPENDENTLOADFLAG:0x800" # Windows 10 1607+ 强制 DLL 搜索目录为系统目录
-#)
+luastg_target_common_options(ShaderCompiler)
+luastg_target_more_warning(ShaderCompiler)
 target_compile_definitions(ShaderCompiler
 PRIVATE
     _UNICODE

@@ -1,4 +1,5 @@
 #include "Utility/Utility.h"
+#include <SDL3/SDL_timer.h>
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
 #include <Windows.h>
@@ -6,7 +7,6 @@
 
 namespace luastg
 {
-    // 离开作用域自动执行委托的函数
     class Scope
     {
     private:
@@ -20,26 +20,16 @@ namespace luastg
 
     float TimerScope::operator()() const
     {
-        LARGE_INTEGER time = {};
-        ::QueryPerformanceCounter(&time);
-        return float(double(time.QuadPart - _time) / double(_freq));
+        return static_cast<float>(static_cast<double>(SDL_GetTicksNS() - _start) / 1'000'000'000.0);
     }
     TimerScope::TimerScope(float& inout)
-        : _freq(0), _time(0), _out(inout)
+        : _start(SDL_GetTicksNS()), _out(inout)
     {
-        LARGE_INTEGER freq = {};
-        ::QueryPerformanceFrequency(&freq);
-        _freq = freq.QuadPart;
-        LARGE_INTEGER time = {};
-        ::QueryPerformanceCounter(&time);
-        _time = time.QuadPart;
-        _out = 0.0f; // clean
+        _out = 0.0f;
     }
     TimerScope::~TimerScope()
     {
-        LARGE_INTEGER time = {};
-        ::QueryPerformanceCounter(&time);
-        _out = float(double(time.QuadPart - _time) / double(_freq));
+        _out = operator()();
     }
 
     CoInitializeScope::CoInitializeScope()

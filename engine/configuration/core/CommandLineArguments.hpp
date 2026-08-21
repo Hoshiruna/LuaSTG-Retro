@@ -1,17 +1,15 @@
 #pragma once
+
+#include <cstddef>
+#include <string>
 #include <string_view>
 #include <vector>
-#include <string>
 
 namespace core
 {
     class CommandLineArguments
     {
     public:
-        // initialize
-
-        static void initialize();
-
         // modify
 
         static void clear();

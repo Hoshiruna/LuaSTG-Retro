@@ -1,4 +1,5 @@
 #pragma once
+#include "Core/FrameRateController.hpp"
 #include "core/Window.hpp"
 #include "Core/Graphics/Device.hpp"
 #include "Core/Graphics/SwapChain.hpp"
@@ -7,24 +8,10 @@
 
 namespace core
 {
-    struct IFrameRateController
-    {
-        virtual double update() = 0;
-        virtual uint32_t getTargetFPS() = 0;
-        virtual void setTargetFPS(uint32_t target_FPS) = 0;
-        virtual double getFPS() = 0;
-        virtual uint64_t getTotalFrame() = 0;
-        virtual double getTotalTime() = 0;
-        virtual double getAvgFPS() = 0;
-        virtual double getMinFPS() = 0;
-        virtual double getMaxFPS() = 0;
-    };
-
     struct IApplicationEventListener
     {
-        // [工作线程]
+        // These callbacks run on the main thread.
         virtual bool onUpdate() { return true; }
-        // [工作线程]
         virtual bool onRender() { return true; }
     };
 
@@ -44,24 +31,17 @@ namespace core
 
     struct IApplicationModel : public IReferenceCounted
     {
-        // [工作线程]
+        // Unless noted otherwise, this interface must be used from the main thread.
         virtual IFrameRateController* getFrameRateController() = 0;
-        // [主线程]
         virtual IWindow* getWindow() = 0;
-        // [工作线程]
         virtual Graphics::IDevice* getDevice() = 0;
-        // [工作线程]
         virtual Graphics::ISwapChain* getSwapChain() = 0;
-        // [工作线程]
         virtual Graphics::IRenderer* getRenderer() = 0;
-        // [工作线程]
         virtual FrameStatistics getFrameStatistics() = 0;
-        // [工作线程]
         virtual FrameRenderStatistics getFrameRenderStatistics() = 0;
 
-        // [主线程|工作线程]
+        // This is the only thread-safe operation on the interface.
         virtual void requestExit() = 0;
-        // [主线程]
         virtual bool run() = 0;
 
         static bool create(IApplicationEventListener* p_app, IApplicationModel** pp_model);

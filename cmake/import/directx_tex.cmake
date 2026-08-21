@@ -12,7 +12,6 @@ if(Microsoft.DirectXTex_ADDED)
     set(DirectXTex_DIR ${Microsoft.DirectXTex_SOURCE_DIR})
     add_library(DirectXTexMini STATIC)
     luastg_target_common_options(DirectXTexMini)
-    luastg_target_platform_windows_7(DirectXTexMini)
     target_include_directories(DirectXTexMini PUBLIC
         ${DirectXTex_DIR}
         ${DirectXTex_DIR}/ScreenGrab

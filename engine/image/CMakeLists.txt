@@ -49,13 +49,15 @@ set_target_properties(${lib_name} PROPERTIES FOLDER engine)
 
 # Image Test
 
-set(test_name "Core.Image.Test")
+if (LUASTG_BUILD_TESTS)
+    set(test_name "Core.Image.Test")
 
-add_executable(${test_name})
-luastg_target_common_options(${test_name})
-luastg_target_more_warning(${test_name})
-target_compile_features(${test_name} PRIVATE cxx_std_23)
-target_sources(${test_name} PRIVATE test/test.cpp)
-target_link_libraries(${test_name} PRIVATE ${lib_name} GTest::gtest_main)
+    add_executable(${test_name})
+    luastg_target_common_options(${test_name})
+    luastg_target_more_warning(${test_name})
+    target_compile_features(${test_name} PRIVATE cxx_std_23)
+    target_sources(${test_name} PRIVATE test/test.cpp)
+    target_link_libraries(${test_name} PRIVATE ${lib_name} GTest::gtest_main)
 
-set_target_properties(${test_name} PROPERTIES FOLDER engine/test)
+    set_target_properties(${test_name} PROPERTIES FOLDER engine/test)
+endif ()

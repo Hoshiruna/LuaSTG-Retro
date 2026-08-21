@@ -8,6 +8,7 @@
 #include "core/Configuration.hpp"
 #include "utf8.hpp"
 #include "win32/base.hpp"
+#include <SDL3/SDL_timer.h>
 
 namespace
 {
@@ -16,26 +17,6 @@ namespace
     void closeWin32Console();
     std::string generateRollingFileName()
     {
-#if(defined LUASTG_COMPATIBILITY_MODE_WINDOWS7_SP1) || (defined LUASTG_COMPATIBILITY_MODE_WINDOWS10_PRE_1809)
-        std::time_t const t{ std::time(nullptr) };
-#ifdef _WIN32
-        std::tm v_tm{};
-        if(auto const e = localtime_s(&v_tm, &t); e == 0) {
-            std::tm const* const tm{ &v_tm };
-#else
-        if(std::tm const* const tm = std::localtime(&t); tm != nullptr) {
-#endif
-            return std::format(
-                "engine-{:04}{:02}{:02}-{:02}{:02}{:02}.log",
-                1900 + tm->tm_year,
-                1 + tm->tm_mon,
-                tm->tm_mday,
-                tm->tm_hour,
-                tm->tm_min,
-                tm->tm_sec);
-        }
-        return std::format("engine-{}.log", t); // fallback
-#else
         auto const now = std::chrono::zoned_time{
             std::chrono::current_zone(),
             std::chrono::utc_clock::to_sys(std::chrono::utc_clock::now()),
@@ -52,7 +33,6 @@ namespace
             local_time.hours().count(),
             local_time.minutes().count(),
             local_time.seconds().count());
-#endif
     }
     spdlog::level::level_enum mapLevel(core::ConfigurationLoader::Logging::Level const level)
     {
@@ -215,7 +195,7 @@ namespace
                 constexpr std::wstring_view exit_message(L"按 ESC 关闭引擎日志窗口 | Press ESC to close the engine log window\n");
                 WriteConsoleW(GetStdHandle(STD_OUTPUT_HANDLE), exit_message.data(), static_cast<DWORD>(exit_message.length()), nullptr, nullptr);
                 while((GetAsyncKeyState(VK_ESCAPE) & 0x8000) != 0x8000) {
-                    Sleep(1);
+                    SDL_Delay(1);
                 }
             }
             FreeConsole();

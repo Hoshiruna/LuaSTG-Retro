@@ -1,7 +1,8 @@
 #pragma once
 
-// 调试库
+#if defined(_MSC_VER)
 #include <crtdbg.h>
+#endif
 #include <cassert>
 
 // 数值与算法库

@@ -2,9 +2,6 @@
 
 set(STEAM_API_REQUIRED_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/SteamworksSDK/sdk/public/steam/steam_api.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/SteamworksSDK/sdk/public/steam/steam_api.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/SteamworksSDK/sdk/redistributable_bin/steam_api.lib
-    ${CMAKE_CURRENT_SOURCE_DIR}/SteamworksSDK/sdk/redistributable_bin/steam_api.dll
     ${CMAKE_CURRENT_SOURCE_DIR}/SteamworksSDK/sdk/redistributable_bin/win64/steam_api64.lib
     ${CMAKE_CURRENT_SOURCE_DIR}/SteamworksSDK/sdk/redistributable_bin/win64/steam_api64.dll
 )
@@ -33,16 +30,8 @@ if (LUASTG_STEAM_API_ENABLE)
             IMPORTED_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/SteamworksSDK/sdk/redistributable_bin/win64/steam_api64.dll"
             IMPORTED_IMPLIB   "${CMAKE_CURRENT_SOURCE_DIR}/SteamworksSDK/sdk/redistributable_bin/win64/steam_api64.lib"
         )
-    elseif (LUASTG_ARCH STREQUAL "x86")
-        target_link_directories(steam_api INTERFACE
-            "${CMAKE_CURRENT_SOURCE_DIR}/SteamworksSDK/sdk/redistributable_bin"
-        )
-        set_target_properties(steam_api PROPERTIES
-            IMPORTED_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/SteamworksSDK/sdk/redistributable_bin/steam_api.dll"
-            IMPORTED_IMPLIB   "${CMAKE_CURRENT_SOURCE_DIR}/SteamworksSDK/sdk/redistributable_bin/steam_api.lib"
-        )
     else ()
-        message(FATAL_ERROR "Steam SDK: unsupported architecture")
+        message(FATAL_ERROR "Steam SDK: this release supports Windows x64 only")
     endif ()
 endif ()
 
@@ -56,9 +45,9 @@ set_target_properties(lua_steam_api PROPERTIES
     CXX_STANDARD 17
     CXX_STANDARD_REQUIRED ON
 )
-target_compile_options(lua_steam_api PRIVATE
-    "/wd4819"
-)
+if (MSVC)
+    target_compile_options(lua_steam_api PRIVATE /wd4819)
+endif ()
 target_include_directories(lua_steam_api PUBLIC
     binding
 )
@@ -98,9 +87,9 @@ if(FALSE)
         CXX_STANDARD 17
         CXX_STANDARD_REQUIRED ON
     )
-    target_compile_options(steam PRIVATE
-        "/wd4819"
-    )
+    if (MSVC)
+        target_compile_options(steam PRIVATE /wd4819)
+    endif ()
     target_sources(steam PRIVATE
         binding/lua_steam_dll.cpp
     )

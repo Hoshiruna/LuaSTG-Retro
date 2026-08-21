@@ -1,70 +1,60 @@
 #include "LuaBinding/LuaWrapper.hpp"
-#include "Platform/CleanWindows.hpp"
+#include <SDL3/SDL_timer.h>
 
-////////////////////////////////////////////////////////////////////////////////
-/// @brief 高精度停表类
-////////////////////////////////////////////////////////////////////////////////
 class fcyStopWatch
 {
 private:
-    int64_t m_cFreq; ///< @brief CPU频率
-    int64_t m_cLast; ///< @brief 上一次时间
-    int64_t m_cFixStart; ///< @brief 暂停时的时间修复参数
-    int64_t m_cFixAll; ///< @brief 暂停时的时间修复参数
+    uint64_t m_last{};
+    uint64_t m_pause_start{};
+    uint64_t m_paused_time{};
+    bool m_paused{};
+
 public:
-    void Pause(); ///< @brief 暂停
-    void Resume(); ///< @brief 继续
-    void Reset(); ///< @brief 归零
-    double GetElapsed(); ///< @brief 获得流逝时间
-    ///< @note  以秒为单位
-public:
+    void Pause();
+    void Resume();
+    void Reset();
+    double GetElapsed();
     fcyStopWatch();
-    ~fcyStopWatch();
 };
 
-fcyStopWatch::fcyStopWatch(void)
+fcyStopWatch::fcyStopWatch()
 {
-    LARGE_INTEGER freq = {};
-    QueryPerformanceFrequency(&freq); // 初始化
-    m_cFreq = freq.QuadPart;
     Reset();
-}
-
-fcyStopWatch::~fcyStopWatch(void)
-{
 }
 
 void
 fcyStopWatch::Pause()
 {
-    LARGE_INTEGER t = {};
-    QueryPerformanceCounter(&t);
-    m_cFixStart = t.QuadPart;
+    if(!m_paused) {
+        m_pause_start = SDL_GetTicksNS();
+        m_paused = true;
+    }
 }
 
 void
 fcyStopWatch::Resume()
 {
-    LARGE_INTEGER t = {};
-    QueryPerformanceCounter(&t);
-    m_cFixAll += t.QuadPart - m_cFixStart;
+    if(!m_paused) {
+        return;
+    }
+    m_paused_time += SDL_GetTicksNS() - m_pause_start;
+    m_paused = false;
 }
 
 void
 fcyStopWatch::Reset()
 {
-    LARGE_INTEGER t = {};
-    QueryPerformanceCounter(&t);
-    m_cLast = t.QuadPart;
-    m_cFixAll = 0;
+    m_last = SDL_GetTicksNS();
+    m_pause_start = 0;
+    m_paused_time = 0;
+    m_paused = false;
 }
 
 double
 fcyStopWatch::GetElapsed()
 {
-    LARGE_INTEGER t = {};
-    QueryPerformanceCounter(&t);
-    return ((double)(t.QuadPart - m_cLast - m_cFixAll)) / ((double)m_cFreq);
+    auto const current = m_paused ? m_pause_start : SDL_GetTicksNS();
+    return static_cast<double>(current - m_last - m_paused_time) / 1'000'000'000.0;
 }
 
 namespace luastg::binding

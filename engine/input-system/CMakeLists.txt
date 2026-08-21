@@ -12,13 +12,15 @@ target_link_libraries(${lib_name} PUBLIC SDL3::SDL3 Core.Logging Core.Math)
 
 set_target_properties(${lib_name} PROPERTIES FOLDER engine)
 
-set(test_name "Core.InputSystem.Test")
+if (LUASTG_BUILD_TESTS)
+    set(test_name "Core.InputSystem.Test")
 
-add_executable(${test_name})
-luastg_target_common_options(${test_name})
-luastg_target_more_warning(${test_name})
-target_compile_features(${test_name} PRIVATE cxx_std_23)
-target_sources(${test_name} PRIVATE test/InputSystem.cpp)
-target_link_libraries(${test_name} PRIVATE options_compile_utf8 ${lib_name} GTest::gtest_main)
+    add_executable(${test_name})
+    luastg_target_common_options(${test_name})
+    luastg_target_more_warning(${test_name})
+    target_compile_features(${test_name} PRIVATE cxx_std_23)
+    target_sources(${test_name} PRIVATE test/InputSystem.cpp)
+    target_link_libraries(${test_name} PRIVATE options_compile_utf8 ${lib_name} GTest::gtest_main)
 
-set_target_properties(${test_name} PROPERTIES FOLDER engine/test)
+    set_target_properties(${test_name} PROPERTIES FOLDER engine/test)
+endif ()

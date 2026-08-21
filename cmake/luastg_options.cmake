@@ -1,9 +1,20 @@
 #option(LUASTG_RESDIR "Custom configurations" "res")
 
-option(LUASTG_LINK_YY_THUNKS "Link to YY_Thunks for older Windows version (not recommended)" OFF)
 option(LUASTG_LINK_LUASOCKET "Link to luasocket" OFF)
 option(LUASTG_LINK_TRACY_CLIENT "Link to Tracy client" OFF)
 set(LUASTG_RESDIR "${CMAKE_SOURCE_DIR}/LuaSTG/LuaSTG/Custom" CACHE PATH "LuaSTG custom build configuration")
+
+if (WIN32)
+    set(luastg_runtime_default ON)
+    set(luastg_tests_default ON)
+else ()
+    set(luastg_runtime_default OFF)
+    set(luastg_tests_default OFF)
+endif ()
+option(LUASTG_BUILD_RUNTIME "Build LuaSTG and Setting" ${luastg_runtime_default})
+option(LUASTG_BUILD_TESTS "Build engine tests" ${luastg_tests_default})
+unset(luastg_runtime_default)
+unset(luastg_tests_default)
 
 function(luastg_cmake_option)
     set(option_args      FORCE)
@@ -16,36 +27,6 @@ function(luastg_cmake_option)
         set(${arg_NAME} ${arg_VALUE} CACHE ${arg_TYPE} ${arg_HELP})
     endif ()
 endfunction()
-
-# LuaSTG - General
-
-luastg_cmake_option(
-    NAME LUASTG_COMPATIBILITY_MODE_WINDOWS7_SP1
-    TYPE BOOL
-    HELP "LuaSTG: Compatibility Mode: Windows 7 Service Pack 1"
-    VALUE TRUE
-)
-
-if (LUASTG_COMPATIBILITY_MODE_WINDOWS7_SP1)
-    message(STATUS  "LuaSTG: Compatibility Mode: Windows 7 Service Pack 1")
-    message(WARNING "Warning: Support for Windows 7/8/8.1 will be removed, the new support baseline will be set to Windows 10 version 1809 (Windows 10 LTSC 2019)")
-endif ()
-
-if (LUASTG_COMPATIBILITY_MODE_WINDOWS7_SP1 AND (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC") AND (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "19.50.0.0"))
-    message(WARNING "Warning: Visual Studio 2026 Toolset v145 does not support Windows 7/8/8.1")
-endif ()
-
-luastg_cmake_option(
-    NAME LUASTG_COMPATIBILITY_MODE_WINDOWS10_PRE_1809
-    TYPE BOOL
-    HELP "LuaSTG: Compatibility Mode: Windows 10 1507/1511/1607/1703/1709/1803"
-    VALUE TRUE
-)
-
-if (LUASTG_COMPATIBILITY_MODE_WINDOWS10_PRE_1809)
-    message(STATUS  "LuaSTG: Compatibility Mode: Windows 10 1507/1511/1607/1703/1709/1803")
-    message(WARNING "Warning: Support for Windows 10 1507/1511/1607/1703/1709/1803 will be removed, the new support baseline will be set to Windows 10 version 1809 (Windows 10 LTSC 2019)")
-endif ()
 
 # LuaSTG - Configuration
 

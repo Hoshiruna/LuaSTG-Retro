@@ -3,6 +3,7 @@
 #ifndef _UTF8_H_20250101_
 #define _UTF8_H_20250101_
 
+#include <climits>
 #include <string>
 #include <string_view>
 

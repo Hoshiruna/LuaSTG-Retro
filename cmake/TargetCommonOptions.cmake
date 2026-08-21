@@ -1,61 +1,54 @@
 function(luastg_target_common_options __TARGET__)
-    target_compile_options(${__TARGET__} PRIVATE
-        "/MP"
-        "/utf-8"
-        "$<$<CONFIG:Debug>:/ZI>"
-    )
-    #target_link_options(${__TARGET__} PRIVATE
-    #    "/DEPENDENTLOADFLAG:0x800" # Windows 10 1607+ 强制 DLL 搜索目录为系统目录
-    #)
-    if(CMAKE_SIZEOF_VOID_P EQUAL 4)
+    if (MSVC)
         target_compile_options(${__TARGET__} PRIVATE
-            "/arch:SSE2"
+            /MP
+            /utf-8
+            "$<$<CONFIG:Debug>:/ZI>"
         )
-        target_link_options(${__TARGET__} PRIVATE
-            "$<$<CONFIG:Debug>:/SAFESEH:NO>"
-        )
-    endif()
+    endif ()
     set_target_properties(${__TARGET__} PROPERTIES
         C_STANDARD 17
         C_STANDARD_REQUIRED ON
+        C_EXTENSIONS OFF
         CXX_STANDARD 20
         CXX_STANDARD_REQUIRED ON
+        CXX_EXTENSIONS OFF
     )
-    target_compile_definitions(${__TARGET__} PRIVATE
-        _UNICODE
-        UNICODE
-    )
+    if (WIN32)
+        target_compile_definitions(${__TARGET__} PRIVATE
+            _UNICODE
+            UNICODE
+            WINVER=0x0A00
+            _WIN32_WINNT=0x0A00
+            NTDDI_VERSION=0x0A000006
+        )
+    endif ()
 endfunction()
 
 function(luastg_target_common_options2 __TARGET__)
-    target_compile_options(${__TARGET__} PRIVATE
-        "/MP"
-        "/utf-8"
-        "$<$<CONFIG:Debug>:/ZI>"
-    )
-    #target_link_options(${__TARGET__} PRIVATE
-    #    "/DEPENDENTLOADFLAG:0x800" # Windows 10 1607+ 强制 DLL 搜索目录为系统目录
-    #)
-    if(CMAKE_SIZEOF_VOID_P EQUAL 4)
+    if (MSVC)
         target_compile_options(${__TARGET__} PRIVATE
-            "/arch:SSE2"
+            /MP
+            /utf-8
+            "$<$<CONFIG:Debug>:/ZI>"
         )
-        target_link_options(${__TARGET__} PRIVATE
-            "$<$<CONFIG:Debug>:/SAFESEH:NO>"
-        )
-    endif()
+    endif ()
     set_target_properties(${__TARGET__} PROPERTIES
         C_STANDARD 17
         C_STANDARD_REQUIRED ON
+        C_EXTENSIONS OFF
         CXX_STANDARD 20
         CXX_STANDARD_REQUIRED ON
+        CXX_EXTENSIONS OFF
     )
 endfunction()
 
 function(luastg_target_more_warning __TARGET__)
-    target_compile_options(${__TARGET__} PRIVATE
-        "/W4"
-    )
+    if (MSVC)
+        target_compile_options(${__TARGET__} PRIVATE /W4)
+    elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
+        target_compile_options(${__TARGET__} PRIVATE -Wall -Wextra -Wpedantic)
+    endif ()
 endfunction()
 
 function(luastg_target_copy_to_output_directory __AFTER_TARGET__ __TARGET__)
@@ -70,13 +63,5 @@ function(luastg_target_copy_to_bin_directory after_target target)
     add_custom_command(TARGET ${after_target} POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/bin
         COMMAND ${CMAKE_COMMAND} -E copy_if_different "$<TARGET_FILE:${target}>" ${CMAKE_BINARY_DIR}/bin/
-    )
-endfunction()
-
-function(luastg_target_platform_windows_7 __TARGET__)
-    target_compile_definitions(${__TARGET__}
-    PRIVATE
-        _WIN32_WINNT=0x0601       # _WIN32_WINNT_WIN7
-        NTDDI_VERSION=0x06010000  # NTDDI_WIN7
     )
 endfunction()

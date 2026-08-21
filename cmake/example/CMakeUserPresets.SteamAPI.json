@@ -20,49 +20,39 @@
       }
     },
     {
-      "name": "vs2022-amd64-my-steam-api",
+      "name": "windows-x64-my-steam-api",
       "inherits": [
-        "vs2022",
+        "windows-x64",
         "my-steam-api"
       ],
-      "architecture": "x64",
-      "binaryDir": "${sourceDir}/build/amd64-my-steam-api"
+      "binaryDir": "${sourceDir}/build/windows-x64-my-steam-api"
     }
   ],
   "buildPresets": [
     {
-      "name": "windows-amd64-my-steam-api",
-      "hidden": true,
-      "configurePreset": "vs2022-amd64-my-steam-api"
+      "name": "windows-x64-my-steam-api-debug",
+      "configurePreset": "windows-x64-my-steam-api",
+      "configuration": "Debug",
+      "targets": ["LuaSTG", "Setting"]
     },
     {
-      "name": "windows-amd64-my-steam-api-debug",
-      "inherits": [
-        "windows-amd64-my-steam-api",
-        "debug",
-        "target-luastg"
-      ]
-    },
-    {
-      "name": "windows-amd64-my-steam-api-release",
-      "inherits": [
-        "windows-amd64-my-steam-api",
-        "release",
-        "target-luastg"
-      ]
+      "name": "windows-x64-my-steam-api-release",
+      "configurePreset": "windows-x64-my-steam-api",
+      "configuration": "Release",
+      "targets": ["LuaSTG", "Setting"]
     }
   ],
   "workflowPresets": [
     {
-      "name": "windows-amd64-my-steam-api-release",
+      "name": "windows-x64-my-steam-api-release",
       "steps": [
         {
           "type": "configure",
-          "name": "vs2022-amd64-my-steam-api"
+          "name": "windows-x64-my-steam-api"
         },
         {
           "type": "build",
-          "name": "windows-amd64-my-steam-api-release"
+          "name": "windows-x64-my-steam-api-release"
         }
       ]
     }
