@@ -52,7 +52,7 @@ function M:onCreate()
     assert(not pcall(pool.loadDynamicFont, pool, "dynamic-font:large-threshold",
         descriptor(26, { alphaThreshold = 256 })))
 
-    local missing, missing_error = pool:loadDynamicFont("dynamic-font:missing", {
+    local missing, missing_error = lstg.LoadDynamicFont(pool, "dynamic-font:missing", {
         pixelHeight = 26,
         sources = { { path = "res/does-not-exist.ttf" } },
     })
@@ -69,7 +69,7 @@ function M:onCreate()
     assert(atomic == nil and type(atomic_error) == "string")
     assert(not pool:hasDynamicFont("dynamic-font:atomic"))
 
-    local font, load_error = pool:loadDynamicFont("dynamic-font:visual", descriptor(32))
+    local font, load_error = lstg.LoadDynamicFont("test", "dynamic-font:visual", descriptor(32))
     self.font = assert(font, load_error)
     assert(self.font:getResourceType() == 8)
     assert(self.font:getResourceName() == "dynamic-font:visual")
