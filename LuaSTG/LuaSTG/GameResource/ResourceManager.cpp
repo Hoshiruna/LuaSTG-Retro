@@ -63,10 +63,20 @@ namespace luastg
     std::shared_ptr<AsyncResourceJob> ResourceMgr::SubmitAsyncResource(AsyncResourceRequest request)
     {
         request.pool_generation = GetResourcePoolGeneration(request.pool_id);
-        if(!GetResourcePool(request.pool_id)) {
+        auto* pool = GetResourcePool(request.pool_id);
+        if(!pool) {
             return m_AsyncLoader->submitFailedResource(std::move(request), "Can't load resource at this time.");
         }
-        return m_AsyncLoader->submitResource(std::move(request));
+        auto job = m_AsyncLoader->submitResource(std::move(request));
+        if(pool->m_reloadTargetId != InvalidResourcePoolId) {
+            try {
+                pool->m_reloadJobs.push_back(job);
+            } catch(...) {
+                (void)job->cancel();
+                throw;
+            }
+        }
+        return job;
     }
 
     ResourcePoolId ResourceMgr::CreateResourcePool(std::string_view const name) noexcept
@@ -98,12 +108,77 @@ namespace luastg
         }
     }
 
+    ResourcePoolId ResourceMgr::BeginResourcePoolReload(ResourcePoolId const target_id) noexcept
+    {
+        auto* target = GetResourcePool(target_id);
+        if(!target || target->m_reloadTargetId != InvalidResourcePoolId) {
+            return InvalidResourcePoolId;
+        }
+        try {
+            auto const name = target->GetNameString() + "#reload:" + std::to_string(m_nextPoolId);
+            auto const id = CreateResourcePool(name);
+            if(auto* staging = GetResourcePool(id)) {
+                staging->m_reloadTargetId = target_id;
+                staging->m_reloadTargetGeneration = target->GetGeneration();
+            }
+            return id;
+        } catch(...) {
+            return InvalidResourcePoolId;
+        }
+    }
+
+    char const* ResourceMgr::CommitResourcePoolReload(ResourcePoolId const staging_id) noexcept
+    {
+        auto* staging = GetResourcePool(staging_id);
+        if(!staging || staging->m_reloadTargetId == InvalidResourcePoolId) {
+            return "pool is not a live reload staging pool";
+        }
+        auto* target = GetResourcePool(staging->m_reloadTargetId);
+        if(!target || target->GetGeneration() != staging->m_reloadTargetGeneration) {
+            return "reload target was cleared, replaced, or destroyed";
+        }
+        for(auto const& job : staging->m_reloadJobs) {
+            auto const state = job->getState();
+            if(state == AsyncResourceJobState::Failed || state == AsyncResourceJobState::Cancelled) {
+                return "reload contains a failed or cancelled asynchronous load";
+            }
+            if(state != AsyncResourceJobState::Done) {
+                return "reload still has unfinished asynchronous loads";
+            }
+        }
+
+        CancelAsyncResourceLoading(target->GetId());
+        ++target->m_generation;
+        target->m_TexturePool.swap(staging->m_TexturePool);
+        target->m_SpritePool.swap(staging->m_SpritePool);
+        target->m_AnimationPool.swap(staging->m_AnimationPool);
+        target->m_MusicPool.swap(staging->m_MusicPool);
+        target->m_SoundSpritePool.swap(staging->m_SoundSpritePool);
+        target->m_ParticlePool.swap(staging->m_ParticlePool);
+        target->m_SpriteFontPool.swap(staging->m_SpriteFontPool);
+        target->m_TTFFontPool.swap(staging->m_TTFFontPool);
+        target->m_FXPool.swap(staging->m_FXPool);
+        target->m_ModelPool.swap(staging->m_ModelPool);
+        // Retained resource handles keep the previous objects alive through reference counting.
+        DestroyResourcePool(staging_id);
+        return nullptr;
+    }
+
     bool ResourceMgr::DestroyResourcePool(ResourcePoolId const id) noexcept
     {
         auto const it = m_resourcePools.find(id);
         if(it == m_resourcePools.end()) {
             spdlog::warn("[luastg] Cannot destroy resource pool: ID {} is not live", id);
             return false;
+        }
+        for(;;) {
+            auto const child = std::find_if(m_resourcePools.begin(), m_resourcePools.end(), [id](auto const& item) {
+                return item.second->m_reloadTargetId == id;
+            });
+            if(child == m_resourcePools.end()) {
+                break;
+            }
+            DestroyResourcePool(child->first);
         }
         CancelAsyncResourceLoading(id);
         m_lookupOrder.erase(std::remove(m_lookupOrder.begin(), m_lookupOrder.end(), id), m_lookupOrder.end());

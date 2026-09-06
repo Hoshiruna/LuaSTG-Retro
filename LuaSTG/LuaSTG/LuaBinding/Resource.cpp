@@ -597,6 +597,37 @@ namespace luastg::binding
             lua_pushboolean(L, LRES.GetResourcePool(self->id) != nullptr);
             return 1;
         }
+        static int api_beginReload(lua_State* L)
+        {
+            auto const id = LRES.BeginResourcePoolReload(getPool(L, cast(L, 1))->GetId());
+            if(id == luastg::InvalidResourcePoolId) {
+                return luaL_error(L, "cannot begin resource reload: invalid target or staging pool creation failed");
+            }
+            create(L)->id = id;
+            return 1;
+        }
+        static int api_commitReload(lua_State* L)
+        {
+            auto const id = cast(L, 1)->id;
+            if(!LAPP.IsRenderTargetStackEmpty()) {
+                lua_pushboolean(L, false);
+                lua_pushliteral(L, "pop all render targets before committing a resource reload");
+                return 2;
+            }
+            auto* renderer = LAPP.GetAppModel()->getRenderer();
+            if(renderer->isBatchScope() && !renderer->flush()) {
+                lua_pushboolean(L, false);
+                lua_pushliteral(L, "could not flush rendering before resource reload");
+                return 2;
+            }
+            if(auto const* error = LRES.CommitResourcePoolReload(id)) {
+                lua_pushboolean(L, false);
+                lua_pushstring(L, error);
+                return 2;
+            }
+            lua_pushboolean(L, true);
+            return 1;
+        }
         static int api_clear(lua_State* L)
         {
             getPool(L, cast(L, 1))->Clear();
@@ -695,6 +726,8 @@ namespace luastg::binding
             S.set_map_value(method_table, "getName", &api_getName);
             S.set_map_value(method_table, "isValid", &api_isValid);
             S.set_map_value(method_table, "clear", &api_clear);
+            S.set_map_value(method_table, "beginReload", &api_beginReload);
+            S.set_map_value(method_table, "commitReload", &api_commitReload);
             S.set_map_value(method_table, "remove", &api_remove);
             S.set_map_value(method_table, "removeByName", &api_removeByName);
             S.set_map_value(method_table, "contains", &api_contains);

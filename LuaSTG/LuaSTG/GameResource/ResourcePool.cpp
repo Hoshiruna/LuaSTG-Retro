@@ -26,6 +26,7 @@ namespace luastg
             m_pMgr->CancelAsyncResourceLoading(m_id);
         }
         ++m_generation;
+        m_reloadJobs.clear();
         m_TexturePool.clear();
         m_SpritePool.clear();
         m_AnimationPool.clear();
