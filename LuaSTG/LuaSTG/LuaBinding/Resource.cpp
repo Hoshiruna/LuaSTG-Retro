@@ -609,7 +609,7 @@ namespace luastg::binding
         static int api_commitReload(lua_State* L)
         {
             auto const id = cast(L, 1)->id;
-            if(!LAPP.IsRenderTargetStackEmpty()) {
+            if(!LAPP.GetRenderTargetManager()->IsRenderTargetStackEmpty()) {
                 lua_pushboolean(L, false);
                 lua_pushliteral(L, "pop all render targets before committing a resource reload");
                 return 2;
