@@ -54,3 +54,7 @@ target_link_libraries(Core.Graphics PUBLIC
 )
 
 set_target_properties(Core.Graphics PROPERTIES FOLDER engine)
+
+if (LUASTG_BUILD_SDLGPU_SMOKE)
+    add_subdirectory(sdlgpu)
+endif ()

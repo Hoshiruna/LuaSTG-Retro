@@ -7,6 +7,10 @@ include(${CMAKE_CURRENT_LIST_DIR}/json.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/simdutf.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/sdl3.cmake)
 
+if (LUASTG_BUILD_SDLGPU_SMOKE)
+    include(${CMAKE_CURRENT_LIST_DIR}/sdl_shadercross.cmake)
+endif ()
+
 if (LUASTG_BUILD_RUNTIME)
     include(${CMAKE_CURRENT_LIST_DIR}/tracy.cmake)
     include(${CMAKE_CURRENT_LIST_DIR}/pugixml.cmake)

@@ -13,6 +13,7 @@ else ()
 endif ()
 option(LUASTG_BUILD_RUNTIME "Build LuaSTG and Setting" ${luastg_runtime_default})
 option(LUASTG_BUILD_TESTS "Build engine tests" ${luastg_tests_default})
+option(LUASTG_BUILD_SDLGPU_SMOKE "Build the standalone Windows SDL GPU smoke application" OFF)
 unset(luastg_runtime_default)
 unset(luastg_tests_default)
 

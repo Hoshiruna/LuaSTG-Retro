@@ -99,6 +99,17 @@ target_link_libraries(imgui_impl_sdl3 PUBLIC
 )
 set_target_properties(imgui_impl_sdl3 PROPERTIES FOLDER external)
 
+if (LUASTG_BUILD_SDLGPU_SMOKE)
+    add_library(imgui_impl_sdlgpu3 STATIC
+        imgui/backends/imgui_impl_sdlgpu3.cpp
+        imgui/backends/imgui_impl_sdlgpu3.h
+    )
+    luastg_target_common_options(imgui_impl_sdlgpu3)
+    target_include_directories(imgui_impl_sdlgpu3 PUBLIC imgui/backends)
+    target_link_libraries(imgui_impl_sdlgpu3 PUBLIC imgui SDL3::SDL3)
+    set_target_properties(imgui_impl_sdlgpu3 PROPERTIES FOLDER external)
+endif ()
+
 # imgui lua binding
 
 add_library(lua_imgui STATIC)
