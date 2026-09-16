@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Resources.hpp"
+#include <span>
 
 namespace core::Graphics::SDLGPU
 {
@@ -13,7 +14,12 @@ namespace core::Graphics::SDLGPU
         Frame(const Frame&) = delete;
         Frame& operator=(const Frame&) = delete;
 
+        // Borrowed handles are valid until the frame switches passes or submits.
         SDL_GPUCommandBuffer* command() const noexcept { return m_command; }
+        SDL_GPUCommandBuffer* commandOutsidePass();
+        SDL_GPURenderPass* beginRenderPass(std::span<const SDL_GPUColorTargetInfo> targets, const SDL_GPUDepthStencilTargetInfo* depth = nullptr);
+        SDL_GPUCopyPass* beginCopyPass();
+        void endPass() noexcept;
         SDL_GPUTexture* texture() const noexcept { return m_texture; }
         Uint32 width() const noexcept { return m_width; }
         Uint32 height() const noexcept { return m_height; }
@@ -21,6 +27,8 @@ namespace core::Graphics::SDLGPU
 
     private:
         SDL_GPUCommandBuffer* m_command{};
+        SDL_GPURenderPass* m_render_pass{};
+        SDL_GPUCopyPass* m_copy_pass{};
         SDL_GPUTexture* m_texture{};
         Uint32 m_width{};
         Uint32 m_height{};
@@ -29,7 +37,7 @@ namespace core::Graphics::SDLGPU
     class GpuContext final
     {
     public:
-        GpuContext(SDL_Window* window, const char* driver);
+        GpuContext(SDL_Window* window, const char* driver = nullptr, bool debug = false);
         ~GpuContext();
         GpuContext(const GpuContext&) = delete;
         GpuContext& operator=(const GpuContext&) = delete;

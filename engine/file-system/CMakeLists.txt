@@ -9,6 +9,7 @@ luastg_target_more_warning(${lib_name})
 target_include_directories(${lib_name} PUBLIC .)
 target_sources(${lib_name} PRIVATE ${lib_src})
 target_link_libraries(${lib_name} PRIVATE options_compile_utf8)
+target_link_libraries(${lib_name} PRIVATE efsw)
 target_link_libraries(${lib_name} PUBLIC
     utf8
     minizip_ng
@@ -29,7 +30,7 @@ if (LUASTG_BUILD_TESTS)
     luastg_target_more_warning(${test_name})
     target_compile_features(${test_name} PRIVATE cxx_std_23)
     target_compile_definitions(${test_name} PRIVATE LUASTG_REPOSITORY_ROOT="${CMAKE_SOURCE_DIR}")
-    target_sources(${test_name} PRIVATE test/Test.cpp)
+    target_sources(${test_name} PRIVATE test/Test.cpp test/FileSystemWatcherTest.cpp)
     target_link_libraries(${test_name} PRIVATE options_compile_utf8 ${lib_name} GTest::gtest_main)
 
     set_target_properties(${test_name} PROPERTIES FOLDER engine/test)

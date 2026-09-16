@@ -20,7 +20,6 @@ extern "C"
 //#include "lua_xlsx_csv.h"
 #include "lua_steam.h"
 #include "LuaBinding/external/lua_random.hpp"
-#include "LuaBinding/external/lua_dwrite.hpp"
 
 #include "core/Logger.hpp"
 #include "core/CommandLineArguments.hpp"
@@ -271,7 +270,6 @@ namespace luastg
             //lua_xlsx_open(L);
             //lua_csv_open(L);
             lua_steam_open(L);
-            luaopen_dwrite(L);
             luaopen_random(L);
             luaopen_string_pack(L);
 #ifdef LUASTG_LINK_LUASOCKET

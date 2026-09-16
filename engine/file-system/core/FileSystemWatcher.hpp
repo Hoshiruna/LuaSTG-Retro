@@ -1,6 +1,7 @@
 #pragma once
 #include "core/ReferenceCounted.hpp"
 #include "core/ImmutableString.hpp"
+#include <utility>
 
 namespace core
 {

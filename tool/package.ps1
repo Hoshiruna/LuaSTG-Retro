@@ -110,6 +110,12 @@ Copy-Item -Path $ExampleAssets -Destination $ReleaseAssets -Recurse
 Copy-Item -Path $ExampleScripts -Destination $ReleaseScripts -Recurse
 Copy-Item -Path $DocRoot -Destination $ReleaseDocRoot -Recurse -Exclude ".git"
 Copy-Item -Path $LicenseRoot -Destination $ReleaseLicenseRoot -Recurse
+$EfswLicenseRoot = [System.IO.Path]::Join($ReleaseLicenseRoot, "efsw")
+[System.IO.Directory]::CreateDirectory($EfswLicenseRoot) | Out-Null
+Copy-Item -LiteralPath ([System.IO.Path]::Join($BinaryRootX64, "license", "efsw", "LICENSE")) -Destination $EfswLicenseRoot
+$CurlLicenseRoot = [System.IO.Path]::Join($ReleaseLicenseRoot, "curl")
+[System.IO.Directory]::CreateDirectory($CurlLicenseRoot) | Out-Null
+Copy-Item -LiteralPath ([System.IO.Path]::Join($BinaryRootX64, "license", "curl", "COPYING")) -Destination $CurlLicenseRoot
 [System.IO.File]::Copy([System.IO.Path]::Join($ExampleRoot, "config.json"), [System.IO.Path]::Join($ReleaseRoot, "config.json"), $true)
 $ReadmePath = [System.IO.Path]::Join($ExampleRoot, "使用说明.txt")
 if ([System.IO.File]::Exists($ReadmePath)) {

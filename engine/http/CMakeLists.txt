@@ -1,0 +1,23 @@
+add_library(Core.Http STATIC core/HttpClient.hpp backend/HttpClient.cpp)
+luastg_target_common_options(Core.Http)
+luastg_target_more_warning(Core.Http)
+target_include_directories(Core.Http PUBLIC .)
+target_link_libraries(Core.Http PRIVATE CURL::libcurl)
+set_target_properties(Core.Http PROPERTIES FOLDER engine)
+
+if (LUASTG_BUILD_TESTS)
+    add_executable(Core.Http.Test test/HttpClientTest.cpp)
+    luastg_target_common_options(Core.Http.Test)
+    luastg_target_more_warning(Core.Http.Test)
+    target_link_libraries(Core.Http.Test PRIVATE Core.Http GTest::gtest_main)
+    set_target_properties(Core.Http.Test PROPERTIES FOLDER engine/test)
+    find_package(Python3 COMPONENTS Interpreter QUIET)
+    if (Python3_Interpreter_FOUND)
+        add_test(NAME Core.Http.Integration
+            COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/test/run_integration.py" "$<TARGET_FILE:Core.Http.Test>"
+        )
+        set_tests_properties(Core.Http.Integration PROPERTIES TIMEOUT 45)
+    else ()
+        message(STATUS "Core.Http integration runner requires Python 3; the test executable is still built")
+    endif ()
+endif ()

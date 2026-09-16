@@ -149,8 +149,9 @@ namespace core::Graphics::SDLGPU
         SDL_DrawGPUPrimitives(pass, 6, 1, 0, 0);
     }
 
-    void Scene::render(SDL_GPUCommandBuffer* const command, const bool linear)
+    void Scene::render(Frame& frame, const bool linear)
     {
+        auto* const command = frame.command();
         SDL_GPUSampler* const sampler = linear ? m_linear.get() : m_nearest.get();
         SDL_GPUColorTargetInfo target{};
         target.texture = m_scene.get();
@@ -160,22 +161,24 @@ namespace core::Graphics::SDLGPU
         // Cycling keeps writes separate from earlier frames still using the canvas.
         target.cycle = true;
         {
-            const auto pass = beginRenderPass(command, target);
-            SDL_BindGPUGraphicsPipeline(pass.get(), m_textured.get());
-            drawQuad(command, pass.get(), m_pattern.get(), sampler, { 0, 0, 320, 240 }, { 1, 1, 1, 1 });
-            drawQuad(command, pass.get(), m_white.get(), sampler, { 80, 80, 120, 80 }, { 1, 1, 0, 0.5f });
-            drawQuad(command, pass.get(), m_white.get(), sampler, { 120, 100, 120, 80 }, { 0, 1, 1, 0.5f });
+            auto* const pass = frame.beginRenderPass({ &target, 1 });
+            SDL_BindGPUGraphicsPipeline(pass, m_textured.get());
+            drawQuad(command, pass, m_pattern.get(), sampler, { 0, 0, 320, 240 }, { 1, 1, 1, 1 });
+            drawQuad(command, pass, m_white.get(), sampler, { 80, 80, 120, 80 }, { 1, 1, 0, 0.5f });
+            drawQuad(command, pass, m_white.get(), sampler, { 120, 100, 120, 80 }, { 0, 1, 1, 0.5f });
         }
         target.texture = m_effect.get();
         {
-            const auto pass = beginRenderPass(command, target);
-            SDL_BindGPUGraphicsPipeline(pass.get(), m_grayscale.get());
-            drawQuad(command, pass.get(), m_scene.get(), m_nearest.get(), { 0, 0, 320, 240 }, { 1, 1, 1, 1 });
+            auto* const pass = frame.beginRenderPass({ &target, 1 });
+            SDL_BindGPUGraphicsPipeline(pass, m_grayscale.get());
+            drawQuad(command, pass, m_scene.get(), m_nearest.get(), { 0, 0, 320, 240 }, { 1, 1, 1, 1 });
         }
     }
 
-    void Scene::present(SDL_GPUCommandBuffer* const command, SDL_GPUTexture* const swapchain, const Uint32 pixel_width, const Uint32 pixel_height, const bool effect, const bool linear)
+    void Scene::present(Frame& frame, const bool effect, const bool linear)
     {
+        const auto pixel_width = frame.width();
+        const auto pixel_height = frame.height();
         const double scale = std::min(static_cast<double>(pixel_width) / width, static_cast<double>(pixel_height) / height);
         const auto scaled_width = std::max(1u, static_cast<Uint32>(width * scale));
         const auto scaled_height = std::max(1u, static_cast<Uint32>(height * scale));
@@ -183,7 +186,7 @@ namespace core::Graphics::SDLGPU
         blit.source.texture = effect ? m_effect.get() : m_scene.get();
         blit.source.w = width;
         blit.source.h = height;
-        blit.destination.texture = swapchain;
+        blit.destination.texture = frame.texture();
         blit.destination.x = (pixel_width - scaled_width) / 2;
         blit.destination.y = (pixel_height - scaled_height) / 2;
         blit.destination.w = scaled_width;
@@ -191,7 +194,7 @@ namespace core::Graphics::SDLGPU
         blit.load_op = SDL_GPU_LOADOP_CLEAR;
         blit.clear_color = { 0, 0, 0, 1 };
         blit.filter = linear ? SDL_GPU_FILTER_LINEAR : SDL_GPU_FILTER_NEAREST;
-        SDL_BlitGPUTexture(command, &blit);
+        SDL_BlitGPUTexture(frame.commandOutsidePass(), &blit);
     }
 
     std::vector<uint8_t> Scene::readback()

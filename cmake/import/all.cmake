@@ -12,6 +12,8 @@ if (LUASTG_BUILD_SDLGPU_SMOKE)
 endif ()
 
 if (LUASTG_BUILD_RUNTIME)
+    include(${CMAKE_CURRENT_LIST_DIR}/curl.cmake)
+    include(${CMAKE_CURRENT_LIST_DIR}/efsw.cmake)
     include(${CMAKE_CURRENT_LIST_DIR}/tracy.cmake)
     include(${CMAKE_CURRENT_LIST_DIR}/pugixml.cmake)
     include(${CMAKE_CURRENT_LIST_DIR}/stb.cmake)

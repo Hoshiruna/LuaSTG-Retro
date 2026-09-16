@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Resources.hpp"
+#include "GpuContext.hpp"
 #include "ShaderCompiler.hpp"
 #include <array>
 #include <cstdint>
@@ -18,8 +19,8 @@ namespace core::Graphics::SDLGPU
         Scene(const Scene&) = delete;
         Scene& operator=(const Scene&) = delete;
 
-        void render(SDL_GPUCommandBuffer* command, bool linear);
-        void present(SDL_GPUCommandBuffer* command, SDL_GPUTexture* swapchain, Uint32 pixel_width, Uint32 pixel_height, bool effect, bool linear);
+        void render(Frame& frame, bool linear);
+        void present(Frame& frame, bool effect, bool linear);
         std::vector<uint8_t> readback();
 
     private:

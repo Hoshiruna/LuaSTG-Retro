@@ -45,7 +45,7 @@ namespace core::Graphics::SDLGPU::smoke
                     throw std::runtime_error("Could not create the SDL smoke window");
                 }
                 m_compiler = std::make_unique<ShaderCompiler>();
-                m_gpu = std::make_unique<GpuContext>(m_window->getSDLWindow(), m_options.driver.c_str());
+                m_gpu = std::make_unique<GpuContext>(m_window->getSDLWindow(), m_options.driver.c_str(), true);
                 m_scene = std::make_unique<Scene>(m_gpu->device(), *m_compiler);
 
                 IMGUI_CHECKVERSION();
@@ -103,16 +103,16 @@ namespace core::Graphics::SDLGPU::smoke
                         return true;
                     }
                     auto* const draw_data = ImGui::GetDrawData();
-                    ImGui_ImplSDLGPU3_PrepareDrawData(draw_data, frame.command());
-                    m_scene->render(frame.command(), m_linear);
-                    m_scene->present(frame.command(), frame.texture(), frame.width(), frame.height(), m_effect, m_linear);
+                    ImGui_ImplSDLGPU3_PrepareDrawData(draw_data, frame.commandOutsidePass());
+                    m_scene->render(frame, m_linear);
+                    m_scene->present(frame, m_effect, m_linear);
                     SDL_GPUColorTargetInfo target{};
                     target.texture = frame.texture();
                     target.load_op = SDL_GPU_LOADOP_LOAD;
                     target.store_op = SDL_GPU_STOREOP_STORE;
                     {
-                        const auto pass = beginRenderPass(frame.command(), target);
-                        ImGui_ImplSDLGPU3_RenderDrawData(draw_data, frame.command(), pass.get());
+                        auto* const pass = frame.beginRenderPass({ &target, 1 });
+                        ImGui_ImplSDLGPU3_RenderDrawData(draw_data, frame.command(), pass);
                     }
                     frame.submit();
                 }

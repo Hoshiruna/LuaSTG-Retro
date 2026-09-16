@@ -45,6 +45,7 @@ endif ()
 include(cmake/import/all.cmake)
 
 if (LUASTG_BUILD_TESTS)
+    enable_testing()
     include(cmake/build/gtest.cmake)
 endif ()
 

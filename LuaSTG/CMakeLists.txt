@@ -121,8 +121,6 @@ set(LUASTG_ENGINE_SOURCES
     LuaSTG/LuaBinding/Resource.hpp
     LuaSTG/LuaBinding/Resource.cpp
 
-    LuaSTG/LuaBinding/external/lua_dwrite.hpp
-    LuaSTG/LuaBinding/external/lua_dwrite.cpp
     LuaSTG/LuaBinding/external/lua_random.hpp
     LuaSTG/LuaBinding/external/lua_random.cpp
     LuaSTG/LuaBinding/external/HttpClient.hpp
@@ -237,6 +235,7 @@ target_link_libraries(LuaSTG PRIVATE
     Core.Collection
     Core.Configuration
     Core.Clipboard
+    Core.Http
     Core.ShellIntegration
     Core.Audio
     Core.Video
@@ -253,6 +252,12 @@ endif ()
 include(${CMAKE_CURRENT_LIST_DIR}/import_luastg_options.cmake)
 
 add_custom_command(TARGET LuaSTG POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:LuaSTG>/license/curl" "${CMAKE_BINARY_DIR}/bin/license/curl"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different "${LUASTG_CURL_NOTICE}" "$<TARGET_FILE_DIR:LuaSTG>/license/curl/COPYING"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different "${LUASTG_CURL_NOTICE}" "${CMAKE_BINARY_DIR}/bin/license/curl/COPYING"
+    COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:LuaSTG>/license/efsw" "${CMAKE_BINARY_DIR}/bin/license/efsw"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different "${LUASTG_EFSW_NOTICE}" "$<TARGET_FILE_DIR:LuaSTG>/license/efsw/LICENSE"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different "${LUASTG_EFSW_NOTICE}" "${CMAKE_BINARY_DIR}/bin/license/efsw/LICENSE"
     COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Microsoft.D3DCompiler.Redist> $<TARGET_FILE_DIR:LuaSTG>/$<TARGET_FILE_NAME:Microsoft.D3DCompiler.Redist>
     COMMAND ${CMAKE_COMMAND} -E make_directory                                                ${CMAKE_BINARY_DIR}/bin
     COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:LuaSTG>                       ${CMAKE_BINARY_DIR}/bin/$<TARGET_FILE_NAME:LuaSTG>

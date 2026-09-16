@@ -18,6 +18,7 @@ namespace core::Graphics::SDLGPU
 
     Frame::~Frame()
     {
+        endPass();
         if(m_command != nullptr) {
             const bool result = m_texture != nullptr ? SDL_SubmitGPUCommandBuffer(m_command) : SDL_CancelGPUCommandBuffer(m_command);
             if(!result) {
@@ -26,17 +27,50 @@ namespace core::Graphics::SDLGPU
         }
     }
 
+    SDL_GPUCommandBuffer* Frame::commandOutsidePass()
+    {
+        if(m_command == nullptr) {
+            throw std::logic_error("Cannot record commands after GPU frame submission");
+        }
+        endPass();
+        return m_command;
+    }
+
+    SDL_GPURenderPass* Frame::beginRenderPass(const std::span<const SDL_GPUColorTargetInfo> targets, const SDL_GPUDepthStencilTargetInfo* const depth)
+    {
+        auto* const buffer = commandOutsidePass();
+        m_render_pass = require(SDL_BeginGPURenderPass(buffer, targets.data(), static_cast<Uint32>(targets.size()), depth), "SDL_BeginGPURenderPass");
+        return m_render_pass;
+    }
+
+    SDL_GPUCopyPass* Frame::beginCopyPass()
+    {
+        m_copy_pass = require(SDL_BeginGPUCopyPass(commandOutsidePass()), "SDL_BeginGPUCopyPass");
+        return m_copy_pass;
+    }
+
+    void Frame::endPass() noexcept
+    {
+        if(m_render_pass != nullptr) {
+            SDL_EndGPURenderPass(std::exchange(m_render_pass, nullptr));
+        }
+        if(m_copy_pass != nullptr) {
+            SDL_EndGPUCopyPass(std::exchange(m_copy_pass, nullptr));
+        }
+    }
+
     void Frame::submit()
     {
+        commandOutsidePass();
         check(SDL_SubmitGPUCommandBuffer(std::exchange(m_command, nullptr)), "SDL_SubmitGPUCommandBuffer");
     }
 
-    GpuContext::GpuContext(SDL_Window* const window, const char* const requested_driver)
+    GpuContext::GpuContext(SDL_Window* const window, const char* const requested_driver, const bool debug)
     {
-        // The smoke shaders use DXIL; the bundled ImGui backend supplies DXBC.
-        const auto format = std::string_view(requested_driver) == "direct3d12" ? SDL_GPU_SHADERFORMAT_DXIL | SDL_GPU_SHADERFORMAT_DXBC : SDL_GPU_SHADERFORMAT_SPIRV;
-        m_device.reset(require(SDL_CreateGPUDevice(format, true, requested_driver), "SDL_CreateGPUDevice"));
-        if(std::string_view(SDL_GetGPUDeviceDriver(m_device.get())) != requested_driver) {
+        // Shadercross supplies DXIL, SPIR-V, or MSL; ImGui also supplies DXBC.
+        constexpr SDL_GPUShaderFormat formats = SDL_GPU_SHADERFORMAT_DXIL | SDL_GPU_SHADERFORMAT_DXBC | SDL_GPU_SHADERFORMAT_SPIRV | SDL_GPU_SHADERFORMAT_MSL;
+        m_device.reset(require(SDL_CreateGPUDevice(formats, debug, requested_driver), "SDL_CreateGPUDevice"));
+        if(requested_driver != nullptr && std::string_view(SDL_GetGPUDeviceDriver(m_device.get())) != requested_driver) {
             throw std::runtime_error("SDL selected a GPU driver different from the requested driver");
         }
         check(SDL_ClaimWindowForGPUDevice(m_device.get(), window), "SDL_ClaimWindowForGPUDevice");
