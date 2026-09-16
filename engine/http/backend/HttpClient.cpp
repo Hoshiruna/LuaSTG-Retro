@@ -244,7 +244,7 @@ namespace core::http
         check(curl_easy_setopt(easy.get(), CURLOPT_MAXREDIRS, 10L));
         check(curl_easy_setopt(easy.get(), CURLOPT_NOSIGNAL, 1L));
         // The multi loop enforces separate phase deadlines, including DNS.
-        check(curl_easy_setopt(easy.get(), CURLOPT_CONNECTTIMEOUT_MS, static_cast<long>(std::numeric_limits<int32_t>::max())));
+        check(curl_easy_setopt(easy.get(), CURLOPT_CONNECTTIMEOUT_MS, static_cast<long>((std::numeric_limits<int32_t>::max)())));
         check(curl_easy_setopt(easy.get(), CURLOPT_HTTPHEADER, headers.get()));
         if(request.method == "HEAD") {
             check(curl_easy_setopt(easy.get(), CURLOPT_NOBODY, 1L));

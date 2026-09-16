@@ -182,7 +182,8 @@ namespace
         HWND const window = GetConsoleWindow();
         HMENU const menu = GetSystemMenu(window, FALSE);
         RemoveMenu(menu, SC_CLOSE, MF_BYCOMMAND);
-        SetWindowTextW(window, L"" LUASTG_INFO);
+        const auto title = utf8::to_wstring(LUASTG_INFO);
+        SetWindowTextW(window, title.c_str());
         ShowWindow(window, SW_MAXIMIZE);
         SetConsoleOutputCP(CP_UTF8);
         return true;

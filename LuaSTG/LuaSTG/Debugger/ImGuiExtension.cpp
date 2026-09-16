@@ -28,6 +28,13 @@ using std::string_view_literals::operator""sv;
 
 namespace
 {
+    struct ProcessMemoryCountersEx2
+    {
+        PROCESS_MEMORY_COUNTERS_EX counters;
+        SIZE_T private_working_set_size;
+        ULONG64 shared_commit_usage;
+    };
+
     std::string toReadableDataSize(uint64_t const size)
     {
         int count{};
@@ -134,23 +141,23 @@ namespace imgui
                     }
                     if(ImGui::CollapsingHeader("Process", ImGuiTreeNodeFlags_DefaultOpen)) {
                         HANDLE process = GetCurrentProcess();
-                        PROCESS_MEMORY_COUNTERS_EX2 info{};
+                        ProcessMemoryCountersEx2 info{};
                         BOOL result{};
                         if(m_process_memory_counters_v3) {
-                            info.cb = sizeof(PROCESS_MEMORY_COUNTERS_EX2);
-                            result = GetProcessMemoryInfo(process, reinterpret_cast<PROCESS_MEMORY_COUNTERS*>(&info), info.cb);
+                            info.counters.cb = sizeof(ProcessMemoryCountersEx2);
+                            result = GetProcessMemoryInfo(process, reinterpret_cast<PROCESS_MEMORY_COUNTERS*>(&info), info.counters.cb);
                             if(!result) {
                                 m_process_memory_counters_v3 = false;
                             }
                         } else if(m_process_memory_counters_v2) {
-                            info.cb = sizeof(PROCESS_MEMORY_COUNTERS_EX);
-                            result = GetProcessMemoryInfo(process, reinterpret_cast<PROCESS_MEMORY_COUNTERS*>(&info), info.cb);
+                            info.counters.cb = sizeof(PROCESS_MEMORY_COUNTERS_EX);
+                            result = GetProcessMemoryInfo(process, reinterpret_cast<PROCESS_MEMORY_COUNTERS*>(&info), info.counters.cb);
                             if(!result) {
                                 m_process_memory_counters_v2 = false;
                             }
                         } else {
-                            info.cb = sizeof(PROCESS_MEMORY_COUNTERS);
-                            result = GetProcessMemoryInfo(process, reinterpret_cast<PROCESS_MEMORY_COUNTERS*>(&info), info.cb);
+                            info.counters.cb = sizeof(PROCESS_MEMORY_COUNTERS);
+                            result = GetProcessMemoryInfo(process, reinterpret_cast<PROCESS_MEMORY_COUNTERS*>(&info), info.counters.cb);
                         }
                         if(m_more_details) {
                             if(m_process_memory_counters_v3) {
@@ -163,22 +170,26 @@ namespace imgui
                         }
                         if(result) {
                             if(m_more_details)
-                                ImGui::Text("PageFaultCount: %u", info.PageFaultCount);
-                            ImGui::Text("PeakWorkingSetSize: %s", format_size(info.PeakWorkingSetSize));
-                            ImGui::Text("WorkingSetSize: %s", format_size(info.WorkingSetSize));
+                                ImGui::Text("PageFaultCount: %u", info.counters.PageFaultCount);
+                            ImGui::Text("PeakWorkingSetSize: %s", format_size(info.counters.PeakWorkingSetSize));
+                            ImGui::Text("WorkingSetSize: %s", format_size(info.counters.WorkingSetSize));
                             if(m_more_details)
-                                ImGui::Text("QuotaPeakPagedPoolUsage: %s", format_size(info.QuotaPeakPagedPoolUsage));
+                                ImGui::Text("QuotaPeakPagedPoolUsage: %s", format_size(info.counters.QuotaPeakPagedPoolUsage));
                             if(m_more_details)
-                                ImGui::Text("QuotaPagedPoolUsage: %s", format_size(info.QuotaPagedPoolUsage));
+                                ImGui::Text("QuotaPagedPoolUsage: %s", format_size(info.counters.QuotaPagedPoolUsage));
                             if(m_more_details)
-                                ImGui::Text("QuotaPeakNonPagedPoolUsage: %s", format_size(info.QuotaPeakNonPagedPoolUsage));
+                                ImGui::Text("QuotaPeakNonPagedPoolUsage: %s", format_size(info.counters.QuotaPeakNonPagedPoolUsage));
                             if(m_more_details)
-                                ImGui::Text("QuotaNonPagedPoolUsage: %s", format_size(info.QuotaNonPagedPoolUsage));
-                            ImGui::Text("PagefileUsage: %s", format_size(info.PagefileUsage));
-                            ImGui::Text("PeakPagefileUsage: %s", format_size(info.PeakPagefileUsage));
-                            ImGui::Text("PrivateUsage: %s", format_size(info.PrivateUsage));
-                            ImGui::Text("PrivateWorkingSetSize: %s", format_size(info.PrivateWorkingSetSize));
-                            ImGui::Text("SharedCommitUsage: %s", format_size(info.SharedCommitUsage));
+                                ImGui::Text("QuotaNonPagedPoolUsage: %s", format_size(info.counters.QuotaNonPagedPoolUsage));
+                            ImGui::Text("PagefileUsage: %s", format_size(info.counters.PagefileUsage));
+                            ImGui::Text("PeakPagefileUsage: %s", format_size(info.counters.PeakPagefileUsage));
+                            if(m_process_memory_counters_v2) {
+                                ImGui::Text("PrivateUsage: %s", format_size(info.counters.PrivateUsage));
+                            }
+                            if(m_process_memory_counters_v3) {
+                                ImGui::Text("PrivateWorkingSetSize: %s", format_size(info.private_working_set_size));
+                                ImGui::Text("SharedCommitUsage: %s", format_size(info.shared_commit_usage));
+                            }
                         }
                     }
                     if(ImGui::CollapsingHeader("Lua", ImGuiTreeNodeFlags_DefaultOpen)) {

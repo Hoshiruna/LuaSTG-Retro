@@ -6,7 +6,10 @@
 #include <string>
 #include <vector>
 
-int main(const int argc, char* argv[])
+#undef main
+
+int
+SDL_main(const int argc, char* argv[])
 {
     std::vector<std::string> arguments;
     arguments.reserve(static_cast<size_t>(argc));
