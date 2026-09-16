@@ -782,7 +782,7 @@ namespace core
         try {
             const auto& window_config = ConfigurationLoader::getInstance().getWindow();
             const auto& graphics_config = ConfigurationLoader::getInstance().getGraphicsSystem();
-            const StringView title = window_config.hasTitle() ? window_config.getTitle() : "LuaSTG Retro";
+            const std::string title = window_config.hasTitle() ? window_config.getTitle() : "LuaSTG Retro";
             auto* const window = new WindowSDL3(
                 { graphics_config.getWidth(), graphics_config.getHeight() },
                 title,

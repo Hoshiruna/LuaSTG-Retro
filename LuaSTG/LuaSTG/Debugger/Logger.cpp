@@ -183,7 +183,7 @@ namespace
         HMENU const menu = GetSystemMenu(window, FALSE);
         RemoveMenu(menu, SC_CLOSE, MF_BYCOMMAND);
         const auto title = utf8::to_wstring(LUASTG_INFO);
-        SetWindowTextW(window, title.c_str());
+        SetConsoleTitleW(title.c_str());
         ShowWindow(window, SW_MAXIMIZE);
         SetConsoleOutputCP(CP_UTF8);
         return true;
