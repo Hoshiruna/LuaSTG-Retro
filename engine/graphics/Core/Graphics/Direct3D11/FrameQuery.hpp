@@ -20,6 +20,7 @@ namespace core::Graphics::Direct3D11
         void begin();
         void end();
         double getTime();
+        bool isAvailable() const noexcept;
 
     private:
         class Implementation;

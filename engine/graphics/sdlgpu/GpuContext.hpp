@@ -37,7 +37,10 @@ namespace core::Graphics::SDLGPU
     class GpuContext final
     {
     public:
-        GpuContext(SDL_Window* window, const char* driver = nullptr, bool debug = false);
+        // driver is an SDL GPU driver name, "auto" to try the platform's preferred drivers in
+        // order, or empty to let SDL choose. A name other than "auto" is strict: if that
+        // driver cannot be used, construction throws rather than quietly using another one.
+        GpuContext(SDL_Window* window, std::string_view driver = {}, bool debug = false);
         ~GpuContext();
         GpuContext(const GpuContext&) = delete;
         GpuContext& operator=(const GpuContext&) = delete;
@@ -45,10 +48,14 @@ namespace core::Graphics::SDLGPU
         SDL_GPUDevice* device() const noexcept { return m_device.get(); }
         SDL_GPUTextureFormat swapchainFormat() const;
         const char* driver() const;
+        void claimWindow(SDL_Window* window);
         bool setVSync(bool enabled);
         Frame acquire() { return Frame(m_device.get(), m_window); }
 
     private:
+        // Creates the device and claims the window, or throws. A null driver lets SDL choose.
+        void open(SDL_Window* window, const char* driver, bool debug);
+        void probe(SDL_Window* window, bool debug);
         std::unique_ptr<SDL_GPUDevice, decltype(&SDL_DestroyGPUDevice)> m_device{ nullptr, SDL_DestroyGPUDevice };
         SDL_Window* m_window{};
     };

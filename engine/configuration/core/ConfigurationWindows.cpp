@@ -110,7 +110,6 @@ namespace core
 
             access_parent_field(graphics_system,
                 {
-                    access_field(preferred_device_name, if(!arg.empty()) { graphics_system.setPreferredDeviceName(arg); });
                     access_field(width, if(auto const value = to_unsigned_integer<uint32_t>(arg); value) {
 							if (value.value() == 0) {
 								write_message(raw_arg, "width must greater than 0"sv);
@@ -133,18 +132,8 @@ namespace core
                     access_field(vsync, if(auto const value = to_boolean(arg); value) { graphics_system.setVsync(value.value()); } else {
 							write_arg_error(raw_arg);
 							return false; });
-                    access_field(allow_software_device, if(auto const value = to_boolean(arg); value) { graphics_system.setAllowSoftwareDevice(value.value()); } else {
-							write_arg_error(raw_arg);
-							return false; });
-
-                    access_field(allow_exclusive_fullscreen, if(auto const value = to_boolean(arg); value) { graphics_system.setAllowExclusiveFullscreen(value.value()); } else {
-							write_arg_error(raw_arg);
-							return false; });
-                    access_field(allow_modern_swap_chain, if(auto const value = to_boolean(arg); value) { graphics_system.setAllowModernSwapChain(value.value()); } else {
-							write_arg_error(raw_arg);
-							return false; });
-                    access_field(allow_direct_composition, if(auto const value = to_boolean(arg); value) { graphics_system.setAllowDirectComposition(value.value()); } else {
-							write_arg_error(raw_arg);
+                    access_field(renderer_driver, if(!arg.empty()) { graphics_system.setRendererDriver(arg); } else {
+							write_message(raw_arg, "renderer driver must not be empty; use \"auto\" to select one automatically"sv);
 							return false; });
                 });
 

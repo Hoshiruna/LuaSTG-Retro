@@ -1,10 +1,6 @@
 #pragma once
 
 #include "Core/ApplicationModel.hpp"
-#include "Core/Graphics/Direct3D11/Device.hpp"
-#include "Core/Graphics/Direct3D11/FrameQuery.hpp"
-#include "Core/Graphics/Renderer_D3D11.hpp"
-#include "Core/Graphics/SwapChain_D3D11.hpp"
 #include "core/SdlRuntime.hpp"
 #include "core/Window.hpp"
 #include "core/implement/ReferenceCounted.hpp"
@@ -26,9 +22,10 @@ namespace core
         void requestExit() override;
 
         IFrameRateController* getFrameRateController() override { return &m_frame_rate_controller; }
-        Graphics::IDevice* getDevice() override { return *m_device; }
-        Graphics::ISwapChain* getSwapChain() override { return *m_swapchain; }
-        Graphics::IRenderer* getRenderer() override { return *m_renderer; }
+        Graphics::IDevice* getDevice() override { return m_graphics->device(); }
+        Graphics::ISwapChain* getSwapChain() override { return m_graphics->swapChain(); }
+        Graphics::IRenderer* getRenderer() override { return m_graphics->renderer(); }
+        Graphics::IGraphicsRuntime* getGraphicsRuntime() override { return m_graphics.get(); }
         FrameStatistics getFrameStatistics() override;
         FrameRenderStatistics getFrameRenderStatistics() override;
 
@@ -47,14 +44,11 @@ namespace core
         bool m_updating{};
         bool m_rendering{};
 
-        SmartReference<Graphics::Direct3D11::Device> m_device;
-        SmartReference<Graphics::SwapChain_D3D11> m_swapchain;
-        SmartReference<Graphics::Renderer_D3D11> m_renderer;
+        std::unique_ptr<Graphics::IGraphicsRuntime> m_graphics;
         FrameRateController m_frame_rate_controller;
         IApplicationEventListener* m_listener{};
         size_t m_framestate_index{};
         FrameStatistics m_framestate[2]{};
-        std::vector<Graphics::Direct3D11::FrameQuery> m_frame_queries;
-        size_t m_frame_query_index{};
+        bool m_failed{};
     };
 }

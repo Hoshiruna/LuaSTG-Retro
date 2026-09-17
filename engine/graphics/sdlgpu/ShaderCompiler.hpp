@@ -7,7 +7,8 @@ namespace core::Graphics::SDLGPU
     class ShaderCompiler final
     {
     public:
-        ShaderCompiler();
+        // driver decides which HLSL back ends have to be present; see the constructor.
+        explicit ShaderCompiler(std::string_view driver);
         ~ShaderCompiler();
         ShaderCompiler(const ShaderCompiler&) = delete;
         ShaderCompiler& operator=(const ShaderCompiler&) = delete;

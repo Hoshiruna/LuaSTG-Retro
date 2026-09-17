@@ -4,12 +4,23 @@
 
 namespace core::Graphics::SDLGPU
 {
-    ShaderCompiler::ShaderCompiler()
+    ShaderCompiler::ShaderCompiler(const std::string_view driver)
     {
         const std::string directory = require(SDL_GetBasePath(), "SDL_GetBasePath");
-        m_dxil.reset(require(SDL_LoadObject((directory + "dxil.dll").c_str()), "Load packaged dxil.dll"));
+        // DXC is the HLSL front end on every driver, because shadercross is built with
+        // SDL_SHADERCROSS_DXC: even the Vulkan path goes through HLSL -> SPIR-V in DXC.
         m_dxc.reset(require(SDL_LoadObject((directory + "dxcompiler.dll").c_str()), "Load packaged dxcompiler.dll"));
         require(SDL_LoadFunction(m_dxc.get(), "DxcCreateInstance"), "Find DxcCreateInstance in dxcompiler.dll");
+        // Only DXIL signing is Direct3D-specific, so a machine that runs Vulkan must not be
+        // held back by a missing dxil.dll.
+        if(driver == "direct3d12") {
+            m_dxil.reset(SDL_LoadObject((directory + "dxil.dll").c_str()));
+            if(m_dxil == nullptr) {
+                throw std::runtime_error(std::string("Load packaged dxil.dll: ") + SDL_GetError()
+                    + ". The direct3d12 driver signs shaders with dxil.dll; pass"
+                      " --graphics_system.renderer_driver=vulkan to use a driver that does not need it");
+            }
+        }
         check(SDL_ShaderCross_Init(), "SDL_ShaderCross_Init");
     }
 

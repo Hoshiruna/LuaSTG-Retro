@@ -65,7 +65,62 @@ namespace core::Graphics::SDLGPU
         check(SDL_SubmitGPUCommandBuffer(std::exchange(m_command, nullptr)), "SDL_SubmitGPUCommandBuffer");
     }
 
-    GpuContext::GpuContext(SDL_Window* const window, const char* const requested_driver, const bool debug)
+    namespace
+    {
+        // SDL reports every driver compiled into it, whether or not this machine can run it.
+        std::string listDrivers()
+        {
+            std::string names;
+            for(int i = 0; i < SDL_GetNumGPUDrivers(); ++i) {
+                const char* const name = SDL_GetGPUDriver(i);
+                if(name == nullptr) {
+                    continue;
+                }
+                if(!names.empty()) {
+                    names += ", ";
+                }
+                names += name;
+            }
+            return names.empty() ? std::string("none") : names;
+        }
+
+        // What "auto" tries, in order. Direct3D 12 leads on Windows because it is the closest
+        // relative of the Direct3D 11 backend this one replaces, so it is the better-tested
+        // path on the vendor drivers our users already run.
+        std::span<const char* const> preferredDrivers()
+        {
+#if defined(_WIN32)
+            static constexpr const char* order[]{ "direct3d12", "vulkan" };
+#elif defined(__APPLE__)
+            static constexpr const char* order[]{ "metal" };
+#else
+            static constexpr const char* order[]{ "vulkan" };
+#endif
+            return order;
+        }
+    }
+
+    GpuContext::GpuContext(SDL_Window* const window, const std::string_view requested, const bool debug)
+    {
+        if(requested == "auto") {
+            probe(window, debug);
+        } else if(requested.empty()) {
+            open(window, nullptr, debug);
+        } else {
+            const std::string name(requested);
+            try {
+                open(window, name.c_str(), debug);
+            } catch(const std::exception& error) {
+                // Asking for a specific driver and getting a different one silently is worse
+                // than not starting, so name the driver and say what this build can offer.
+                throw std::runtime_error("Cannot use the requested GPU driver \"" + name + "\": " + error.what()
+                    + ". Drivers built into SDL: " + listDrivers());
+            }
+        }
+        Logger::info("[sdlgpu] GPU driver: {}", driver());
+    }
+
+    void GpuContext::open(SDL_Window* const window, const char* const requested_driver, const bool debug)
     {
         // Shadercross supplies DXIL, SPIR-V, or MSL; ImGui also supplies DXBC.
         constexpr SDL_GPUShaderFormat formats = SDL_GPU_SHADERFORMAT_DXIL | SDL_GPU_SHADERFORMAT_DXBC | SDL_GPU_SHADERFORMAT_SPIRV | SDL_GPU_SHADERFORMAT_MSL;
@@ -73,9 +128,38 @@ namespace core::Graphics::SDLGPU
         if(requested_driver != nullptr && std::string_view(SDL_GetGPUDeviceDriver(m_device.get())) != requested_driver) {
             throw std::runtime_error("SDL selected a GPU driver different from the requested driver");
         }
-        check(SDL_ClaimWindowForGPUDevice(m_device.get(), window), "SDL_ClaimWindowForGPUDevice");
-        m_window = window;
-        Logger::info("[sdlgpu] GPU driver: {}", driver());
+        if(window != nullptr) {
+            claimWindow(window);
+        }
+    }
+
+    void GpuContext::probe(SDL_Window* const window, const bool debug)
+    {
+        std::string attempts;
+        const auto attempt = [&](const char* const candidate) {
+            try {
+                open(window, candidate, debug);
+                return true;
+            } catch(const std::exception& error) {
+                const char* const name = candidate != nullptr ? candidate : "SDL's own choice";
+                Logger::warn("[sdlgpu] GPU driver {} is unusable: {}", name, error.what());
+                attempts += std::string("\n  ") + name + ": " + error.what();
+                // Claiming the window is the last step of open(), so a failed attempt leaves
+                // at most a device behind and m_window still null. Drop it and try the next.
+                m_device.reset();
+                return false;
+            }
+        };
+        for(const char* const candidate : preferredDrivers()) {
+            if(attempt(candidate)) {
+                return;
+            }
+        }
+        // The preference list is not exhaustive, and SDL may know a driver we never named.
+        if(attempt(nullptr)) {
+            return;
+        }
+        throw std::runtime_error("No usable GPU driver. Drivers built into SDL: " + listDrivers() + ". Attempts:" + attempts);
     }
 
     GpuContext::~GpuContext()
@@ -83,7 +167,18 @@ namespace core::Graphics::SDLGPU
         if(!SDL_WaitForGPUIdle(m_device.get())) {
             Logger::error("[sdlgpu] SDL_WaitForGPUIdle during shutdown: {}", SDL_GetError());
         }
-        SDL_ReleaseWindowFromGPUDevice(m_device.get(), m_window);
+        if(m_window != nullptr) {
+            SDL_ReleaseWindowFromGPUDevice(m_device.get(), m_window);
+        }
+    }
+
+    void GpuContext::claimWindow(SDL_Window* window)
+    {
+        if(m_window != nullptr || window == nullptr) {
+            throw std::logic_error("GPU context requires one non-null window");
+        }
+        check(SDL_ClaimWindowForGPUDevice(m_device.get(), window), "SDL_ClaimWindowForGPUDevice");
+        m_window = window;
     }
 
     SDL_GPUTextureFormat GpuContext::swapchainFormat() const

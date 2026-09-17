@@ -99,11 +99,15 @@ namespace core
         }
 
         m_rendering = true;
-        m_swapchain->applyRenderAttachment();
-        m_swapchain->clearRenderAttachment();
-        if(m_listener->onRender()) {
-            m_swapchain->present();
-            TracyD3D11Collect(m_device->GetTracyContext());
+        const auto status = m_graphics->beginFrame();
+        if(status == Graphics::FrameStatus::Ready) {
+            if(!m_graphics->submitFrame(m_listener->onRender())) {
+                m_failed = true;
+                requestExit();
+            }
+        } else if(status == Graphics::FrameStatus::Failed) {
+            m_failed = true;
+            requestExit();
         }
         m_rendering = false;
     }
@@ -113,11 +117,10 @@ namespace core
         SetThreadAffinityMask(GetCurrentThread(), 1);
         SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_HIGHEST);
 
-        TracyD3D11Collect(m_device->GetTracyContext());
         FrameMark;
         {
             tracy_zone_scoped_with_name("OnInitWait");
-            m_swapchain->waitFrameLatency();
+            getSwapChain()->waitFrameLatency();
             m_frame_rate_controller.update();
         }
 
@@ -148,16 +151,15 @@ namespace core
 
         m_running = false;
         SDL_RemoveEventWatch(&ApplicationModel_Win32::sdlEventWatch, this);
-        return true;
+        return !m_failed;
     }
 
     void ApplicationModel_Win32::runFrame()
     {
         size_t const frame_index = (m_framestate_index + 1) % std::size(m_framestate);
         auto& statistics = m_framestate[frame_index];
+        statistics = {};
         ScopeTimer total_timer(statistics.total_time);
-        size_t const frame_query_index = (m_frame_query_index + 1) % m_frame_queries.size();
-        auto& frame_query = m_frame_queries[frame_query_index];
 
         bool update_result{};
         {
@@ -172,21 +174,25 @@ namespace core
             m_rendering = true;
             bool render_result{};
             tracy_zone_scoped_with_name("OnRender");
-            tracy_d3d11_context_zone(m_device->GetTracyContext(), "OnRender");
-            {
+            auto const status = m_graphics->beginFrame();
+            if(status == Graphics::FrameStatus::Failed) {
+                m_failed = true;
+                requestExit();
+            }
+            if(status == Graphics::FrameStatus::Ready) {
                 ScopeTimer render_timer(statistics.render_time);
-                frame_query.begin();
-                m_swapchain->applyRenderAttachment();
-                m_swapchain->clearRenderAttachment();
                 render_result = m_listener->onRender();
-                frame_query.end();
             }
 
-            if(render_result) {
+            if(status == Graphics::FrameStatus::Ready) {
                 tracy_zone_scoped_with_name("OnPresent");
                 ScopeTimer present_timer(statistics.present_time);
-                m_swapchain->present();
-                TracyD3D11Collect(m_device->GetTracyContext());
+                if(!m_graphics->submitFrame(render_result)) {
+                    m_failed = true;
+                    requestExit();
+                }
+            } else if(status == Graphics::FrameStatus::Skipped) {
+                SDL_Delay(10);
             }
             m_rendering = false;
         }
@@ -194,12 +200,11 @@ namespace core
         {
             tracy_zone_scoped_with_name("OnWait");
             ScopeTimer wait_timer(statistics.wait_time);
-            m_swapchain->waitFrameLatency();
+            getSwapChain()->waitFrameLatency();
             m_frame_rate_controller.update();
         }
 
         m_framestate_index = frame_index;
-        m_frame_query_index = frame_query_index;
         FrameMark;
     }
 
@@ -210,9 +215,7 @@ namespace core
 
     FrameRenderStatistics ApplicationModel_Win32::getFrameRenderStatistics()
     {
-        FrameRenderStatistics statistics{};
-        statistics.render_time = m_frame_queries[m_frame_query_index].getTime();
-        return statistics;
+        return m_graphics->statistics();
     }
 
     void ApplicationModel_Win32::requestExit()
@@ -246,20 +249,8 @@ namespace core
         if(!IWindow::create(m_window.put())) {
             throw std::runtime_error("IWindow::create");
         }
-        auto const& gpu = ConfigurationLoader::getInstance().getGraphicsSystem().getPreferredDeviceName();
-        if(!Graphics::Direct3D11::Device::create(gpu, m_device.put())) {
-            throw std::runtime_error("Graphics::Direct3D11::Device::create");
-        }
-        if(!Graphics::SwapChain_D3D11::create(*m_window, *m_device, m_swapchain.put())) {
-            throw std::runtime_error("Graphics::SwapChain_D3D11::create");
-        }
-        if(!Graphics::Renderer_D3D11::create(*m_device, m_renderer.put())) {
-            throw std::runtime_error("Graphics::Renderer_D3D11::create");
-        }
-        m_frame_queries.reserve(2);
-        for(size_t index = 0; index < 2; index += 1) {
-            m_frame_queries.emplace_back(m_device.get());
-        }
+        m_graphics = Graphics::IGraphicsRuntime::create(m_window.get(),
+            ConfigurationLoader::getInstance().getGraphicsSystem().getRendererDriver());
         if(!InputSystem::getInstance().initialize()) {
             throw std::runtime_error("InputSystem::initialize");
         }
@@ -268,10 +259,7 @@ namespace core
     ApplicationModel_Win32::~ApplicationModel_Win32()
     {
         InputSystem::getInstance().shutdown();
-        m_frame_queries.clear();
-        m_renderer.reset();
-        m_swapchain.reset();
-        m_device.reset();
+        m_graphics.reset();
         m_window.reset();
     }
 
@@ -280,7 +268,8 @@ namespace core
         try {
             *model = new ApplicationModel_Win32(listener);
             return true;
-        } catch(...) {
+        } catch(std::exception const& exception) {
+            spdlog::error("[core] Application initialization failed: {}", exception.what());
             *model = nullptr;
             return false;
         }

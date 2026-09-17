@@ -104,7 +104,6 @@ namespace luastg
 
     public: // 脚本调用接口，含义参见API文档
         void SetTitle(const char* v) noexcept;
-        void SetPreferenceGPU(const char* v) noexcept;
         void SetSplash(bool v) noexcept;
 
     public: // 窗口和交换链

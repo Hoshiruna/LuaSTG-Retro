@@ -20,8 +20,6 @@ namespace core::Graphics::Direct3D11
 
         // ITexture2D
 
-        [[nodiscard]] void* getNativeHandle() const noexcept override { return m_view.Get(); }
-
         [[nodiscard]] bool isDynamic() const noexcept override { return m_dynamic; }
         [[nodiscard]] bool isPremultipliedAlpha() const noexcept override { return m_pre_mul_alpha; }
         void setPremultipliedAlpha(bool const v) override { m_pre_mul_alpha = v; }

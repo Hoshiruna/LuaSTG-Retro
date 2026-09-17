@@ -227,7 +227,6 @@ target_link_libraries(LuaSTG PRIVATE
     #lua_xlsx_csv
     lua_imgui
     imgui_impl_sdl3
-    imgui_impl_dx11
     lua_steam_api
     TracyAPI
     pcg_cpp
@@ -264,3 +263,13 @@ add_custom_command(TARGET LuaSTG POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Microsoft.D3DCompiler.Redist> ${CMAKE_BINARY_DIR}/bin/$<TARGET_FILE_NAME:Microsoft.D3DCompiler.Redist>
     VERBATIM
 )
+
+if (LUASTG_USE_SDLGPU)
+    luastg_copy_sdlgpu_runtime(LuaSTG)
+    add_custom_command(TARGET LuaSTG POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different ${LUASTG_SDLGPU_COMPILER_LIBRARIES} "${CMAKE_BINARY_DIR}/bin"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory "${LUASTG_SDLGPU_LICENSE_DIRECTORY}" "${CMAKE_BINARY_DIR}/bin/licenses"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory "${PROJECT_SOURCE_DIR}/engine/graphics/sdlgpu/licenses" "${CMAKE_BINARY_DIR}/bin/licenses"
+        VERBATIM
+    )
+endif ()

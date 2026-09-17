@@ -70,9 +70,9 @@ namespace core::Graphics::Direct3D11
         hr = gHR = DirectX::SaveWICTextureToFile(
             m_device->GetD3D11DeviceContext(),
             m_texture.Get(),
-            GUID_ContainerFormatJpeg,
+            GUID_ContainerFormatPng,
             wide_path.c_str(),
-            &GUID_WICPixelFormat24bppBGR);
+            &GUID_WICPixelFormat32bppBGRA);
         return SUCCEEDED(hr);
     }
 

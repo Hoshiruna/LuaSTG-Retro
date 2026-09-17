@@ -30,6 +30,9 @@ Shadercross and SPIRV-Cross are built from their unmodified pinned sources.
   `licenses/simdutf/LICENSE-MIT`.
 - nlohmann/json 3.12.0: MIT, with the original notice in
   `licenses/nlohmann-json/LICENSE.MIT`.
+- stb at `2c980bb59875b0d32144a71867fbdebb2f77cd20`: distributed under its
+  MIT option; the original dual-license notice is copied to `licenses/stb/LICENSE`.
+  The SDL GPU support library uses `stb_image_write` for PNG encoding.
 
 The checked-in MIT notices come from the corresponding pinned upstream releases:
 [simdutf](https://github.com/simdutf/simdutf/blob/v9.0.0/LICENSE-MIT),

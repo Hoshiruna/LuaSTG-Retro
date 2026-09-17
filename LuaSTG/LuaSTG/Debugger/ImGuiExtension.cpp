@@ -10,7 +10,13 @@
 #include "imgui_stdlib.h"
 #include "imgui_freetype.h"
 #include "imgui_impl_sdl3.h"
-#include "imgui_impl_dx11.h"
+#if defined(LUASTG_GRAPHICS_SDLGPU)
+#define LUASTG_IMGUI_SDL_INIT ImGui_ImplSDL3_InitForSDLGPU
+#else
+#define LUASTG_IMGUI_SDL_INIT ImGui_ImplSDL3_InitForD3D
+#endif
+#include "Core/Graphics/Runtime.hpp"
+#include <limits>
 #include "implot.h"
 
 #include "lua.hpp"
@@ -201,20 +207,20 @@ namespace imgui
                     }
                     if(ImGui::CollapsingHeader("Graphics", ImGuiTreeNodeFlags_DefaultOpen)) {
                         auto const info = LAPP.GetAppModel()->getDevice()->getMemoryUsageStatistics();
-                        if(m_more_details)
-                            ImGui::Text("Local Budget: %s", format_size(info.local.budget));
-                        ImGui::Text("Local Current Usage: %s", format_size(info.local.current_usage));
-                        if(m_more_details)
-                            ImGui::Text("Local Available For Reservation: %s", format_size(info.local.available_for_reservation));
-                        if(m_more_details)
-                            ImGui::Text("Local Current Reservation: %s", format_size(info.local.current_reservation));
-                        if(m_more_details)
-                            ImGui::Text("Non-Local Budget: %s", format_size(info.non_local.budget));
-                        ImGui::Text("Non-Local Current Usage: %s", format_size(info.non_local.current_usage));
-                        if(m_more_details)
-                            ImGui::Text("Non-Local Available For Reservation: %s", format_size(info.non_local.available_for_reservation));
-                        if(m_more_details)
-                            ImGui::Text("Non-Local Current Reservation: %s", format_size(info.non_local.current_reservation));
+                        auto showMemory = [&](const char* name, const core::Graphics::DeviceMemoryUsageStatistics::DeviceMemoryUsage& memory) {
+                            if(!memory.available) {
+                                ImGui::Text("%s: unavailable", name);
+                                return;
+                            }
+                            ImGui::Text("%s Current Usage: %s", name, format_size(memory.current_usage));
+                            if(m_more_details) {
+                                ImGui::Text("%s Budget: %s", name, format_size(memory.budget));
+                                ImGui::Text("%s Available For Reservation: %s", name, format_size(memory.available_for_reservation));
+                                ImGui::Text("%s Current Reservation: %s", name, format_size(memory.current_reservation));
+                            }
+                        };
+                        showMemory("Local", info.local);
+                        showMemory("Non-Local", info.non_local);
                     }
                 }
                 ImGui::End();
@@ -586,13 +592,17 @@ namespace
                 if(ImGui::CollapsingHeader("GPU Time")) {
                     auto info = LAPP.GetAppModel()->getFrameRenderStatistics();
 
-                    ImGui::Text("Render : %.3fms", info.render_time * 1000.0);
+                    if(info.available) {
+                        ImGui::Text("Render : %.3fms", info.render_time * 1000.0);
+                    } else {
+                        ImGui::TextUnformatted("GPU timing: unavailable");
+                    }
 
                     ImGui::SliderFloat("Timeline Height##GPU Time", &height_gpu, 256.0f, 512.0f);
                     ImGui::Checkbox("Auto-Fit Y Axis##GPU Time", &auto_fit_gpu);
 
                     // 还得再往前一帧
-                    arr_gpu_render_time[(arr_index + record_range - 1) % record_range] = 1000.0 * (info.render_time);
+                    arr_gpu_render_time[(arr_index + record_range - 1) % record_range] = info.available ? 1000.0 * info.render_time : std::numeric_limits<double>::quiet_NaN();
 
                     if(ImPlot::BeginPlot("##Frame Render Statistics", ImVec2(-1, height_gpu), 0)) {
                         //ImPlot::SetupAxes("Frame", "Time", flags, flags);
@@ -640,8 +650,8 @@ namespace
                     ImGui::Text("Avalid User Mode Memory Space: %s", toReadableDataSize(mem_info.ullAvailVirtual).c_str());
                     ImGui::Text("User Mode Memory Space Usage: %s", toReadableDataSize(mem_info.ullTotalVirtual - mem_info.ullAvailVirtual).c_str());
                     ImGui::Text("Lua Runtime Memory Usage: %s", toReadableDataSize(lua_info).c_str());
-                    ImGui::Text("Adapter Local Usage: %s", toReadableDataSize(gpu_info.local.current_usage).c_str());
-                    ImGui::Text("Adapter Non-Local Usage: %s", toReadableDataSize(gpu_info.non_local.current_usage).c_str());
+                    ImGui::Text("Adapter Local Usage: %s", (gpu_info.local.available ? toReadableDataSize(gpu_info.local.current_usage) : "unavailable").c_str());
+                    ImGui::Text("Adapter Non-Local Usage: %s", (gpu_info.non_local.available ? toReadableDataSize(gpu_info.non_local.current_usage) : "unavailable").c_str());
 
                     static float time_line_height = 384.0f;
                     static bool time_line_auto_fit = true;
@@ -650,7 +660,7 @@ namespace
 
                     constexpr double const byte_to_MiB = 1.0 / (1024.0 * 1024.0);
                     arr_mem_mem[arr_index] = (double)(mem_info.ullTotalVirtual - mem_info.ullAvailVirtual) * byte_to_MiB;
-                    arr_mem_gpu[arr_index] = (double)(gpu_info.local.current_usage + gpu_info.non_local.current_usage) * byte_to_MiB;
+                    arr_mem_gpu[arr_index] = gpu_info.local.available && gpu_info.non_local.available ? (double)(gpu_info.local.current_usage + gpu_info.non_local.current_usage) * byte_to_MiB : std::numeric_limits<double>::quiet_NaN();
                     arr_mem_lua[arr_index] = (double)lua_info * byte_to_MiB;
 
                     if(ImPlot::BeginPlot("##Memory Usage Statistics", ImVec2(-1, time_line_height), 0)) {
@@ -833,7 +843,7 @@ namespace
 namespace
 {
     bool g_imgui_initialized = false;
-    bool g_imgui_impl_dx11_initialized = false;
+    bool g_imgui_renderer_initialized = false;
 }
 
 namespace imgui
@@ -848,27 +858,23 @@ namespace imgui
 
         void onDeviceDestroy() override
         {
-            g_imgui_impl_dx11_initialized = false;
-            ImGui_ImplDX11_Shutdown();
+            g_imgui_renderer_initialized = false;
+            LAPP.GetAppModel()->getGraphicsRuntime()->shutdownImGui();
         }
         void onDeviceCreate() override
         {
-            g_imgui_impl_dx11_initialized = false;
-            auto const device = static_cast<ID3D11Device*>(LAPP.GetAppModel()->getDevice()->getNativeHandle());
-            ID3D11DeviceContext* context{};
-            device->GetImmediateContext(&context);
-            if(!ImGui_ImplDX11_Init(device, context)) {
-                spdlog::error("[imgui] ImGui_ImplDX11_Init failed");
+            g_imgui_renderer_initialized = false;
+            if(!LAPP.GetAppModel()->getGraphicsRuntime()->initializeImGui()) {
+                spdlog::error("[imgui] Graphics renderer initialization failed");
             }
-            context->Release();
         }
 
         // IWindowEventListener
 
         void onWindowCreate() override
         {
-            if(!ImGui_ImplSDL3_InitForD3D(LAPP.GetAppModel()->getWindow()->getSDLWindow())) {
-                spdlog::error("[imgui] ImGui_ImplSDL3_InitForD3D failed");
+            if(!LUASTG_IMGUI_SDL_INIT(LAPP.GetAppModel()->getWindow()->getSDLWindow())) {
+                spdlog::error("[imgui] ImGui SDL platform initialization failed");
             }
         }
         void onWindowDestroy() override
@@ -1008,7 +1014,7 @@ namespace imgui
         ImGui::DestroyContext();
 
         g_imgui_initialized = false;
-        g_imgui_impl_dx11_initialized = false;
+        g_imgui_renderer_initialized = false;
     }
 
     void cancelSetCursor()
@@ -1032,8 +1038,8 @@ namespace imgui
             }
 
             {
-                tracy_zone_scoped_with_name("imgui.backend.NewFrame-D3D11");
-                ImGui_ImplDX11_NewFrame();
+                tracy_zone_scoped_with_name("imgui.backend.NewFrame-Renderer");
+                LAPP.GetAppModel()->getGraphicsRuntime()->newImGuiFrame();
             }
 
             {
@@ -1041,14 +1047,14 @@ namespace imgui
                 ImGui_ImplSDL3_NewFrame();
             }
 
-            g_imgui_impl_dx11_initialized = true;
+            g_imgui_renderer_initialized = true;
         }
     }
     void drawEngine()
     {
-        if(g_imgui_initialized && g_imgui_impl_dx11_initialized) {
+        if(g_imgui_initialized && g_imgui_renderer_initialized) {
             LAPP.GetAppModel()->getRenderer()->endBatch();
-            ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+            LAPP.GetAppModel()->getGraphicsRuntime()->renderImGui(ImGui::GetDrawData());
             LAPP.GetAppModel()->getRenderer()->beginBatch(); // restore
         }
     }
@@ -1067,9 +1073,7 @@ namespace imgui
 
     bool wantsKeyboardCapture()
     {
-        return g_imgui_initialized
-            && ImGui::GetCurrentContext() != nullptr
-            && ImGui::GetIO().WantCaptureKeyboard;
+        return g_imgui_initialized && ImGui::GetCurrentContext() != nullptr && ImGui::GetIO().WantCaptureKeyboard;
     }
 
     void showTestInputWindow(bool* p_open)

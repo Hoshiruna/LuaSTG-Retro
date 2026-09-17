@@ -48,8 +48,8 @@ namespace core::Graphics::Direct3D11
             if(!m_available) {
                 return;
             }
-            if(m_flying) {
-                fetchData();
+            if(m_flying && !fetchData()) {
+                return;
             }
 
             assert(!m_flying);
@@ -62,7 +62,7 @@ namespace core::Graphics::Direct3D11
 
         void end()
         {
-            if(!m_available) {
+            if(!m_available || !m_active) {
                 return;
             }
 
@@ -80,6 +80,11 @@ namespace core::Graphics::Direct3D11
                 return 0.0;
             }
             return static_cast<double>(m_end_time - m_start_time) / static_cast<double>(m_frequency.Frequency);
+        }
+
+        bool isAvailable() const noexcept
+        {
+            return m_available && m_frequency.Frequency != 0 && !m_frequency.Disjoint;
         }
 
     private:
@@ -130,19 +135,33 @@ namespace core::Graphics::Direct3D11
             m_active = false;
         }
 
-        void fetchData()
+        bool fetchData()
         {
             assert(m_available);
             assert(m_flying);
-            while(m_context->GetData(m_frequency_query.get(), &m_frequency, sizeof(m_frequency), 0) != S_OK) {
+            D3D11_QUERY_DATA_TIMESTAMP_DISJOINT frequency{};
+            uint64_t start{}, end{};
+            D3D11_QUERY_DATA_PIPELINE_STATISTICS statistics{};
+            auto read = [&](ID3D11Query* query, void* data, UINT size) {
+                const HRESULT result = m_context->GetData(query, data, size, D3D11_ASYNC_GETDATA_DONOTFLUSH);
+                if(FAILED(result)) {
+                    spdlog::warn("[graphics] Read D3D11 frame query failed: {}", static_cast<uint32_t>(result));
+                    destroyResources();
+                }
+                return result == S_OK;
+            };
+            if(!read(m_frequency_query.get(), &frequency, sizeof(frequency)) ||
+                !read(m_start_query.get(), &start, sizeof(start)) ||
+                !read(m_end_query.get(), &end, sizeof(end)) ||
+                !read(m_statistics_query.get(), &statistics, sizeof(statistics))) {
+                return false;
             }
-            while(m_context->GetData(m_start_query.get(), &m_start_time, sizeof(m_start_time), 0) != S_OK) {
-            }
-            while(m_context->GetData(m_end_query.get(), &m_end_time, sizeof(m_end_time), 0) != S_OK) {
-            }
-            while(m_context->GetData(m_statistics_query.get(), &m_statistics, sizeof(m_statistics), 0) != S_OK) {
-            }
+            m_frequency = frequency;
+            m_start_time = start;
+            m_end_time = end;
+            m_statistics = statistics;
             m_flying = false;
+            return true;
         }
 
         SmartReference<Device> m_device;
@@ -182,5 +201,10 @@ namespace core::Graphics::Direct3D11
     double FrameQuery::getTime()
     {
         return m_implementation->getTime();
+    }
+
+    bool FrameQuery::isAvailable() const noexcept
+    {
+        return m_implementation->isAvailable();
     }
 }

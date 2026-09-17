@@ -17,8 +17,8 @@ namespace core::Graphics::SDLGPU::smoke
                 result.verify = true;
             } else if(argument.starts_with("--driver=")) {
                 result.driver = argument.substr(9);
-                if(result.driver != "direct3d12" && result.driver != "vulkan") {
-                    throw std::runtime_error("--driver must be direct3d12 or vulkan");
+                if(result.driver != "direct3d12" && result.driver != "vulkan" && result.driver != "auto") {
+                    throw std::runtime_error("--driver must be direct3d12, vulkan, or auto");
                 }
             } else if(argument.starts_with("--frames=")) {
                 const auto value = argument.substr(9);
@@ -47,7 +47,8 @@ namespace core::Graphics::SDLGPU::smoke
     {
         std::puts(
             "Core.Graphics.SDLGPU.Smoke [options]\n"
-            "  --driver=direct3d12|vulkan  Explicit GPU driver (default: direct3d12)\n"
+            "  --driver=direct3d12|vulkan|auto\n"
+            "                             GPU driver; auto probes in preference order (default: direct3d12)\n"
             "  --frames=N                 Exit after N submitted frames (N > 0)\n"
             "  --capture=PATH             Save the final grayscale canvas as a P6 PPM\n"
             "  --verify                   Check grayscale and alpha-blend samples\n"

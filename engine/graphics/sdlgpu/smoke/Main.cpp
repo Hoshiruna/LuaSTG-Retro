@@ -44,8 +44,9 @@ namespace core::Graphics::SDLGPU::smoke
                 if(!IWindow::create({ 960, 720 }, "LuaSTG SDL GPU smoke", WindowFrameStyle::Normal, true, m_window.put())) {
                     throw std::runtime_error("Could not create the SDL smoke window");
                 }
-                m_compiler = std::make_unique<ShaderCompiler>();
-                m_gpu = std::make_unique<GpuContext>(m_window->getSDLWindow(), m_options.driver.c_str(), true);
+                // The context first, because the compiler's back ends depend on the driver.
+                m_gpu = std::make_unique<GpuContext>(m_window->getSDLWindow(), m_options.driver, true);
+                m_compiler = std::make_unique<ShaderCompiler>(m_gpu->driver());
                 m_scene = std::make_unique<Scene>(m_gpu->device(), *m_compiler);
 
                 IMGUI_CHECKVERSION();

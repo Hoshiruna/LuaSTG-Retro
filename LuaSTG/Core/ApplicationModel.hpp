@@ -4,6 +4,7 @@
 #include "Core/Graphics/Device.hpp"
 #include "Core/Graphics/SwapChain.hpp"
 #include "Core/Graphics/Renderer.hpp"
+#include "Core/Graphics/Runtime.hpp"
 #include "core/ReferenceCounted.hpp"
 
 namespace core
@@ -24,10 +25,7 @@ namespace core
         double present_time{};
     };
 
-    struct FrameRenderStatistics
-    {
-        double render_time{};
-    };
+    using FrameRenderStatistics = Graphics::GpuFrameStatistics;
 
     struct IApplicationModel : public IReferenceCounted
     {
@@ -37,6 +35,7 @@ namespace core
         virtual Graphics::IDevice* getDevice() = 0;
         virtual Graphics::ISwapChain* getSwapChain() = 0;
         virtual Graphics::IRenderer* getRenderer() = 0;
+        virtual Graphics::IGraphicsRuntime* getGraphicsRuntime() = 0;
         virtual FrameStatistics getFrameStatistics() = 0;
         virtual FrameRenderStatistics getFrameRenderStatistics() = 0;
 

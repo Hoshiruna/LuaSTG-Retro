@@ -42,29 +42,6 @@ local test = require("test")
 local hot_reload_preview = require("hot_reload_preview")
 local show_hot_reload_window = true
 
-local gpu_list = {}
-local select_gpu = ""
-local function changeGpu()
-    if string.len(select_gpu) > 0 then
-        lstg.ChangeGPU(select_gpu)
-        gpu_list = lstg.EnumGPUs() -- update
-        select_gpu = ""
-    end
-end
-local function showSelectGpuWindow()
-    local ImGui = imgui.ImGui
-    if #gpu_list < 1 then
-        gpu_list = lstg.EnumGPUs()
-    end
-    if ImGui.Begin("Select GPU") then
-        for _, v in ipairs(gpu_list) do
-            if ImGui.Button(v) then
-                select_gpu = v
-            end
-        end
-    end
-    ImGui.End()
-end
 local function showSelectResolutionWindow()
     local ImGui = imgui.ImGui
     local list = {
@@ -111,6 +88,7 @@ require("test_textrenderer")
 require("test_texture")
 require("test_video")
 require("test_sampler")
+require("test_sdlgpu_2d")
 require("test_model")
 require("test_mesh")
 require("test_stringpack")
@@ -151,7 +129,6 @@ function GameExit()
     test.onDestroy()
 end
 function FrameFunc()
-    changeGpu()
     imgui.backend.NewFrame(true)
     imgui.ImGui.NewFrame()
     imgui.ImGui.ShowDemoWindow()
@@ -163,7 +140,6 @@ function FrameFunc()
         show_hot_reload_window = imgui.backend.ShowLuaHotReloadWindow(show_hot_reload_window)
     end
     hot_reload_preview.draw(imgui.ImGui)
-    showSelectGpuWindow()
     showSelectResolutionWindow()
     test.onUpdate()
     imgui.ImGui.EndFrame()

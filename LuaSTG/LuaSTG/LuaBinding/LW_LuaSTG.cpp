@@ -70,8 +70,7 @@ luastg::binding::BuiltInFunction::Register(lua_State* L) noexcept
         }
         static int SetPreferenceGPU(lua_State* L) noexcept
         {
-            LAPP.SetPreferenceGPU(luaL_checkstring(L, 1));
-            return 0;
+            return luaL_error(L, "SetPreferenceGPU is unavailable; the renderer selects the GPU.");
         }
         static int SetFPS(lua_State* L) noexcept
         {
@@ -160,33 +159,11 @@ luastg::binding::BuiltInFunction::Register(lua_State* L) noexcept
         }
         static int EnumGPUs(lua_State* L)
         {
-            lua::stack_t S(L);
-            if(LAPP.GetAppModel()) {
-                auto* p_device = LAPP.GetAppModel()->getDevice();
-                auto count = p_device->getGpuCount();
-                lua_createtable(L, count, 0); // t
-                for(int index = 0; index < (int)count; index += 1) {
-                    S.push_value(p_device->getGpuName((uint32_t)index)); // t name
-                    lua_rawseti(L, -2, index + 1); // t
-                }
-                return 1;
-            } else {
-                return luaL_error(L, "render device is not avilable.");
-            }
+            return luaL_error(L, "GPU enumeration is unavailable through the graphics interface.");
         }
         static int ChangeGPU(lua_State* L)
         {
-            lua::stack_t S(L);
-            if(LAPP.GetAppModel()) {
-                auto const gpu = S.get_value<std::string_view>(1);
-                auto* p_device = LAPP.GetAppModel()->getDevice();
-                p_device->setPreferenceGpu(gpu);
-                if(!p_device->recreate())
-                    return luaL_error(L, "ChangeGPU failed.");
-                return 0;
-            } else {
-                return luaL_error(L, "render device is not avilable.");
-            }
+            return luaL_error(L, "ChangeGPU is unavailable; the renderer selects the GPU.");
         }
         static int GetCurrentGpuName(lua_State* L)
         {

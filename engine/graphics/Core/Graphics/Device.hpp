@@ -4,6 +4,8 @@
 #include "core/ReferenceCounted.hpp"
 #include "core/Data.hpp"
 #include "core/ImmutableString.hpp"
+#include <atomic>
+#include <cfloat>
 
 #define LUASTG_ENABLE_DIRECT2D
 
@@ -19,6 +21,7 @@ namespace core::Graphics
     {
         struct DeviceMemoryUsage
         {
+            bool available{};
             uint64_t budget;
             uint64_t current_usage;
             uint64_t available_for_reservation;
@@ -85,7 +88,7 @@ namespace core::Graphics
 
     struct ITexture2D : IReferenceCounted
     {
-        virtual void* getNativeHandle() const noexcept = 0;
+        uint64_t getDebugId() const noexcept { return m_debug_id; }
 
         virtual bool isDynamic() const noexcept = 0;
         virtual bool isPremultipliedAlpha() const noexcept = 0;
@@ -101,12 +104,14 @@ namespace core::Graphics
         virtual void setSamplerState(ISamplerState* p_sampler) = 0;
         // Might be nullptr
         virtual ISamplerState* getSamplerState() const noexcept = 0;
+
+    private:
+        inline static std::atomic_uint64_t s_next_debug_id{ 1 };
+        uint64_t const m_debug_id{ s_next_debug_id.fetch_add(1, std::memory_order_relaxed) };
     };
 
     struct IRenderTarget : IReferenceCounted
     {
-        virtual void* getNativeHandle() const noexcept = 0;
-        virtual void* getNativeBitmapHandle() const noexcept = 0;
 
         virtual bool setSize(Vector2U size) = 0;
         virtual ITexture2D* getTexture() const noexcept = 0;
@@ -114,7 +119,6 @@ namespace core::Graphics
 
     struct IDepthStencilBuffer : IReferenceCounted
     {
-        virtual void* getNativeHandle() const noexcept = 0;
 
         virtual bool setSize(Vector2U size) = 0;
         virtual Vector2U getSize() const noexcept = 0;
@@ -134,13 +138,7 @@ namespace core::Graphics
         virtual DeviceMemoryUsageStatistics getMemoryUsageStatistics() = 0;
 
         virtual bool recreate() = 0;
-        virtual void setPreferenceGpu(StringView preferred_gpu) = 0;
-        virtual uint32_t getGpuCount() = 0;
-        virtual StringView getGpuName(uint32_t index) = 0;
         virtual StringView getCurrentGpuName() const noexcept = 0;
-
-        virtual void* getNativeHandle() = 0;
-        virtual void* getNativeRendererHandle() = 0;
 
         virtual bool createVertexBuffer(uint32_t size_in_bytes, IBuffer** output) = 0;
         virtual bool createIndexBuffer(uint32_t size_in_bytes, IBuffer** output) = 0;
@@ -155,7 +153,7 @@ namespace core::Graphics
 
         virtual bool createSamplerState(SamplerState const& info, ISamplerState** pp_sampler) = 0;
 
-        static bool create(StringView preferred_gpu, IDevice** p_device);
+        static bool create(IDevice** p_device);
     };
 }
 

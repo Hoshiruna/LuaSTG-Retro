@@ -25,6 +25,8 @@ namespace luastg
 
     void AppFrame::SnapShot(const char* path) noexcept
     {
+        if(!GetRenderer2D()->flush())
+            return;
         if(!GetAppModel()->getSwapChain()->saveSnapshotToFile(path)) {
             spdlog::error("[luastg] SnapShot: 保存截图到文件'{}'失败", path);
             return;
@@ -32,6 +34,8 @@ namespace luastg
     }
     void AppFrame::SaveTexture(const char* tex_name, const char* path) noexcept
     {
+        if(!GetRenderer2D()->flush())
+            return;
         core::SmartReference<IResourceTexture> resTex = LRES.FindTexture(tex_name);
         if(!resTex) {
             spdlog::error("[luastg] SaveTexture: 找不到纹理资源'{}'", tex_name);

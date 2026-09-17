@@ -15,6 +15,6 @@
         "user": "userdata/"
     },
     "graphics_system": {
-        "allow_software_device": true
+        "renderer_driver": "auto"
     }
 }

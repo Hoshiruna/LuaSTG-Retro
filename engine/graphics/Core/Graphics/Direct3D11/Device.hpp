@@ -132,17 +132,7 @@ namespace core::Graphics::Direct3D11
         DeviceMemoryUsageStatistics getMemoryUsageStatistics();
 
         bool recreate();
-        void setPreferenceGpu(StringView preferred_gpu) { preferred_adapter_name = preferred_gpu; }
-        uint32_t getGpuCount() { return static_cast<uint32_t>(dxgi_adapter_name_list.size()); }
-        StringView getGpuName(uint32_t index) { return dxgi_adapter_name_list[index]; }
         StringView getCurrentGpuName() const noexcept { return dxgi_adapter_name; }
-
-        void* getNativeHandle() { return d3d11_device.Get(); }
-#ifdef LUASTG_ENABLE_DIRECT2D
-        void* getNativeRendererHandle() { return d2d1_devctx.Get(); }
-#else
-        void* getNativeRendererHandle() { return nullptr; }
-#endif
 
         bool createVertexBuffer(uint32_t size_in_bytes, IBuffer** output) override;
         bool createIndexBuffer(uint32_t size_in_bytes, IBuffer** output) override;

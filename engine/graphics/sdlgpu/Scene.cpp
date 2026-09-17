@@ -1,5 +1,6 @@
 #include "Scene.hpp"
 #include "Shaders.hpp"
+#include "TextureTransfer.hpp"
 #include <algorithm>
 #include <cstring>
 
@@ -199,31 +200,15 @@ namespace core::Graphics::SDLGPU
 
     std::vector<uint8_t> Scene::readback()
     {
-        SDL_GPUTransferBufferCreateInfo info{};
-        info.usage = SDL_GPU_TRANSFERBUFFERUSAGE_DOWNLOAD;
-        info.size = width * height * 4;
-        const TransferBuffer download(require(SDL_CreateGPUTransferBuffer(m_device, &info), "Create readback buffer"), { m_device });
+        TextureTransfer download(m_device, width, height, SDL_GPU_TRANSFERBUFFERUSAGE_DOWNLOAD);
         CopyCommand command(require(SDL_AcquireGPUCommandBuffer(m_device), "Acquire readback command"));
         {
             const auto pass = beginCopyPass(command.get());
-            SDL_GPUTextureRegion source{};
-            source.texture = m_effect.get();
-            source.w = width;
-            source.h = height;
-            source.d = 1;
-            SDL_GPUTextureTransferInfo destination{};
-            destination.transfer_buffer = download.get();
-            destination.pixels_per_row = width;
-            destination.rows_per_layer = height;
-            SDL_DownloadFromGPUTexture(pass.get(), &source, &destination);
+            download.download(pass.get(), m_effect.get());
         }
         const Fence fence(require(SDL_SubmitGPUCommandBufferAndAcquireFence(command.release()), "Submit readback command"), { m_device });
         SDL_GPUFence* const fences[] = { fence.get() };
         check(SDL_WaitForGPUFences(m_device, true, fences, 1), "Wait for readback fence");
-        std::vector<uint8_t> pixels(info.size);
-        const void* const mapped = require(SDL_MapGPUTransferBuffer(m_device, download.get(), false), "Map readback buffer");
-        std::memcpy(pixels.data(), mapped, pixels.size());
-        SDL_UnmapGPUTransferBuffer(m_device, download.get());
-        return pixels;
+        return download.readPixels();
     }
 }

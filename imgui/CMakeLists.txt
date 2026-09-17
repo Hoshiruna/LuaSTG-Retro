@@ -99,7 +99,7 @@ target_link_libraries(imgui_impl_sdl3 PUBLIC
 )
 set_target_properties(imgui_impl_sdl3 PROPERTIES FOLDER external)
 
-if (LUASTG_BUILD_SDLGPU_SMOKE)
+if (LUASTG_BUILD_SDLGPU_SMOKE OR LUASTG_USE_SDLGPU)
     add_library(imgui_impl_sdlgpu3 STATIC
         imgui/backends/imgui_impl_sdlgpu3.cpp
         imgui/backends/imgui_impl_sdlgpu3.h

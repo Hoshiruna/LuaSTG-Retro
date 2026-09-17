@@ -21,12 +21,6 @@ namespace core::Graphics::Direct3D11
 
         // IRenderTarget
 
-        [[nodiscard]] void* getNativeHandle() const noexcept override { return m_view.Get(); }
-#ifdef LUASTG_ENABLE_DIRECT2D
-        [[nodiscard]] void* getNativeBitmapHandle() const noexcept override { return m_bitmap.Get(); }
-#else
-        [[nodiscard]] void* getNativeBitmapHandle() const noexcept override { return nullptr; }
-#endif
         bool setSize(Vector2U size) override;
         [[nodiscard]] ITexture2D* getTexture() const noexcept override;
 

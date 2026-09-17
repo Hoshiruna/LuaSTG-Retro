@@ -425,9 +425,7 @@ namespace core::Graphics::Direct3D11
         // 获取适配器
 
         if(!selectAdapter()) {
-            if(!core::ConfigurationLoader::getInstance().getGraphicsSystem().isAllowSoftwareDevice()) {
-                return false;
-            }
+            return false;
         }
 
         // 检查适配器支持
@@ -485,28 +483,6 @@ namespace core::Graphics::Direct3D11
                 &d3d11_device,
                 &d3d_feature_level,
                 &d3d11_devctx);
-        } else if(core::ConfigurationLoader::getInstance().getGraphicsSystem().isAllowSoftwareDevice()) {
-            D3D_DRIVER_TYPE d3d_driver_type = D3D_DRIVER_TYPE_UNKNOWN;
-            hr = gHR = d3d11_loader.CreateDeviceFromSoftAdapter(
-                D3D11_CREATE_DEVICE_BGRA_SUPPORT,
-                D3D_FEATURE_LEVEL_10_0,
-                &d3d11_device,
-                &d3d_feature_level,
-                &d3d11_devctx,
-                &d3d_driver_type);
-            if(SUCCEEDED(hr)) {
-                switch(d3d_driver_type) {
-                    case D3D_DRIVER_TYPE_REFERENCE:
-                        spdlog::info("[core] 设备类型：参考光栅化设备");
-                        break;
-                    case D3D_DRIVER_TYPE_SOFTWARE:
-                        spdlog::info("[core] 设备类型：软件光栅化设备");
-                        break;
-                    case D3D_DRIVER_TYPE_WARP:
-                        spdlog::info("[core] 设备类型：Windows 高级光栅化平台（WARP）");
-                        break;
-                }
-            }
         }
         if(!d3d11_device) {
             i18n_core_system_call_report_error("D3D11CreateDevice");
@@ -1035,12 +1011,14 @@ namespace core::Graphics::Direct3D11
         if(bHR = dxgi_adapter.As(&adapter)) {
             DXGI_QUERY_VIDEO_MEMORY_INFO info = {};
             if(bHR = gHR = adapter->QueryVideoMemoryInfo(0, DXGI_MEMORY_SEGMENT_GROUP_LOCAL, &info)) {
+                data.local.available = true;
                 data.local.budget = info.Budget;
                 data.local.current_usage = info.CurrentUsage;
                 data.local.available_for_reservation = info.AvailableForReservation;
                 data.local.current_reservation = info.CurrentReservation;
             }
             if(bHR = gHR = adapter->QueryVideoMemoryInfo(0, DXGI_MEMORY_SEGMENT_GROUP_NON_LOCAL, &info)) {
+                data.non_local.available = true;
                 data.non_local.budget = info.Budget;
                 data.non_local.current_usage = info.CurrentUsage;
                 data.non_local.available_for_reservation = info.AvailableForReservation;
@@ -1068,10 +1046,10 @@ namespace core::Graphics::Direct3D11
 }
 namespace core::Graphics
 {
-    bool IDevice::create(StringView preferred_gpu, IDevice** p_device)
+    bool IDevice::create(IDevice** p_device)
     {
         try {
-            *p_device = new Direct3D11::Device(preferred_gpu);
+            *p_device = new Direct3D11::Device();
             return true;
         } catch(...) {
             *p_device = nullptr;

@@ -47,16 +47,6 @@ AppFrame::SetTitle(const char* v) noexcept
     }
 }
 void
-AppFrame::SetPreferenceGPU(const char* v) noexcept
-{
-    if(m_pAppModel) {
-        // TODO
-    } else {
-        auto& gs = core::ConfigurationLoader::getInstance().getGraphicsSystemRef();
-        gs.setPreferredDeviceName(v);
-    }
-}
-void
 AppFrame::SetSplash(bool v) noexcept
 {
     if(m_pAppModel) {

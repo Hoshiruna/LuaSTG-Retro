@@ -1,16 +1,19 @@
-﻿#include "RuntimeCheck.hpp"
+#include "RuntimeCheck.hpp"
 #include "core/Configuration.hpp"
 #include "Platform/MessageBox.hpp"
 #include "Platform/WindowsVersion.hpp"
 #include "Platform/CleanWindows.hpp"
 #include "Platform/ModuleLoader.hpp"
+#if !defined(LUASTG_GRAPHICS_SDLGPU)
 #include <dxgi1_6.h>
 #include <d3d11_4.h>
 #include "Platform/Direct3D11.hpp"
+#endif
 #include <shellapi.h>
 
 namespace luastg
 {
+#if !defined(LUASTG_GRAPHICS_SDLGPU)
     constexpr std::string_view const indent_string("    ");
     constexpr std::string_view const windows_7_name("Windows 7");
     constexpr std::string_view const service_pack_1_name("Windows 7 Service Pack 1 (KB976932)");
@@ -257,10 +260,15 @@ namespace luastg
                        "4. Virtual Machine or Cloud/Remote Computer may not support or not install a graphics card\n";
             }
             Platform::MessageBox::Error(title, text);
-            if(!core::ConfigurationLoader::getInstance().getGraphicsSystem().isAllowSoftwareDevice()) {
-                return false;
-            }
+            return false;
         }
         return true;
     }
+#else
+    bool checkEngineRuntimeRequirement()
+    {
+        // SDL GPU initialization reports the selected driver's requirements.
+        return true;
+    }
+#endif
 }

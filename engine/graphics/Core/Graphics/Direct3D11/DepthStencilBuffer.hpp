@@ -20,7 +20,6 @@ namespace core::Graphics::Direct3D11
 
         // IDepthStencilBuffer
 
-        [[nodiscard]] void* getNativeHandle() const noexcept override { return m_view.Get(); }
         bool setSize(Vector2U size) override;
         [[nodiscard]] Vector2U getSize() const noexcept override { return m_size; }
 

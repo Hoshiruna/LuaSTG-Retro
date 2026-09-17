@@ -18,7 +18,5 @@
 #include <Windows.h>
 #include <wrl/client.h>
 #include <wrl/wrappers/corewrappers.h>
-#include <dxgi1_6.h>
-#include <d3d11_4.h>
 
 #include "utf8.hpp"

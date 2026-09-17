@@ -1261,7 +1261,6 @@ namespace core::Graphics
         if(m_is_composition_mode) {
             HRGet = dcomp_desktop_device->CreateVisual(&dcomp_visual_root);
             HRCheckCallReturnBool("IDCompositionDesktopDevice::CreateVisual");
-
         }
 
         // 把交换链塞进可视物
@@ -2006,9 +2005,9 @@ namespace core::Graphics
         hr = gHR = DirectX::SaveWICTextureToFile(
             m_device->GetD3D11DeviceContext(),
             d3d11_resource.Get(),
-            GUID_ContainerFormatJpeg,
+            GUID_ContainerFormatPng,
             wpath.c_str(),
-            &GUID_WICPixelFormat24bppBGR);
+            &GUID_WICPixelFormat32bppBGRA);
         if(FAILED(hr)) {
             i18n_core_system_call_report_error("DirectX::SaveWICTextureToFile");
             return false;
@@ -2022,12 +2021,12 @@ namespace core::Graphics
     {
         assert(p_window);
         assert(p_device);
-        auto const& gs = core::ConfigurationLoader::getInstance().getGraphicsSystem();
+
         m_modern_swap_chain_available = checkModernSwapChainModelAvailable(m_device->GetD3D11Device());
-        m_disable_exclusive_fullscreen = !gs.isAllowExclusiveFullscreen();
-        m_disable_modern_swap_chain = !gs.isAllowModernSwapChain();
+        m_disable_exclusive_fullscreen = false;
+        m_disable_modern_swap_chain = false;
         m_enable_composition = false; // TODO
-        m_disable_composition = !gs.isAllowDirectComposition();
+        m_disable_composition = false;
         m_scaling_renderer.AttachDevice(m_device->GetD3D11Device());
         m_window->addEventListener(this);
         m_device->addEventListener(this);

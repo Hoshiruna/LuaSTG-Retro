@@ -36,9 +36,9 @@ include(cmake/msvc.crt.cmake)
 
 msvc_static_runtime_library()
 
-if (LUASTG_BUILD_SDLGPU_SMOKE)
+if (LUASTG_BUILD_SDLGPU_SMOKE OR LUASTG_USE_SDLGPU)
     if (NOT LUASTG_BUILD_RUNTIME OR NOT WIN32 OR NOT MSVC OR NOT LUASTG_ARCH STREQUAL "amd64")
-        message(FATAL_ERROR "The SDL GPU smoke application requires LUASTG_BUILD_RUNTIME=ON and Windows x64 with MSVC")
+        message(FATAL_ERROR "SDL GPU targets require LUASTG_BUILD_RUNTIME=ON and Windows x64 with MSVC")
     endif ()
 endif ()
 

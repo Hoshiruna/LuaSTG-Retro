@@ -195,26 +195,21 @@ namespace core
         class GraphicsSystem
         {
         public:
-            GetterSetterString(GraphicsSystem, preferred_device_name, PreferredDeviceName);
             GetterSetterPrimitive(GraphicsSystem, uint32_t, width, Width);
             GetterSetterPrimitive(GraphicsSystem, uint32_t, height, Height);
             GetterSetterBoolean(GraphicsSystem, fullscreen, Fullscreen);
             GetterSetterBoolean(GraphicsSystem, vsync, Vsync);
-            GetterSetterBoolean(GraphicsSystem, allow_software_device, AllowSoftwareDevice);
-            GetterSetterBoolean(GraphicsSystem, allow_exclusive_fullscreen, AllowExclusiveFullscreen);
-            GetterSetterBoolean(GraphicsSystem, allow_modern_swap_chain, AllowModernSwapChain);
-            GetterSetterBoolean(GraphicsSystem, allow_direct_composition, AllowDirectComposition);
+            GetterSetterString(GraphicsSystem, renderer_driver, RendererDriver);
 
         private:
-            std::string preferred_device_name;
             uint32_t width{ 640u };
             uint32_t height{ 480u };
             bool fullscreen{};
             bool vsync{};
-            bool allow_software_device{};
-            bool allow_exclusive_fullscreen{ true };
-            bool allow_modern_swap_chain{ true };
-            bool allow_direct_composition{ true };
+            // An SDL GPU driver name ("direct3d12", "vulkan", ...), or "auto" to probe in
+            // preference order. Deliberately a string rather than an enum: the vocabulary is
+            // SDL's, so an enum would need a new mirror table whenever SDL adds a backend.
+            std::string renderer_driver{ "auto" };
         };
         class AudioSystem
         {

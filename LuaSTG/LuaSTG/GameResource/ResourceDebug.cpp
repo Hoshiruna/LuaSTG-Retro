@@ -166,16 +166,17 @@ namespace luastg
             auto draw_texture0 = [](core::Graphics::ITexture2D* p_tex, float scale) -> void {
                 auto const size = p_tex->getSize();
                 ImGui::PushStyleVar(ImGuiStyleVar_ImageBorderSize, 1.0);
-                ImGui::Image(
-                    reinterpret_cast<size_t>(p_tex->getNativeHandle()),
-                    ImVec2(scale * (float)size.x, scale * (float)size.y),
-                    ImVec2(0.0f, 0.0f),
-                    ImVec2(1.0f, 1.0f));
+                LAPP.GetAppModel()->getGraphicsRuntime()->drawImGuiImage(
+                    p_tex,
+                    core::Vector2F(scale * (float)size.x, scale * (float)size.y),
+                    core::Vector2F(0.0f, 0.0f),
+                    core::Vector2F(1.0f, 1.0f));
                 ImGui::PopStyleVar();
             };
             auto draw_texture = [](IResourceTexture* p_res, bool show_info, float scale) -> void {
                 auto const size = p_res->GetTexture()->getSize();
                 if(show_info) {
+                    ImGui::Text("Texture ID: %llu", static_cast<unsigned long long>(p_res->GetTexture()->getDebugId()));
                     ImGui::Text("Size: %u x %u", size.x, size.y);
                     ImGui::Text("RenderTarget: %s", p_res->IsRenderTarget() ? "Yes" : "Not");
                     ImGui::Text("Dynamic: %s", p_res->IsRenderTarget() ? "Yes" : "Not");
@@ -183,11 +184,11 @@ namespace luastg
                     ImGui::Text("Adapter Memory Usage (Approximate): %s", bytes_count_to_string(mem_usage).c_str());
                 }
                 ImGui::PushStyleVar(ImGuiStyleVar_ImageBorderSize, 1.0);
-                ImGui::Image(
-                    reinterpret_cast<size_t>(p_res->GetTexture()->getNativeHandle()),
-                    ImVec2(scale * (float)size.x, scale * (float)size.y),
-                    ImVec2(0.0f, 0.0f),
-                    ImVec2(1.0f, 1.0f));
+                LAPP.GetAppModel()->getGraphicsRuntime()->drawImGuiImage(
+                    p_res->GetTexture(),
+                    core::Vector2F(scale * (float)size.x, scale * (float)size.y),
+                    core::Vector2F(0.0f, 0.0f),
+                    core::Vector2F(1.0f, 1.0f));
                 ImGui::PopStyleVar();
             };
             auto draw_sprite = [](core::Graphics::ISprite* p_res, bool show_info, bool focus, float scale) -> void {
@@ -207,11 +208,11 @@ namespace luastg
                 }
                 ImGui::PushStyleVar(ImGuiStyleVar_ImageBorderSize, 1.0);
                 ImGui::PushStyleColor(ImGuiCol_Border, color);
-                ImGui::Image(
-                    reinterpret_cast<size_t>(p_tex->getNativeHandle()),
-                    ImVec2(scale * (rc.b.x - rc.a.x), scale * (rc.b.y - rc.a.y)),
-                    ImVec2(rc.a.x / (float)tex_size.x, rc.a.y / (float)tex_size.y),
-                    ImVec2(rc.b.x / (float)tex_size.x, rc.b.y / (float)tex_size.y));
+                LAPP.GetAppModel()->getGraphicsRuntime()->drawImGuiImage(
+                    p_tex,
+                    core::Vector2F(scale * (rc.b.x - rc.a.x), scale * (rc.b.y - rc.a.y)),
+                    core::Vector2F(rc.a.x / (float)tex_size.x, rc.a.y / (float)tex_size.y),
+                    core::Vector2F(rc.b.x / (float)tex_size.x, rc.b.y / (float)tex_size.y));
                 ImGui::PopStyleColor();
                 ImGui::PopStyleVar();
             };
