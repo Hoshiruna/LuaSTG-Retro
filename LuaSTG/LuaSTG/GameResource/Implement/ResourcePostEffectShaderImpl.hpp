@@ -16,6 +16,6 @@ namespace luastg
 
     public:
         ResourcePostEffectShaderImpl(const char* name, const char* path);
-        ResourcePostEffectShaderImpl(const char* name, std::string_view source, bool from_source);
+        ResourcePostEffectShaderImpl(const char* name, std::string_view source, bool from_source, std::string_view source_name = {});
     };
 }

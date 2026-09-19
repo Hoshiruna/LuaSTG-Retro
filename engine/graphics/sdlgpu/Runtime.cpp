@@ -9,10 +9,10 @@ namespace core::Graphics::SDLGPU
     class Runtime final : public IGraphicsRuntime
     {
     public:
-        Runtime(IWindow* window, StringView renderer_driver)
+        explicit Runtime(IWindow* window)
             : m_window(window)
         {
-            m_device.attach(new Device(window, renderer_driver));
+            m_device.attach(new Device(window));
             m_renderer.attach(new Renderer(m_device.get()));
             m_swapchain.attach(new SwapChain(m_device.get()));
             m_swapchain->setRenderer(m_renderer.get());
@@ -144,22 +144,8 @@ namespace core::Graphics::SDLGPU
 
 namespace core::Graphics
 {
-    std::unique_ptr<IGraphicsRuntime> IGraphicsRuntime::create(IWindow* window, StringView renderer_driver)
+    std::unique_ptr<IGraphicsRuntime> IGraphicsRuntime::create(IWindow* window)
     {
-        return std::make_unique<SDLGPU::Runtime>(window, renderer_driver);
-    }
-    bool IMesh::create(IDevice*, MeshOptions const&, IMesh** output)
-    {
-        if(output)
-            *output = nullptr;
-        Logger::error("[sdlgpu] Meshes are not supported in the core 2D milestone");
-        return false;
-    }
-    bool IMeshRenderer::create(IDevice*, IMeshRenderer** output)
-    {
-        if(output)
-            *output = nullptr;
-        Logger::error("[sdlgpu] Mesh rendering is not supported in the core 2D milestone");
-        return false;
+        return std::make_unique<SDLGPU::Runtime>(window);
     }
 }

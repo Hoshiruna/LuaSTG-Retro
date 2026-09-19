@@ -104,10 +104,8 @@ namespace core::Graphics
         bool m_imgui{};
     };
 
-    std::unique_ptr<IGraphicsRuntime> IGraphicsRuntime::create(IWindow* window, StringView renderer_driver)
+    std::unique_ptr<IGraphicsRuntime> IGraphicsRuntime::create(IWindow* window)
     {
-        // Direct3D 11 is a single driver, so there is nothing to select between.
-        (void)renderer_driver;
         return std::make_unique<D3D11Runtime>(window);
     }
 }

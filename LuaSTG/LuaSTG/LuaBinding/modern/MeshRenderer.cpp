@@ -6,6 +6,7 @@
 #include "AppFrame.h"
 #include "GameResource/LegacyBlendStateHelper.hpp"
 #include <DirectXMath.h>
+#include <new>
 
 using std::string_view_literals::operator""sv;
 
@@ -207,10 +208,9 @@ namespace luastg::binding
     MeshRenderer* MeshRenderer::create(lua_State* vm)
     {
         lua::stack_t const ctx(vm);
-        auto const self = ctx.create_userdata<MeshRenderer>();
+        auto const self = new(ctx.create_userdata<MeshRenderer>()) MeshRenderer{};
         auto const self_index = ctx.index_of_top();
         ctx.set_metatable(self_index, class_name);
-        self->data = nullptr;
         return self;
     }
     void MeshRenderer::registerClass(lua_State* vm)

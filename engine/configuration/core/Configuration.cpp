@@ -439,19 +439,6 @@ namespace core
                     assert_type_is_boolean(vsync, "/graphics_system/vsync"sv);
                     loader.graphics_system.setVsync(vsync.get<bool>());
                 }
-                if(graphics_system.contains("renderer_driver"sv)) {
-                    auto const& renderer_driver = graphics_system.at("renderer_driver"sv);
-                    assert_type_is_string(renderer_driver, "/graphics_system/renderer_driver"sv);
-                    auto const& v = renderer_driver.get_ref<std::string const&>();
-                    // Only the empty string is rejected here. Whether a named driver is actually
-                    // available is a question for the graphics backend, which is where the error
-                    // can name the drivers this machine does support.
-                    if(v.empty()) {
-                        error_callback("[/graphics_system/renderer_driver] renderer driver must not be empty; use \"auto\" to select one automatically"sv);
-                        return false;
-                    }
-                    loader.graphics_system.setRendererDriver(v);
-                }
                 // TODO: display
             }
 

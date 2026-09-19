@@ -167,7 +167,7 @@ namespace core::Graphics
             return false;
         *output = nullptr;
         try {
-            *output = new SDLGPU::SwapChain(window, static_cast<SDLGPU::Device*>(device));
+            *output = new SDLGPU::SwapChain(static_cast<SDLGPU::Device*>(device));
             return true;
         } catch(const std::exception& error) {
             Logger::error("[sdlgpu] Create swapchain: {}", error.what());

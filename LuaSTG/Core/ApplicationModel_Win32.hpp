@@ -2,6 +2,7 @@
 
 #include "Core/ApplicationModel.hpp"
 #include "core/SdlRuntime.hpp"
+#include "core/SmartReference.hpp"
 #include "core/Window.hpp"
 #include "core/implement/ReferenceCounted.hpp"
 
@@ -41,6 +42,7 @@ namespace core
         SmartReference<IWindow> m_window;
         std::atomic_bool m_exit_flag{};
         bool m_running{};
+        bool m_has_updated{};
         bool m_updating{};
         bool m_rendering{};
 

@@ -16,9 +16,7 @@ namespace core::Graphics::SDLGPU
     class Device final : public implement::ReferenceCounted<IDevice>
     {
     public:
-        // Selecting the driver and claiming the window happen together: an "auto" selection
-        // only accepts a driver that can also present to this window.
-        Device(IWindow* window, StringView renderer_driver);
+        explicit Device(IWindow* window);
         ~Device() override;
         void addEventListener(IDeviceEventListener* listener) override;
         void removeEventListener(IDeviceEventListener* listener) override;
@@ -82,6 +80,7 @@ namespace core::Graphics::SDLGPU
         void setSamplerState(ISamplerState* sampler) override;
         ISamplerState* getSamplerState() const noexcept override { return m_sampler.get(); }
         SDL_GPUTexture* handle() const noexcept { return m_texture.get(); }
+        Device* device() const noexcept { return m_device.get(); }
         // Engine pixel uploads use BGRA8; retained pixels and GPU textures use RGBA8.
         void uploadRgba(std::span<const uint8_t> pixels);
 

@@ -9,9 +9,9 @@ namespace luastg::binding
         static std::string_view class_name;
 
         [[maybe_unused]] core::Graphics::IMeshRenderer* data{};
-        [[maybe_unused]] core::Vector3F position;
-        [[maybe_unused]] core::Vector3F scale;
-        [[maybe_unused]] core::Vector3F rotation_yaw_pitch_roll;
+        [[maybe_unused]] core::Vector3F position{};
+        [[maybe_unused]] core::Vector3F scale{ 1.0f, 1.0f, 1.0f };
+        [[maybe_unused]] core::Vector3F rotation_yaw_pitch_roll{};
 
         static bool is(lua_State* vm, int index);
         static MeshRenderer* as(lua_State* vm, int index);

@@ -98,12 +98,7 @@ camera3d.z  = -1
 local M = {}
 
 function M:onCreate()
-    --resources.loadModel("model:test", "D:\\Project\\th\\thzzs-res\\模型\\007云树（高面数）\\007云树循环（实心）.gltf")
-    --resources.loadModel("model:test_top", "D:\\Project\\th\\thzzs-res\\模型\\007云树（高面数）\\007云树顶部（实心）.gltf")
-    --resources.loadModel("model:test", "D:\\Project\\khr\\glTF-Sample-Assets\\Models\\AlphaBlendModeTest\\glTF-Embedded\\AlphaBlendModeTest.gltf")
-    --resources.loadModel("model:test", "D:\\Project\\khr\\glTF-Sample-Assets\\Models\\CompareAlphaCoverage\\glTF\\CompareAlphaCoverage.gltf")
-    --resources.loadModel("model:test", "D:\\Project\\khr\\glTF-Sample-Assets\\Models\\VertexColorTest\\glTF-Embedded\\VertexColorTest.gltf")
-    resources.loadModel("model:test", "D:\\Project\\khr\\glTF-Sample-Assets\\Models\\BoxVertexColors\\glTF-Embedded\\BoxVertexColors.gltf")
+    resources.loadModel("model:test", "res/geometry/vertex.gltf")
     self.timer = 0
 end
 

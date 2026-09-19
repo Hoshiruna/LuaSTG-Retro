@@ -20,7 +20,10 @@
 #include <SDL3/SDL_main.h>
 #include <cstdio>
 #include <cstdlib>
+#include <exception>
 #include <memory>
+#include <spdlog/sinks/basic_file_sink.h>
+#include <spdlog/spdlog.h>
 
 using std::string_view_literals::operator""sv;
 using std::string_literals::operator""s;
@@ -82,7 +85,6 @@ static std::unordered_map<std::string_view, std::string_view> i18n_map[2] = {
         { "config-graphics-system-resolution", "分辨率" },
         { "config-graphics-system-fullscreen", "全屏显示" },
         { "config-graphics-system-vsync", "垂直同步（防止画面撕裂）" },
-        { "config-graphics-system-renderer-driver", "渲染驱动" },
         { "config-audio-system", "音频" },
         { "config-audio-system-master-volume", "主音量" },
         { "config-audio-system-sound-effect-volume", "音效音量" },
@@ -137,7 +139,6 @@ static std::unordered_map<std::string_view, std::string_view> i18n_map[2] = {
         { "config-graphics-system-resolution", "Resolution" },
         { "config-graphics-system-fullscreen", "Fullscreen" },
         { "config-graphics-system-vsync", "VSync (prevent screen tearing)" },
-        { "config-graphics-system-renderer-driver", "Renderer driver" },
         { "config-audio-system", "Audio" },
         { "config-audio-system-master-volume", "Master volume" },
         { "config-audio-system-sound-effect-volume", "Sound effect volume" },
@@ -304,46 +305,6 @@ namespace
     }
 }
 
-// Renderer Driver
-
-namespace
-{
-    // The driver vocabulary belongs to SDL, so enumerate it at runtime rather than
-    // hardcoding a list that would go stale the next time SDL gains a backend.
-    void showRendererDriverEdit(nlohmann::json& json, const nlohmann::json_pointer<std::string>& path)
-    {
-        const std::string current = json.value(path, "auto"s);
-        const std::string automatic = "auto "s + std::string(i18n("common-default2"sv));
-        ImGui::AlignTextToFramePadding();
-        ImGui::TextUnformatted(i18n_c_str("config-graphics-system-renderer-driver"sv));
-        ImGui::PushID(i18n_c_str("config-graphics-system-renderer-driver"sv));
-        ImGui::SetNextItemWidth(-FLT_MIN);
-        if(ImGui::BeginCombo("##", current == "auto"sv ? automatic.c_str() : current.c_str())) {
-            if(ImGui::Selectable(automatic.c_str(), current == "auto"sv)) {
-                json[path] = "auto"sv;
-            }
-            for(int i = 0; i < SDL_GetNumGPUDrivers(); ++i) {
-                char const* const driver = SDL_GetGPUDriver(i);
-                if(driver == nullptr) {
-                    continue;
-                }
-                // Offer only drivers that can both run here and consume the shader formats
-                // the engine produces. A driver named explicitly is never fallen back from,
-                // so listing an unusable one would just hand the user a startup failure.
-                constexpr SDL_GPUShaderFormat formats = SDL_GPU_SHADERFORMAT_DXIL | SDL_GPU_SHADERFORMAT_SPIRV | SDL_GPU_SHADERFORMAT_MSL;
-                if(!SDL_GPUSupportsShaderFormats(formats, driver)) {
-                    continue;
-                }
-                if(ImGui::Selectable(driver, current == driver)) {
-                    json[path] = driver;
-                }
-            }
-            ImGui::EndCombo();
-        }
-        ImGui::PopID();
-    }
-}
-
 constexpr UINT WINDOW_SIZE_X = 400;
 constexpr UINT WINDOW_SIZE_Y = 300;
 
@@ -366,31 +327,13 @@ struct Window
     bool want_exit{};
     bool is_updating{};
     bool is_rendering{};
-    bool event_watch_registered{};
     bool graphics_initialized{};
     bool imgui_context_created{};
     bool imgui_platform_initialized{};
     bool imgui_renderer_initialized{};
 
-    static bool SDLCALL EventWatch(void* const userdata, SDL_Event* const event)
-    {
-        auto* const self = static_cast<Window*>(userdata);
-        if(self == nullptr || event == nullptr || event->type != SDL_EVENT_WINDOW_EXPOSED || !self->is_open) {
-            return true;
-        }
-        if(event->window.windowID == self->window_id) {
-            self->RenderCurrentFrame();
-        }
-        return true;
-    }
-
     int Run()
     {
-        if(!SDL_AddEventWatch(&Window::EventWatch, this)) {
-            throw std::runtime_error(std::string("SDL_AddEventWatch failed: ") + SDL_GetError());
-        }
-        event_watch_registered = true;
-
         while(!want_exit) {
             SDL_Event event{};
             while(SDL_PollEvent(&event)) {
@@ -433,8 +376,6 @@ struct Window
             }
         }
 
-        SDL_RemoveEventWatch(&Window::EventWatch, this);
-        event_watch_registered = false;
         return 0;
     }
     void OnPixelSize(const UINT width, const UINT height)
@@ -610,9 +551,6 @@ struct Window
 
         showCheckBoxEdit(config_json, "/graphics_system/fullscreen"_json_pointer, "config-graphics-system-fullscreen"sv, false);
         showCheckBoxEdit(config_json, "/graphics_system/vsync"_json_pointer, "config-graphics-system-vsync"sv, false);
-        // Not gated behind the advanced toggle: with adapter selection gone, this is the only
-        // graphics knob left for a user whose machine misbehaves on one driver.
-        showRendererDriverEdit(config_json, "/graphics_system/renderer_driver"_json_pointer);
     }
     void LayoutAudioSystemTab()
     {
@@ -724,7 +662,7 @@ struct Window
     {
         if(config_json.contains("graphics_system") && config_json["graphics_system"].is_object()) {
             auto& graphics_config = config_json["graphics_system"];
-            for(auto const* key : { "preferred_device_name", "allow_software_device", "allow_exclusive_fullscreen", "allow_modern_swap_chain", "allow_direct_composition" }) {
+            for(auto const* key : { "preferred_device_name", "allow_software_device", "allow_exclusive_fullscreen", "allow_modern_swap_chain", "allow_direct_composition", "renderer_driver" }) {
                 graphics_config.erase(key);
             }
         }
@@ -737,7 +675,6 @@ struct Window
     Window()
     {
         try {
-            // Before the graphics runtime, which is created on the configured driver.
             loadConfigFromJson();
             if(!core::IWindow::create({ WINDOW_SIZE_X, WINDOW_SIZE_Y }, "", core::WindowFrameStyle::Normal, false, window.put())) {
                 throw std::runtime_error("IWindow::create failed");
@@ -758,18 +695,7 @@ struct Window
                 throw std::runtime_error("IWindow::setVisible failed");
             }
 
-            // The Configurer is where a bad driver name gets fixed, so it has to start even
-            // when the configured driver cannot run here: fall back and let the user choose.
-            const std::string driver = config_json.value("/graphics_system/renderer_driver"_json_pointer, "auto"s);
-            try {
-                graphics = core::Graphics::IGraphicsRuntime::create(window.get(), driver);
-            } catch(const std::exception& error) {
-                if(driver == "auto"s) {
-                    throw;
-                }
-                SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "Configured renderer driver \"%s\" is unusable (%s); showing settings on an automatically selected driver", driver.c_str(), error.what());
-                graphics = core::Graphics::IGraphicsRuntime::create(window.get(), "auto");
-            }
+            graphics = core::Graphics::IGraphicsRuntime::create(window.get());
             if(!graphics->swapChain()->setCanvasSize({ pixel_width, pixel_height }) ||
                 !graphics->swapChain()->setWindowMode({ pixel_width, pixel_height })) {
                 throw std::runtime_error("Create Settings presentation failed");
@@ -808,10 +734,6 @@ struct Window
     }
     void Shutdown() noexcept
     {
-        if(event_watch_registered) {
-            SDL_RemoveEventWatch(&Window::EventWatch, this);
-            event_watch_registered = false;
-        }
         is_open = false;
         if(imgui_renderer_initialized) {
             graphics->shutdownImGui();
@@ -841,17 +763,20 @@ struct Window
 int
 main(int, char**)
 {
-    core::SdlRuntime sdl_runtime;
-    if(!sdl_runtime.initialize()) {
-        std::fprintf(stderr, "SDL_Init failed: %s\n", SDL_GetError());
-        return EXIT_FAILURE;
-    }
-
     try {
+        auto logger = spdlog::basic_logger_mt("settings", SPDLOG_FILENAME_T("settings.log"), true);
+        logger->flush_on(spdlog::level::info);
+        spdlog::set_default_logger(logger);
+
+        core::SdlRuntime sdl_runtime;
+        if(!sdl_runtime.initialize()) {
+            throw std::runtime_error(std::string("SDL_Init failed: ") + SDL_GetError());
+        }
+
         Window window;
         return window.Run();
-    } catch(std::runtime_error const& e) {
-        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Error", e.what(), nullptr);
+    } catch(std::exception const& e) {
+        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Settings error", e.what(), nullptr);
     }
     return EXIT_FAILURE;
 }

@@ -769,7 +769,8 @@ namespace luastg
         if(lua_isuserdata(L, 1)) {
             auto* p_effect = binding::PostEffectShader::Cast(L, 1);
             const core::Graphics::IRenderer::BlendState blend = translate_blend_3d(TranslateBlendMode(L, 2));
-            LR2D()->drawPostEffect(p_effect, blend);
+            if(!LR2D()->drawPostEffect(p_effect, blend))
+                return luaL_error(L, "PostEffect failed; see the engine log for details");
             return 0;
         }
 
@@ -830,12 +831,13 @@ namespace luastg
                 }
             }
 
-            LR2D()->drawPostEffect(pfx->GetPostEffectShader(), blend);
+            if(!LR2D()->drawPostEffect(pfx->GetPostEffectShader(), blend))
+                return luaL_error(L, "PostEffect failed; see the engine log for details");
 
             return 0;
         }
 
-        // 下面是傻逼风格
+        // Positional parameters and texture/sampler pairs.
 
         const char* ps_name = luaL_checkstring(L, 1);
         const char* rt_name = luaL_checkstring(L, 2);
@@ -871,7 +873,7 @@ namespace luastg
             lua_pop(L, 5);
         }
         size_t tdata_n = lua_objlen(L, 6);
-        tdata_n = (tdata_n <= 8) ? tdata_n : 4;
+        tdata_n = (tdata_n <= 4) ? tdata_n : 4;
         for(int i = 1; i <= (int)tdata_n; i += 1) {
             lua_rawgeti(L, 6, i); // ??? t
             luaL_argcheck(L, lua_istable(L, -1), 6, "shader resources must be an array of lua table, each table contains the name of texture and sampler type");
@@ -884,9 +886,11 @@ namespace luastg
             check_rendertarget_usage(ptex);
             tdata[i - 1] = ptex->GetTexture();
             tsdata[i - 1] = (core::Graphics::IRenderer::SamplerState)luaL_checkinteger(L, -1);
+            lua_pop(L, 3);
         }
 
-        LR2D()->drawPostEffect(pfx->GetPostEffectShader(), blend, prt->GetTexture(), rtsv, cbdata, cbdata_n, tdata, tsdata, tdata_n);
+        if(!LR2D()->drawPostEffect(pfx->GetPostEffectShader(), blend, prt->GetTexture(), rtsv, cbdata, cbdata_n, tdata, tsdata, tdata_n))
+            return luaL_error(L, "PostEffect failed; see the engine log for details");
 
         return 0;
     }

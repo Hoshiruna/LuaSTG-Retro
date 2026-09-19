@@ -162,7 +162,7 @@ namespace core::Graphics
         virtual bool drawRequest(uint16_t nvert, uint16_t nidx, DrawVertex** ppvert, DrawIndex** ppidx, uint16_t* idxoffset) = 0;
 
         virtual bool createPostEffectShader(StringView path, IPostEffectShader** pp_effect) = 0;
-        virtual bool createPostEffectShaderFromSource(StringView source, IPostEffectShader** pp_effect) = 0;
+        virtual bool createPostEffectShaderFromSource(StringView source, IPostEffectShader** pp_effect, StringView source_name = {}) = 0;
         virtual bool drawPostEffect(
             IPostEffectShader* p_effect,
             BlendState blend,

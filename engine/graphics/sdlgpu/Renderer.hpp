@@ -1,6 +1,8 @@
 #pragma once
 
 #include "Device.hpp"
+#include "PostEffectReflection.hpp"
+#include "Core/Graphics/Mesh.hpp"
 #include <DirectXMath.h>
 #include <array>
 #include <map>
@@ -8,6 +10,9 @@
 
 namespace core::Graphics::SDLGPU
 {
+    class PostEffectShader;
+    class Mesh;
+    struct ModelPrimitive;
     class Renderer final : public implement::ReferenceCounted<IRenderer>
     {
     public:
@@ -38,7 +43,7 @@ namespace core::Graphics::SDLGPU
         bool drawRaw(DrawVertex const* vertices, uint16_t vertex_count, DrawIndex const* indices, uint16_t index_count) override;
         bool drawRequest(uint16_t vertices, uint16_t indices, DrawVertex** output_vertices, DrawIndex** output_indices, uint16_t* offset) override;
         bool createPostEffectShader(StringView path, IPostEffectShader** output) override;
-        bool createPostEffectShaderFromSource(StringView source, IPostEffectShader** output) override;
+        bool createPostEffectShaderFromSource(StringView source, IPostEffectShader** output, StringView source_name = {}) override;
         bool drawPostEffect(IPostEffectShader*, BlendState, ITexture2D*, IRenderer::SamplerState, Vector4F const*, size_t, ITexture2D* const*, IRenderer::SamplerState const*, size_t) override;
         bool drawPostEffect(IPostEffectShader*, BlendState) override;
         bool createModel(StringView path, IModel** output) override;
@@ -47,11 +52,25 @@ namespace core::Graphics::SDLGPU
 
         void setDefaultAttachment(IRenderTarget* target, IDepthStencilBuffer* depth);
         SDL_GPURenderPass* beginPass(bool clear_color = false, Color4B color = {}, bool clear_depth = false, float depth = 1.0f);
+        bool applyPostEffect(PostEffectShader& shader);
+        bool drawMesh(Mesh& mesh, Matrix4F const& transform);
 
     private:
+        SmartReference<Device> m_device;
+        static SDL_GPUColorTargetBlendState blendState(BlendState state);
+        bool drawEffect(PostEffectShader& shader, BlendState blend, std::span<const SDL_GPUTextureSamplerBinding> bindings, std::span<const EffectBuffer> buffers);
         using PipelineKey = std::tuple<BlendState, DepthState, bool, VertexColorBlendState, FogState, bool>;
         SDL_GPUGraphicsPipeline* pipeline();
-        SmartReference<Device> m_device;
+        SDL_GPUGraphicsPipeline* meshPipeline(Mesh const& mesh);
+        SDL_Rect applyViewport(SDL_GPURenderPass* pass);
+        void bindSpriteParameters(SDL_GPURenderPass* pass, Texture2D* texture, SDLGPU::SamplerState* sampler);
+        using MeshPipelineKey = std::tuple<PipelineKey, bool, bool, PrimitiveTopology>;
+        std::map<MeshPipelineKey, Pipeline> m_mesh_pipelines;
+        std::array<Shader, 4> m_mesh_shaders;
+        SDL_GPUGraphicsPipeline* modelPipeline(ModelPrimitive const& primitive);
+        using ModelPipelineKey = std::tuple<int, bool, bool, uint32_t, FogState>;
+        std::map<ModelPipelineKey, Pipeline> m_model_pipelines;
+        Shader m_model_vertex, m_model_fragment;
         SmartReference<IRenderTarget> m_default_target;
         SmartReference<IDepthStencilBuffer> m_default_depth;
         SmartReference<IRenderTarget> m_target;
@@ -61,6 +80,8 @@ namespace core::Graphics::SDLGPU
         std::array<SmartReference<ISamplerState>, 8> m_samplers;
         Shader m_vertex_shader;
         Shader m_fragment_shader;
+        Shader m_effect_vertex_shader;
+        SDL_GPURenderPass* m_effect_pass{};
         std::map<PipelineKey, Pipeline> m_pipelines;
         GpuResource<SDL_GPUBuffer, SDL_ReleaseGPUBuffer> m_vertex_buffer;
         GpuResource<SDL_GPUBuffer, SDL_ReleaseGPUBuffer> m_index_buffer;

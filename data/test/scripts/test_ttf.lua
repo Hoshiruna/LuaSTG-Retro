@@ -4,7 +4,7 @@ local resources = require("resource_pool")
 ---@class test.Module.DynamicFont : test.Base
 local M = {}
 
-local FONT_PATH = "res/model/syst_heavy.otf"
+local FONT_PATH = (os.getenv("WINDIR") or "C:/Windows") .. "/Fonts/segoeui.ttf"
 
 local function descriptor(pixel_height, options)
     local result = {

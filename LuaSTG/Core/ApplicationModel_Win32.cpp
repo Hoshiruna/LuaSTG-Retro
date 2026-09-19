@@ -94,7 +94,7 @@ namespace core
 
     void ApplicationModel_Win32::renderExposedFrame()
     {
-        if(m_updating || m_rendering || m_exit_flag.load(std::memory_order_relaxed)) {
+        if(!m_has_updated || m_updating || m_rendering || m_exit_flag.load(std::memory_order_relaxed)) {
             return;
         }
 
@@ -130,6 +130,7 @@ namespace core
         }
 
         m_exit_flag.store(false, std::memory_order_relaxed);
+        m_has_updated = false;
         m_running = true;
         while(!m_exit_flag.load(std::memory_order_relaxed)) {
             SDL_Event event{};
@@ -167,6 +168,7 @@ namespace core
             ScopeTimer update_timer(statistics.update_time);
             m_updating = true;
             update_result = m_listener->onUpdate();
+            m_has_updated = update_result;
             m_updating = false;
         }
 
@@ -249,8 +251,7 @@ namespace core
         if(!IWindow::create(m_window.put())) {
             throw std::runtime_error("IWindow::create");
         }
-        m_graphics = Graphics::IGraphicsRuntime::create(m_window.get(),
-            ConfigurationLoader::getInstance().getGraphicsSystem().getRendererDriver());
+        m_graphics = Graphics::IGraphicsRuntime::create(m_window.get());
         if(!InputSystem::getInstance().initialize()) {
             throw std::runtime_error("InputSystem::initialize");
         }

@@ -19,7 +19,7 @@ namespace core::Graphics::SDLGPU
             return { color.r / 255.0f, color.g / 255.0f, color.b / 255.0f, color.a / 255.0f };
         }
 
-        SDL_GPUColorTargetBlendState blendState(IRenderer::BlendState state)
+        SDL_GPUColorTargetBlendState makeBlendState(IRenderer::BlendState state)
         {
             using Blend = IRenderer::BlendState;
             SDL_GPUColorTargetBlendState result{};
@@ -65,11 +65,11 @@ namespace core::Graphics::SDLGPU
             return result;
         }
 
-        bool unsupported(const char* feature)
-        {
-            Logger::error("[sdlgpu] {} is not supported in the core 2D milestone", feature);
-            return false;
-        }
+    }
+
+    SDL_GPUColorTargetBlendState Renderer::blendState(BlendState state)
+    {
+        return makeBlendState(state);
     }
 
     Renderer::Renderer(Device* device)
@@ -205,39 +205,9 @@ namespace core::Graphics::SDLGPU
             const SDL_GPUBufferBinding index_binding{ m_index_buffer.get(), 0 };
             SDL_BindGPUVertexBuffers(pass, 0, &vertex_binding, 1);
             SDL_BindGPUIndexBuffer(pass, &index_binding, SDL_GPU_INDEXELEMENTSIZE_16BIT);
-            const SDL_GPUViewport viewport{ m_viewport.a.x, m_viewport.a.y, m_viewport.b.x - m_viewport.a.x, m_viewport.b.y - m_viewport.a.y, m_viewport.a.z, m_viewport.b.z };
-            SDL_SetGPUViewport(pass, &viewport);
-            const auto size = m_target->getTexture()->getSize();
-            const int left = std::clamp(static_cast<int>(m_scissor.a.x), 0, static_cast<int>(size.x));
-            const int top = std::clamp(static_cast<int>(m_scissor.a.y), 0, static_cast<int>(size.y));
-            const int right = std::clamp(static_cast<int>(m_scissor.b.x), left, static_cast<int>(size.x));
-            const int bottom = std::clamp(static_cast<int>(m_scissor.b.y), top, static_cast<int>(size.y));
-            const SDL_Rect scissor{ left, top, right - left, bottom - top };
-            SDL_SetGPUScissor(pass, &scissor);
+            const auto scissor = applyViewport(pass);
             SDL_PushGPUVertexUniformData(frame->command(), 0, &m_matrix, sizeof(m_matrix));
-            const auto& description = sampler->description();
-            const auto filter = description.filer;
-            const bool min_linear = filter != Filter::Point && filter != Filter::PointMagLinear && filter != Filter::PointMipLinear && filter != Filter::LinearMinPoint;
-            const bool mag_linear = filter != Filter::Point && filter != Filter::PointMinLinear && filter != Filter::PointMipLinear && filter != Filter::LinearMagPoint;
-            const bool mip_linear = filter == Filter::Linear || filter == Filter::Anisotropic || filter == Filter::LinearMinPoint || filter == Filter::LinearMagPoint || filter == Filter::PointMipLinear;
-            const bool white_border = description.border_color == BorderColor::White || description.border_color == BorderColor::TransparentWhite;
-            const bool opaque_border = description.border_color == BorderColor::White || description.border_color == BorderColor::OpaqueBlack;
-            struct Parameters
-            {
-                float eye[4];
-                SDL_FColor fog;
-                float fog_range[4];
-                uint32_t modes[4];
-                uint32_t addressing[4];
-                float border[4];
-                float lod[4];
-            };
-            const Parameters parameters{
-                { m_eye.x, m_eye.y, m_eye.z, 0 }, normalized(m_fog_color), { m_fog_near, m_fog_far, 0, 0 }, { uint32_t(m_color), uint32_t(m_fog), texture->isPremultipliedAlpha() ? 1u : 0u, filter == Filter::Anisotropic ? std::clamp(description.max_anisotropy, 1u, 16u) : 1u }, { uint32_t(description.address_u), uint32_t(description.address_v), uint32_t(min_linear), uint32_t(mag_linear) }, { float(white_border), float(white_border), float(white_border), float(opaque_border) }, { description.mip_lod_bias, description.min_lod, description.max_lod, float(mip_linear) }
-            };
-            SDL_PushGPUFragmentUniformData(frame->command(), 0, &parameters, sizeof(parameters));
-            const SDL_GPUTextureSamplerBinding binding{ texture->handle(), sampler->handle() };
-            SDL_BindGPUFragmentSamplers(pass, 0, &binding, 1);
+            bindSpriteParameters(pass, texture, sampler);
             if(scissor.w && scissor.h)
                 SDL_DrawGPUIndexedPrimitives(pass, static_cast<uint32_t>(m_indices.size()), 1, 0, 0, 0);
             m_vertices.clear();
@@ -249,6 +219,48 @@ namespace core::Graphics::SDLGPU
             m_indices.clear();
             return false;
         }
+    }
+
+    SDL_Rect Renderer::applyViewport(SDL_GPURenderPass* pass)
+    {
+        const SDL_GPUViewport viewport{ m_viewport.a.x, m_viewport.a.y, m_viewport.b.x - m_viewport.a.x, m_viewport.b.y - m_viewport.a.y, m_viewport.a.z, m_viewport.b.z };
+        SDL_SetGPUViewport(pass, &viewport);
+        const auto size = m_target->getTexture()->getSize();
+        const int left = std::clamp(static_cast<int>(m_scissor.a.x), 0, static_cast<int>(size.x));
+        const int top = std::clamp(static_cast<int>(m_scissor.a.y), 0, static_cast<int>(size.y));
+        const int right = std::clamp(static_cast<int>(m_scissor.b.x), left, static_cast<int>(size.x));
+        const int bottom = std::clamp(static_cast<int>(m_scissor.b.y), top, static_cast<int>(size.y));
+        const SDL_Rect scissor{ left, top, right - left, bottom - top };
+        SDL_SetGPUScissor(pass, &scissor);
+        return scissor;
+    }
+
+    void Renderer::bindSpriteParameters(SDL_GPURenderPass* pass, Texture2D* texture, SDLGPU::SamplerState* sampler)
+    {
+        auto* frame = m_device->frame();
+        const auto& description = sampler->description();
+        const auto filter = description.filer;
+        const bool min_linear = filter != Filter::Point && filter != Filter::PointMagLinear && filter != Filter::PointMipLinear && filter != Filter::LinearMinPoint;
+        const bool mag_linear = filter != Filter::Point && filter != Filter::PointMinLinear && filter != Filter::PointMipLinear && filter != Filter::LinearMagPoint;
+        const bool mip_linear = filter == Filter::Linear || filter == Filter::Anisotropic || filter == Filter::LinearMinPoint || filter == Filter::LinearMagPoint || filter == Filter::PointMipLinear;
+        const bool white_border = description.border_color == BorderColor::White || description.border_color == BorderColor::TransparentWhite;
+        const bool opaque_border = description.border_color == BorderColor::White || description.border_color == BorderColor::OpaqueBlack;
+        struct Parameters
+        {
+            float eye[4];
+            SDL_FColor fog;
+            float fog_range[4];
+            uint32_t modes[4];
+            uint32_t addressing[4];
+            float border[4];
+            float lod[4];
+        };
+        const Parameters parameters{
+            { m_eye.x, m_eye.y, m_eye.z, 0 }, normalized(m_fog_color), { m_fog_near, m_fog_far, 0, 0 }, { uint32_t(m_color), uint32_t(m_fog), texture->isPremultipliedAlpha() ? 1u : 0u, filter == Filter::Anisotropic ? std::clamp(description.max_anisotropy, 1u, 16u) : 1u }, { uint32_t(description.address_u), uint32_t(description.address_v), uint32_t(min_linear), uint32_t(mag_linear) }, { float(white_border), float(white_border), float(white_border), float(opaque_border) }, { description.mip_lod_bias, description.min_lod, description.max_lod, float(mip_linear) }
+        };
+        SDL_PushGPUFragmentUniformData(frame->command(), 0, &parameters, sizeof(parameters));
+        const SDL_GPUTextureSamplerBinding binding{ texture->handle(), sampler->handle() };
+        SDL_BindGPUFragmentSamplers(pass, 0, &binding, 1);
     }
 
     bool Renderer::beginBatch()
@@ -414,36 +426,6 @@ namespace core::Graphics::SDLGPU
     {
         const auto index = static_cast<size_t>(state);
         return index < m_samplers.size() ? m_samplers[index].get() : nullptr;
-    }
-    bool Renderer::createPostEffectShader(StringView, IPostEffectShader** output)
-    {
-        if(output)
-            *output = nullptr;
-        return unsupported("Post-effect shaders");
-    }
-    bool Renderer::createPostEffectShaderFromSource(StringView, IPostEffectShader** output)
-    {
-        if(output)
-            *output = nullptr;
-        return unsupported("Post-effect shaders");
-    }
-    bool Renderer::drawPostEffect(IPostEffectShader*, BlendState, ITexture2D*, IRenderer::SamplerState, Vector4F const*, size_t, ITexture2D* const*, IRenderer::SamplerState const*, size_t)
-    {
-        return unsupported("Post-effects");
-    }
-    bool Renderer::drawPostEffect(IPostEffectShader*, BlendState)
-    {
-        return unsupported("Post-effects");
-    }
-    bool Renderer::createModel(StringView, IModel** output)
-    {
-        if(output)
-            *output = nullptr;
-        return unsupported("Models");
-    }
-    bool Renderer::drawModel(IModel*)
-    {
-        return unsupported("Models");
     }
 }
 

@@ -12,3 +12,7 @@
 .clang-format-ignore text eol=lf
 *.yml text eol=lf
 *.yaml text eol=lf
+
+data/test/res/linear.png filter=lfs diff=lfs merge=lfs -text
+data/test/res/particles.png filter=lfs diff=lfs merge=lfs -text
+data/test/res/sRGB.png filter=lfs diff=lfs merge=lfs -text

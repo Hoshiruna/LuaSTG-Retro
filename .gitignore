@@ -19,3 +19,6 @@ LuaSTG/backup/*
 LuaSTG/custom/*
 DirectX/DirectXSDK/backup/*
 
+# tool (Temp)
+/engine/graphics/sdlgpu/tools
+

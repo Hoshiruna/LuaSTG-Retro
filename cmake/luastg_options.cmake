@@ -75,6 +75,39 @@ luastg_cmake_option(
     VALUE ON
 )
 
+# LuaSTG - Image
+
+luastg_cmake_option(
+    NAME LUASTG_IMAGE_JPEG_ENABLE
+    TYPE BOOL
+    HELP "LuaSTG: Image: Enable JPEG support"
+    VALUE TRUE
+)
+luastg_cmake_option(
+    NAME LUASTG_IMAGE_PNG_ENABLE
+    TYPE BOOL
+    HELP "LuaSTG: Image: Enable PNG support"
+    VALUE TRUE
+)
+luastg_cmake_option(
+    NAME LUASTG_IMAGE_WEBP_ENABLE
+    TYPE BOOL
+    HELP "LuaSTG: Image: Enable WebP support"
+    VALUE TRUE
+)
+luastg_cmake_option(
+    NAME LUASTG_IMAGE_STB_ENABLE
+    TYPE BOOL
+    HELP "LuaSTG: Image: Enable stb image support"
+    VALUE TRUE
+)
+luastg_cmake_option(
+    NAME LUASTG_IMAGE_WINDOWS_IMAGING_COMPONENT_ENABLE
+    TYPE BOOL
+    HELP "LuaSTG: Image: Enable Windows Imaging Component support"
+    VALUE FALSE
+)
+
 # LuaSTG - Discord RPC
 
 luastg_cmake_option(

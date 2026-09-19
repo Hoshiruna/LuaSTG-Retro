@@ -62,6 +62,7 @@ set(core_graphics_sources ${core_graphics_common_sources})
 if (NOT LUASTG_USE_SDLGPU)
     list(APPEND core_graphics_sources ${core_graphics_d3d11_sources})
 endif ()
+
 list(APPEND core_graphics_sources
     Core/i18n.hpp
     Core/i18n.cpp
@@ -115,4 +116,27 @@ else ()
         DirectX::TextureMini imgui_impl_dx11 GeneratedShaderHeaders
         d3d11.lib dxgi.lib dxguid.lib tinygltf
     )
+endif ()
+
+if (LUASTG_BUILD_TESTS)
+    add_executable(Core.Graphics.GeometryCapture test/GeometryCapture.cpp)
+    luastg_target_common_options(Core.Graphics.GeometryCapture)
+    luastg_target_more_warning(Core.Graphics.GeometryCapture)
+    target_link_libraries(Core.Graphics.GeometryCapture PRIVATE Core.Graphics SDL3::SDL3 ole32)
+    target_compile_definitions(Core.Graphics.GeometryCapture PRIVATE
+        LUASTG_GEOMETRY_FIXTURES="${PROJECT_SOURCE_DIR}/data/test/res/geometry")
+    set_target_properties(Core.Graphics.GeometryCapture PROPERTIES FOLDER engine/test)
+    add_custom_command(TARGET Core.Graphics.GeometryCapture POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "$<TARGET_FILE:SDL3::SDL3>" "$<TARGET_FILE_DIR:Core.Graphics.GeometryCapture>"
+        VERBATIM)
+    if (LUASTG_USE_SDLGPU)
+        luastg_copy_sdlgpu_runtime(Core.Graphics.GeometryCapture)
+    else ()
+        add_custom_command(TARGET Core.Graphics.GeometryCapture POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "$<TARGET_FILE:Microsoft.D3DCompiler.Redist>" "$<TARGET_FILE_DIR:Core.Graphics.GeometryCapture>"
+            VERBATIM)
+    endif ()
+    # GPU captures are launched explicitly by the user, outside the CPU CTest suite.
 endif ()

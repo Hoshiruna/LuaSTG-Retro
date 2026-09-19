@@ -94,10 +94,8 @@ namespace core::Graphics::SDLGPU
         };
     }
 
-    Device::Device(IWindow* const window, const StringView renderer_driver)
-        : m_window(window)
-        , m_context(window->getSDLWindow(), renderer_driver)
-        , m_compiler(m_context.driver())
+    Device::Device(IWindow* const window)
+        : m_window(window), m_context(window->getSDLWindow()), m_compiler(m_context.driver())
     {
     }
     Device::~Device() = default;
@@ -433,12 +431,7 @@ namespace core::Graphics
             return false;
         }
         *output = nullptr;
-        try {
-            *output = new SDLGPU::Device();
-            return true;
-        } catch(const std::exception& error) {
-            Logger::error("[sdlgpu] Create device: {}", error.what());
-            return false;
-        }
+        Logger::error("[sdlgpu] Standalone device creation requires a window; use IGraphicsRuntime::create");
+        return false;
     }
 }

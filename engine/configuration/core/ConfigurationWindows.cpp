@@ -132,9 +132,6 @@ namespace core
                     access_field(vsync, if(auto const value = to_boolean(arg); value) { graphics_system.setVsync(value.value()); } else {
 							write_arg_error(raw_arg);
 							return false; });
-                    access_field(renderer_driver, if(!arg.empty()) { graphics_system.setRendererDriver(arg); } else {
-							write_message(raw_arg, "renderer driver must not be empty; use \"auto\" to select one automatically"sv);
-							return false; });
                 });
 
 #undef access_parent_field

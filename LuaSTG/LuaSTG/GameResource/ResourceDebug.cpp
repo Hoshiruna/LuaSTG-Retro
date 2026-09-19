@@ -1,5 +1,6 @@
 #include "GameResource/ResourceManager.h"
 #ifdef USING_DEAR_IMGUI
+#include "AppFrame.h"
 #include "GameResource/AsyncResourceLoader.hpp"
 #include "imgui.h"
 #endif

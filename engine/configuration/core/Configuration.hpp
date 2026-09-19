@@ -199,17 +199,12 @@ namespace core
             GetterSetterPrimitive(GraphicsSystem, uint32_t, height, Height);
             GetterSetterBoolean(GraphicsSystem, fullscreen, Fullscreen);
             GetterSetterBoolean(GraphicsSystem, vsync, Vsync);
-            GetterSetterString(GraphicsSystem, renderer_driver, RendererDriver);
 
         private:
             uint32_t width{ 640u };
             uint32_t height{ 480u };
             bool fullscreen{};
             bool vsync{};
-            // An SDL GPU driver name ("direct3d12", "vulkan", ...), or "auto" to probe in
-            // preference order. Deliberately a string rather than an enum: the vocabulary is
-            // SDL's, so an enum would need a new mirror table whenever SDL adds a backend.
-            std::string renderer_driver{ "auto" };
         };
         class AudioSystem
         {

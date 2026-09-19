@@ -5,7 +5,7 @@
 #include "Core/Graphics/Direct3D11/RenderTarget.hpp"
 #include "Core/Graphics/Direct3D11/DepthStencilBuffer.hpp"
 
-#define IDX(x) (size_t) static_cast<uint8_t>(x)
+#define IDX(x) (size_t)static_cast<uint8_t>(x)
 
 namespace core::Graphics
 {
@@ -1250,7 +1250,7 @@ namespace core::Graphics
             return false;
         }
     }
-    bool Renderer_D3D11::createPostEffectShaderFromSource(StringView source, IPostEffectShader** pp_effect)
+    bool Renderer_D3D11::createPostEffectShaderFromSource(StringView source, IPostEffectShader** pp_effect, StringView)
     {
         try {
             *pp_effect = new PostEffectShader_D3D11(m_device.get(), source, false);

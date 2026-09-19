@@ -41,8 +41,6 @@ namespace core::Graphics
         virtual void renderImGui(ImDrawData* data) = 0;
         virtual void drawImGuiImage(ITexture2D* texture, Vector2F size, Vector2F uv0, Vector2F uv1) = 0;
 
-        // renderer_driver names a backend driver, or is "auto" to let the backend pick one.
-        // An unavailable named driver is an error; "auto" falls back to another driver.
-        static std::unique_ptr<IGraphicsRuntime> create(IWindow* window, StringView renderer_driver);
+        static std::unique_ptr<IGraphicsRuntime> create(IWindow* window);
     };
 }

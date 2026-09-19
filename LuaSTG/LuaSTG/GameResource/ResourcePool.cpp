@@ -846,7 +846,7 @@ namespace luastg
 
         try {
             core::SmartReference<IResourcePostEffectShader> tRes;
-            tRes.attach(new ResourcePostEffectShaderImpl(name, source, true));
+            tRes.attach(new ResourcePostEffectShaderImpl(name, source, true, path));
             if(!tRes->GetPostEffectShader()) {
                 spdlog::error("[luastg] LoadFX: 从 '{}' 加载后处理特效 '{}' 失败 (资源池 '{}')", path, name, getResourcePoolName());
                 return false;
