@@ -1,6 +1,53 @@
 #include "LuaBinding/LuaWrapper.hpp"
 #include "lua/plus.hpp"
 #include "AppFrame.h"
+#include "Platform/ProcessorInfo.hpp"
+#include <Windows.h>
+
+namespace
+{
+    void pushCpuInfo(lua_State* L)
+    {
+        lua::stack_t const ctx(L);
+        auto const cpu = ctx.create_map(1);
+        ctx.set_map_value(cpu, "name", Platform::ProcessorInfo::name());
+    }
+
+    void pushMemoryInfo(lua_State* L)
+    {
+        MEMORYSTATUSEX info{ sizeof(MEMORYSTATUSEX) };
+        if(!GlobalMemoryStatusEx(&info)) {
+            lua_pushnil(L);
+            return;
+        }
+
+        lua::stack_t const ctx(L);
+        auto const memory = ctx.create_map(3);
+        ctx.set_map_value(memory, "totalBytes", static_cast<lua_Number>(info.ullTotalPhys));
+        ctx.set_map_value(memory, "availableBytes", static_cast<lua_Number>(info.ullAvailPhys));
+        ctx.set_map_value(memory, "loadPercent", static_cast<uint32_t>(info.dwMemoryLoad));
+    }
+
+    void pushGraphicsInfo(lua_State* L, core::Graphics::IDevice* const device)
+    {
+        if(!device) {
+            lua_pushnil(L);
+            return;
+        }
+
+        lua::stack_t const ctx(L);
+        auto const graphics = ctx.create_map(2);
+        ctx.set_map_value(graphics, "currentDevice", device->getCurrentGpuName());
+
+        auto const count = device->getGpuCount();
+        lua_createtable(L, static_cast<int>(count), 0);
+        for(uint32_t index = 0; index < count; index += 1) {
+            ctx.push_value(device->getGpuName(index));
+            lua_rawseti(L, -2, static_cast<int>(index + 1));
+        }
+        lua_setfield(L, graphics.value, "adapters");
+    }
+}
 
 inline core::RectI
 lua_to_Core_RectI(lua_State* L, int idx)
@@ -49,6 +96,19 @@ luastg::binding::BuiltInFunction::Register(lua_State* L) noexcept
         static int GetVersionName(lua_State* L) noexcept
         {
             lua_pushstring(L, LUASTG_INFO);
+            return 1;
+        }
+        static int getSystemInfo(lua_State* L)
+        {
+            lua_createtable(L, 0, 3);
+            pushCpuInfo(L);
+            lua_setfield(L, -2, "cpu");
+            pushMemoryInfo(L);
+            lua_setfield(L, -2, "memory");
+
+            auto* const model = LAPP.GetAppModel();
+            pushGraphicsInfo(L, model ? model->getDevice() : nullptr);
+            lua_setfield(L, -2, "graphics");
             return 1;
         }
         static int SetWindowed(lua_State* L) noexcept
@@ -211,6 +271,7 @@ luastg::binding::BuiltInFunction::Register(lua_State* L) noexcept
 #pragma region 框架函数
         { "GetVersionNumber", &Wrapper::GetVersionNumber },
         { "GetVersionName", &Wrapper::GetVersionName },
+        { "getSystemInfo", &Wrapper::getSystemInfo },
         { "SetWindowed", &Wrapper::SetWindowed },
         { "SetFPS", &Wrapper::SetFPS },
         { "GetFPS", &Wrapper::GetFPS },
