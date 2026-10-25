@@ -8,9 +8,9 @@ param(
 
 $ProjectRoot = [System.IO.Path]::GetFullPath([System.IO.Path]::Join($PSScriptRoot, ".."))
 $ReleasesRoot = [System.IO.Path]::Join($ProjectRoot, "build", "releases")
-$BuildRootAMD64 = [System.IO.Path]::Join($ProjectRoot, "build", "amd64")
-$BinaryRootX86 = [System.IO.Path]::Join($ProjectRoot, "build", "x86", "bin")
-$BinaryRootAMD64 = [System.IO.Path]::Join($ProjectRoot, "build", "amd64", "bin")
+$BuildRootAMD64 = [System.IO.Path]::Join($ProjectRoot, "build", $Toolchain, "amd64")
+$BinaryRootX86 = [System.IO.Path]::Join($ProjectRoot, "build", $Toolchain, "x86", "bin")
+$BinaryRootAMD64 = [System.IO.Path]::Join($BuildRootAMD64, "bin")
 $ExampleRoot = [System.IO.Path]::Join($ProjectRoot, "data", "example")
 $PackageName = "LuaSTG-Retro"
 $ExecutableName = "LuastgRetro.exe"

@@ -61,6 +61,10 @@ jobs:
       #- name: Test
       #  run: build/bin/main.exe
 
+      - name: Enable VS2022 presets
+        run: |
+          '{"version":6,"include":["cmake/presets/vs2022.json"]}' | Set-Content CMakeUserPresets.json
+
       - name: CMake workflow (x86)
         run: cmake --workflow --preset windows-x86-release
       
@@ -68,7 +72,7 @@ jobs:
         run: cmake --workflow --preset windows-amd64-release
 
       - name: Package  
-        run: pwsh tool/package.ps1
+        run: pwsh tool/package.ps1 -Toolchain vs2022
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v7

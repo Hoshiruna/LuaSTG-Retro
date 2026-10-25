@@ -1,0 +1,71 @@
+{
+  "version": 6,
+  "configurePresets": [
+    {
+      "name": "cpm-cache",
+      "hidden": true,
+      "cacheVariables": {
+        "CPM_SOURCE_CACHE": {
+          "type": "PATH",
+          "value": "${sourceDir}/build/packages"
+        }
+      }
+    },
+    {
+      "name": "vs2022",
+      "hidden": true,
+      "inherits": [
+        "cpm-cache"
+      ],
+      "generator": "Visual Studio 17 2022"
+    },
+    {
+      "name": "vs2026-v143",
+      "hidden": true,
+      "inherits": [
+        "cpm-cache"
+      ],
+      "generator": "Visual Studio 18 2026",
+      "toolset": "v143"
+    },
+    {
+      "name": "vs2026",
+      "hidden": true,
+      "inherits": [
+        "cpm-cache"
+      ],
+      "generator": "Visual Studio 18 2026"
+    },
+    {
+      "name": "ninja-amd64",
+      "hidden": true,
+      "inherits": [
+        "cpm-cache"
+      ],
+      "generator": "Ninja",
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "cl",
+        "CMAKE_CXX_COMPILER": "cl"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "debug",
+      "hidden": true,
+      "configuration": "Debug"
+    },
+    {
+      "name": "release",
+      "hidden": true,
+      "configuration": "Release"
+    },
+    {
+      "name": "target-luastg",
+      "hidden": true,
+      "targets": [
+        "LuaSTG"
+      ]
+    }
+  ]
+}

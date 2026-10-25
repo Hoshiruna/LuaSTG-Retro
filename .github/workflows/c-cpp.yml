@@ -24,5 +24,9 @@ jobs:
           restore-keys: |
             windows-x86-cpm-
 
+      - name: Enable VS2022 presets
+        run: |
+          '{"version":6,"include":["cmake/presets/vs2022.json"]}' | Set-Content CMakeUserPresets.json
+
       - name: CMake workflow
         run: cmake --workflow --preset windows-x86-release

@@ -29,9 +29,25 @@ Release (configuration and build Release profile):
 cmake --workflow --preset windows-amd64-release
 ```
 
+## Optional presets
+
+The default menu contains only VS2026 x64 Debug and Release builds. Enable other configurations by adding the files you need to `include` in the root `CMakeUserPresets.json`:
+
+```json
+{
+  "version": 6,
+  "include": [
+    "cmake/presets/vs2022.json"
+  ]
+}
+```
+The VS2026 generator requires [CMake 4.2 or newer](https://cmake.org/cmake/help/latest/generator/Visual%20Studio%2018%202026.html). The VS2022 presets can still be used with the project's CMake 3.31 minimum.
+
 ## x86 32-bit (Deprecated)
 
 > WARNING: Support for x86 32-bit version is deprecated  
+
+Enable `cmake/presets/vs2022.json` before running these commands.
 
 CMake configuration:  
 
@@ -56,7 +72,11 @@ cmake --workflow --preset windows-x86-release
 
 > TODO: Waiting for me to get a Windows on arm laptop  
 
+ARM64 presets are available in the optional Visual Studio files above. They are not part of the default menu.
+
 ## Build with Ninja
+
+Enable `cmake/presets/ninja.json` first.
 
 Run these commands from an AMD64 Visual Studio developer environment with Ninja available:
 
@@ -76,6 +96,11 @@ cmake --workflow --preset windows-ninja-amd64-release
 Next, you can use Visual Studio 2022 to open the sln solution file and start developing.
 
 Note: Please compile the LuaSTG target at least once, otherwise the header files of dependency libraries such as libflac, libogg, libvorbis, zlib ng, minizip ng, etc. do not exist.
+
+## Packaging
+
+`tool/package.ps1` builds both x64 and x86. Its default toolchain is `vs2026-v143`, so enable `cmake/presets/vs2026-v143.json` first. For `-Toolchain vs2022`, enable `vs2022.json`; for `-Toolchain vs2026`, enable `vs2026-extra.json`. 
+The script reads binaries from the selected toolchain's build directories.
 
 ## Steam API Support  
 
@@ -139,9 +164,27 @@ cmake --build --preset windows-amd64-release
 cmake --workflow --preset windows-amd64-release
 ```
 
+## 可选预设
+
+默认菜单仅保留 VS2026 x64 的 Debug 和 Release 构建。其他配置通过项目根目录的 `CMakeUserPresets.json` 按需启用：
+
+```json
+{
+  "version": 6,
+  "include": [
+    "cmake/presets/vs2022.json"
+  ]
+}
+```
+
+VS2026 生成器要求 [CMake 4.2 或更新版本](https://cmake.org/cmake/help/latest/generator/Visual%20Studio%2018%202026.html)。
+VS2022 预设仍可使用项目要求的最低版本 CMake 3.31。
+
 ## x86 32 位版本（已弃用）
 
 > 警告：x86 32 位版本即将停止支持
+
+执行以下命令前，先启用 `cmake/presets/vs2022.json`。
 
 CMake 配置：  
 
@@ -166,7 +209,11 @@ cmake --workflow --preset windows-x86-release
 
 > 未完成：等我买一台 Windows on arm 笔记本  
 
+ARM64 预设保留在上述 Visual Studio 可选配置文件中，不进入默认菜单。
+
 ## 使用 Ninja 编译项目
+
+先启用 `cmake/presets/ninja.json`。
 
 首先需要初始化环境，比如初始化为以下环境：
 
@@ -198,6 +245,12 @@ cmake --workflow --preset windows-ninja-amd64-release
 接下来你就可以用 Visual Studio 2022 打开 sln 解决方案开始开发。
 
 注意：请编译 LuaSTG 项目至少一次，否则 libflac、libogg、libvorbis、zlib-ng、minizip-ng 等依赖库的头文件不存在。
+
+## 打包
+
+`tool/package.ps1` 会同时构建 x64 和 x86，默认工具链为 `vs2026-v143`，需要先启用 `cmake/presets/vs2026-v143.json`。
+使用 `-Toolchain vs2022` 时启用 `vs2022.json`；使用 `-Toolchain vs2026` 时启用 `vs2026-extra.json`。
+脚本从所选工具链的独立构建目录读取产物。
 
 ## Steam API 支持  
 
