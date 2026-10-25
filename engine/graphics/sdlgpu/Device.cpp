@@ -13,7 +13,7 @@ namespace core::Graphics::SDLGPU
     namespace
     {
         template<typename Interface, typename Factory>
-        bool createResource(Interface** output, Factory&& factory)
+        bool createResource(Device* device, Interface** output, Factory&& factory)
         {
             if(output == nullptr) {
                 return false;
@@ -23,7 +23,7 @@ namespace core::Graphics::SDLGPU
                 *output = factory();
                 return true;
             } catch(const std::exception& error) {
-                Logger::error("[sdlgpu] Create resource: {}", error.what());
+                device->fail(error);
                 return false;
             }
         }
@@ -40,12 +40,25 @@ namespace core::Graphics::SDLGPU
         {
         public:
             Buffer(Device* device, uint32_t size, SDL_GPUBufferUsageFlags usage)
-                : m_device(device), m_pixels(size)
+                : m_device(device), m_pixels(size), m_usage(usage)
             {
+                allocate();
+                m_registration.attach(device->registry(), RecoveryStage::Storage, "buffer", [this] { m_buffer.reset(); }, [this] {
+                    allocate();
+                    const bool mapped = m_mapped;
+                    m_mapped = true;
+                    const bool success = unmap();
+                    m_mapped = mapped;
+                    if(!success) throw std::runtime_error("Upload retained buffer"); });
+            }
+            void allocate()
+            {
+                auto* device = m_device.get();
+                const auto size = static_cast<uint32_t>(m_pixels.size());
                 SDL_GPUBufferCreateInfo info{};
-                info.usage = usage;
+                info.usage = m_usage;
                 info.size = size;
-                m_buffer = { require(SDL_CreateGPUBuffer(device->gpu(), &info), "Create GPU buffer"), { device->gpu() } };
+                m_buffer = { requireGpu(SDL_CreateGPUBuffer(device->gpu(), &info), "Create GPU buffer"), { device->gpu() } };
             }
             bool map(uint32_t size, bool discard, void** output) override
             {
@@ -70,8 +83,8 @@ namespace core::Graphics::SDLGPU
                     SDL_GPUTransferBufferCreateInfo info{};
                     info.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
                     info.size = static_cast<uint32_t>(m_pixels.size());
-                    TransferBuffer upload(require(SDL_CreateGPUTransferBuffer(m_device->gpu(), &info), "Create buffer upload"), { m_device->gpu() });
-                    auto* mapped = require(SDL_MapGPUTransferBuffer(m_device->gpu(), upload.get(), false), "Map buffer upload");
+                    TransferBuffer upload(requireGpu(SDL_CreateGPUTransferBuffer(m_device->gpu(), &info), "Create buffer upload"), { m_device->gpu() });
+                    auto* mapped = requireGpu(SDL_MapGPUTransferBuffer(m_device->gpu(), upload.get(), false), "Map buffer upload");
                     std::memcpy(mapped, m_pixels.data(), m_pixels.size());
                     SDL_UnmapGPUTransferBuffer(m_device->gpu(), upload.get());
                     m_device->copy([&](SDL_GPUCopyPass* pass) {
@@ -91,6 +104,8 @@ namespace core::Graphics::SDLGPU
             GpuResource<SDL_GPUBuffer, SDL_ReleaseGPUBuffer> m_buffer;
             std::vector<uint8_t> m_pixels;
             bool m_mapped{};
+            SDL_GPUBufferUsageFlags m_usage;
+            RecoveryRegistration m_registration;
         };
     }
 
@@ -110,16 +125,60 @@ namespace core::Graphics::SDLGPU
     }
     bool Device::recreate()
     {
-        Logger::error("[sdlgpu] Device recovery is not available in the core 2D milestone");
-        return false;
+        requestRecovery();
+        return m_recovery_service && m_recovery_service();
     }
     void Device::fail(const std::exception& error) noexcept
     {
         Logger::error("[sdlgpu] {}", error.what());
-        m_failed = true;
+        if(reconstructing())
+            m_recovery.fatal();
+        else if(dynamic_cast<const GpuOperationError*>(&error))
+            m_recovery.request();
     }
+    void Device::notifyDestroy()
+    {
+        const auto listeners = m_listeners;
+        for(auto it = listeners.rbegin(); it != listeners.rend(); ++it)
+            if(std::find(m_listeners.begin(), m_listeners.end(), *it) != m_listeners.end())
+                (*it)->onDeviceDestroy();
+    }
+    void Device::notifyCreate()
+    {
+        const auto listeners = m_listeners;
+        for(auto* listener : listeners)
+            if(std::find(m_listeners.begin(), m_listeners.end(), listener) != m_listeners.end())
+                listener->onDeviceCreate();
+    }
+    void Device::releaseResources()
+    {
+        for(const auto& capture : m_captures)
+            Logger::error("[sdlgpu] Canceled capture during recovery: {}", capture.path);
+        m_captures.clear();
+        m_registry.release();
+    }
+    void Device::rebuildResources()
+    { m_registry.rebuild(); }
+#ifdef LUASTG_SDLGPU_RECOVERY_TESTS
+    void Device::checkpoint(FailurePoint point)
+    {
+        if(m_injection == point && !reconstructing()) {
+            m_injection = FailurePoint::None;
+            const char* operation = point == FailurePoint::Acquisition ? "command acquisition" :
+                point == FailurePoint::Submission                      ? "command submission" :
+                                                                         "resource upload";
+            GpuOperationError error(std::string("Injected failure at ") + operation);
+            fail(error);
+            throw error;
+        }
+    }
+#endif
     void Device::beforeTransfer()
     {
+        if(reconstructing())
+            return;
+        if(failed())
+            throw GpuOperationError("GPU operations suspended until recovery");
         if(m_renderer && !m_renderer->flush()) {
             throw std::runtime_error("Flush sprite batch before resource transfer");
         }
@@ -129,22 +188,28 @@ namespace core::Graphics::SDLGPU
     }
     void Device::copy(const std::function<void(SDL_GPUCopyPass*)>& record)
     {
-        if(m_frame) {
-            record(m_frame->beginCopyPass());
-            m_frame->endPass();
-            return;
-        }
-        auto* command = require(SDL_AcquireGPUCommandBuffer(gpu()), "Acquire resource upload command");
         try {
-            {
+#ifdef LUASTG_SDLGPU_RECOVERY_TESTS
+            checkpoint(FailurePoint::Upload);
+#endif
+            if(m_frame) {
+                record(m_frame->beginCopyPass());
+                m_frame->endPass();
+                return;
+            }
+            auto* command = requireGpu(SDL_AcquireGPUCommandBuffer(gpu()), "Acquire resource upload command");
+            try {
                 auto pass = beginCopyPass(command);
                 record(pass.get());
+            } catch(...) {
+                SDL_CancelGPUCommandBuffer(command);
+                throw;
             }
-        } catch(...) {
-            SDL_CancelGPUCommandBuffer(command);
+            checkGpu(SDL_SubmitGPUCommandBuffer(command), "Submit resource upload");
+        } catch(const GpuOperationError& error) {
+            fail(error);
             throw;
         }
-        check(SDL_SubmitGPUCommandBuffer(command), "Submit resource upload");
     }
     bool Device::saveTexture(SDL_GPUTexture* texture, Vector2U size, StringView path)
     {
@@ -164,7 +229,7 @@ namespace core::Graphics::SDLGPU
         if(m_captures.empty()) {
             return true;
         }
-        check(SDL_WaitForGPUIdle(gpu()), "Wait for texture capture");
+        checkGpu(SDL_WaitForGPUIdle(gpu()), "Wait for texture capture");
         bool success = true;
         for(const auto& capture : m_captures) {
             auto pixels = capture.transfer.readPixels();
@@ -175,15 +240,15 @@ namespace core::Graphics::SDLGPU
     }
     bool Device::createVertexBuffer(uint32_t size, IBuffer** output)
     {
-        return createResource(output, [&] { return new Buffer(this, size, SDL_GPU_BUFFERUSAGE_VERTEX); });
+        return createResource(this, output, [&] { return new Buffer(this, size, SDL_GPU_BUFFERUSAGE_VERTEX); });
     }
     bool Device::createIndexBuffer(uint32_t size, IBuffer** output)
     {
-        return createResource(output, [&] { return new Buffer(this, size, SDL_GPU_BUFFERUSAGE_INDEX); });
+        return createResource(this, output, [&] { return new Buffer(this, size, SDL_GPU_BUFFERUSAGE_INDEX); });
     }
     bool Device::createConstantBuffer(uint32_t size, IBuffer** output)
     {
-        return createResource(output, [&] { return new Buffer(this, size, SDL_GPU_BUFFERUSAGE_GRAPHICS_STORAGE_READ); });
+        return createResource(this, output, [&] { return new Buffer(this, size, SDL_GPU_BUFFERUSAGE_GRAPHICS_STORAGE_READ); });
     }
     bool Device::createTextureFromFile(StringView path, bool mipmap, ITexture2D** output)
     {
@@ -195,7 +260,7 @@ namespace core::Graphics::SDLGPU
     }
     bool Device::createTextureFromData(IData* data, bool mipmap, ITexture2D** output)
     {
-        return createResource(output, [&]() -> ITexture2D* {
+        return createResource(this, output, [&]() -> ITexture2D* {
             SmartReference<core::IImage> image;
             if(!ImageFactory::createFromData(data, image.put())) {
                 throw std::runtime_error("Decode texture image");
@@ -220,25 +285,33 @@ namespace core::Graphics::SDLGPU
     }
     bool Device::createTexture(Vector2U size, ITexture2D** output)
     {
-        return createResource(output, [&] { return new Texture2D(this, size, true, false, false); });
+        return createResource(this, output, [&] { return new Texture2D(this, size, true, false, false); });
     }
     bool Device::createRenderTarget(Vector2U size, IRenderTarget** output)
     {
-        return createResource(output, [&] { return new RenderTarget(this, size); });
+        return createResource(this, output, [&] { return new RenderTarget(this, size); });
     }
     bool Device::createDepthStencilBuffer(Vector2U size, IDepthStencilBuffer** output)
     {
-        return createResource(output, [&] { return new DepthBuffer(this, size); });
+        return createResource(this, output, [&] { return new DepthBuffer(this, size); });
     }
     bool Device::createSamplerState(Graphics::SamplerState const& info, ISamplerState** output)
     {
-        return createResource(output, [&] { return new SamplerState(this, info); });
+        return createResource(this, output, [&] { return new SamplerState(this, info); });
     }
 
     Texture2D::Texture2D(Device* device, Vector2U size, bool dynamic, bool render_target, bool mipmap)
         : m_device(device), m_dynamic(dynamic), m_render_target(render_target), m_mipmap(mipmap), m_premultiplied(render_target)
     {
         allocate(size);
+        m_registration.attach(device->registry(), RecoveryStage::Storage, "texture", [this] { m_texture.reset(); }, [this] { rebuild(); });
+    }
+    void Texture2D::rebuild()
+    {
+        auto pixels = m_pixels;
+        allocate(m_size);
+        if(!m_render_target)
+            uploadRgba(pixels);
     }
     void Texture2D::allocate(Vector2U size)
     {
@@ -253,7 +326,7 @@ namespace core::Graphics::SDLGPU
         info.layer_count_or_depth = 1;
         info.num_levels = m_mipmap ? 1 + static_cast<uint32_t>(std::floor(std::log2((std::max)(size.x, size.y)))) : 1;
         info.sample_count = SDL_GPU_SAMPLECOUNT_1;
-        Texture replacement(require(SDL_CreateGPUTexture(m_device->gpu(), &info), "Create RGBA texture"), { m_device->gpu() });
+        Texture replacement(requireGpu(SDL_CreateGPUTexture(m_device->gpu(), &info), "Create RGBA texture"), { m_device->gpu() });
         std::vector<uint8_t> pixels(bytes);
         m_texture = std::move(replacement);
         m_pixels = std::move(pixels);
@@ -275,9 +348,9 @@ namespace core::Graphics::SDLGPU
             if(auto* frame = m_device->frame()) {
                 SDL_GenerateMipmapsForGPUTexture(frame->commandOutsidePass(), handle());
             } else {
-                auto* command = require(SDL_AcquireGPUCommandBuffer(m_device->gpu()), "Acquire mipmap command");
+                auto* command = requireGpu(SDL_AcquireGPUCommandBuffer(m_device->gpu()), "Acquire mipmap command");
                 SDL_GenerateMipmapsForGPUTexture(command, handle());
-                check(SDL_SubmitGPUCommandBuffer(command), "Submit mipmap generation");
+                checkGpu(SDL_SubmitGPUCommandBuffer(command), "Submit mipmap generation");
             }
         }
     }
@@ -369,6 +442,26 @@ namespace core::Graphics::SDLGPU
         if(!setSize(size)) {
             throw std::runtime_error("Create depth buffer");
         }
+        m_registration.attach(device->registry(), RecoveryStage::Storage, "depth buffer", [this] { m_texture.reset(); }, [this] { rebuild(); });
+    }
+    void DepthBuffer::rebuild()
+    {
+        if(!setSize(m_size))
+            throw std::runtime_error("Reallocate depth buffer");
+        auto* command = requireGpu(SDL_AcquireGPUCommandBuffer(m_device->gpu()), "Acquire depth clear");
+        SDL_GPUDepthStencilTargetInfo depth{};
+        depth.texture = m_texture.get();
+        depth.clear_depth = 1.0f;
+        depth.load_op = SDL_GPU_LOADOP_CLEAR;
+        depth.store_op = SDL_GPU_STOREOP_STORE;
+        auto* pass = SDL_BeginGPURenderPass(command, nullptr, 0, &depth);
+        if(!pass) {
+            const std::string message = std::string("Begin depth clear: ") + SDL_GetError();
+            SDL_CancelGPUCommandBuffer(command);
+            throw GpuOperationError(message);
+        }
+        SDL_EndGPURenderPass(pass);
+        checkGpu(SDL_SubmitGPUCommandBuffer(command), "Submit depth clear");
     }
     bool DepthBuffer::setSize(Vector2U size)
     {
@@ -384,7 +477,7 @@ namespace core::Graphics::SDLGPU
             info.layer_count_or_depth = 1;
             info.num_levels = 1;
             info.sample_count = SDL_GPU_SAMPLECOUNT_1;
-            m_texture = { require(SDL_CreateGPUTexture(m_device->gpu(), &info), "Create depth texture"), { m_device->gpu() } };
+            m_texture = { requireGpu(SDL_CreateGPUTexture(m_device->gpu(), &info), "Create depth texture"), { m_device->gpu() } };
             m_size = size;
             return true;
         } catch(const std::exception& error) {
@@ -396,6 +489,13 @@ namespace core::Graphics::SDLGPU
     SamplerState::SamplerState(Device* device, Graphics::SamplerState const& info)
         : m_device(device), m_info(info)
     {
+        rebuild();
+        m_registration.attach(device->registry(), RecoveryStage::Storage, "sampler", [this] { m_sampler.reset(); }, [this] { rebuild(); });
+    }
+    void SamplerState::rebuild()
+    {
+        auto* device = m_device.get();
+        const auto& info = m_info;
         // Border and mirror-once addressing are implemented by the sprite shader.
         auto address = [](TextureAddressMode mode) {
             if(mode == TextureAddressMode::Wrap) {

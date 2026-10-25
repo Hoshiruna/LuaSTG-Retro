@@ -50,6 +50,7 @@ namespace core::Graphics::SDLGPU
         bool drawModel(IModel*) override;
         ISamplerState* getKnownSamplerState(IRenderer::SamplerState state) override;
 
+        void discardFrame() noexcept;
         void setDefaultAttachment(IRenderTarget* target, IDepthStencilBuffer* depth);
         SDL_GPURenderPass* beginPass(bool clear_color = false, Color4B color = {}, bool clear_depth = false, float depth = 1.0f);
         bool applyPostEffect(PostEffectShader& shader);
@@ -100,5 +101,8 @@ namespace core::Graphics::SDLGPU
         DepthState m_depth_state{ DepthState::Disable };
         BlendState m_blend{ BlendState::Alpha };
         bool m_batch{};
+        void releaseGpu();
+        void rebuildGpu();
+        RecoveryRegistration m_registration;
     };
 }

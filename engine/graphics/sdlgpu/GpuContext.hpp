@@ -24,6 +24,7 @@ namespace core::Graphics::SDLGPU
         Uint32 width() const noexcept { return m_width; }
         Uint32 height() const noexcept { return m_height; }
         void submit();
+        void finish();
 
     private:
         SDL_GPUCommandBuffer* m_command{};
@@ -49,6 +50,8 @@ namespace core::Graphics::SDLGPU
         SDL_GPUTextureFormat swapchainFormat() const;
         const char* driver() const;
         void claimWindow(SDL_Window* window);
+        void close() noexcept;
+        void reopen(SDL_Window* window, std::string_view driver);
         bool setVSync(bool enabled);
         Frame acquire() { return Frame(m_device.get(), m_window); }
 

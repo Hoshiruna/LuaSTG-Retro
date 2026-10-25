@@ -32,5 +32,8 @@ namespace core::Graphics::SDLGPU
     private:
         Vector3F scale{ 1, 1, 1 }, position{};
         Vector4F rotation{ 0, 0, 0, 1 };
+        void releaseGpu();
+        void rebuildGpu();
+        RecoveryRegistration m_registration;
     };
 }

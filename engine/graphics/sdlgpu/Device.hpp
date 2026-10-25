@@ -3,6 +3,7 @@
 #include "Core/Graphics/Device.hpp"
 #include "Core/Graphics/Renderer.hpp"
 #include "GpuContext.hpp"
+#include "Recovery.hpp"
 #include "ShaderCompiler.hpp"
 #include "TextureTransfer.hpp"
 #include "core/SmartReference.hpp"
@@ -44,7 +45,28 @@ namespace core::Graphics::SDLGPU
         bool saveTexture(SDL_GPUTexture* texture, Vector2U size, StringView path);
         bool finishCaptures();
         void fail(const std::exception& error) noexcept;
-        bool failed() const noexcept { return m_failed; }
+        bool failed() const noexcept { return m_recovery.state() != RecoveryState::Healthy; }
+        RecoveryPolicy& recovery() noexcept { return m_recovery; }
+        RecoveryRegistry& registry() noexcept { return m_registry; }
+        void setRecoveryService(std::function<bool()> service) { m_recovery_service = std::move(service); }
+        void requestRecovery() noexcept { m_recovery.request(); }
+        void releaseResources();
+        void rebuildResources();
+        void notifyDestroy();
+        void notifyCreate();
+        bool reconstructing() const noexcept { return m_recovery.state() == RecoveryState::Recovering; }
+#ifdef LUASTG_SDLGPU_RECOVERY_TESTS
+        enum class FailurePoint
+        {
+            None,
+            Acquisition,
+            Submission,
+            Upload
+        };
+        void inject(FailurePoint point) { m_injection = point; }
+        void checkpoint(FailurePoint point);
+        bool fail_reconstruction{};
+#endif
 
     private:
         struct Capture
@@ -54,15 +76,20 @@ namespace core::Graphics::SDLGPU
             TextureTransfer transfer;
         };
         SmartReference<IWindow> m_window;
-        // Declaration order is load-bearing: the compiler asks the context which driver was
-        // selected in order to decide whether it needs the DXIL back end.
+        // The compiler needs the selected driver, so the context must be initialized first.
         GpuContext m_context;
         ShaderCompiler m_compiler;
         std::vector<IDeviceEventListener*> m_listeners;
         std::vector<Capture> m_captures;
         Frame* m_frame{};
         IRenderer* m_renderer{};
-        bool m_failed{};
+        inline static std::atomic_bool s_recovery_attempted{};
+        RecoveryPolicy m_recovery{ s_recovery_attempted };
+        RecoveryRegistry m_registry;
+        std::function<bool()> m_recovery_service;
+#ifdef LUASTG_SDLGPU_RECOVERY_TESTS
+        FailurePoint m_injection{ FailurePoint::None };
+#endif
     };
 
     class Texture2D final : public implement::ReferenceCounted<ITexture2D>
@@ -86,6 +113,7 @@ namespace core::Graphics::SDLGPU
 
     private:
         void allocate(Vector2U size);
+        void rebuild();
         SmartReference<Device> m_device;
         SmartReference<ISamplerState> m_sampler;
         Texture m_texture;
@@ -95,6 +123,7 @@ namespace core::Graphics::SDLGPU
         bool m_render_target{};
         bool m_mipmap{};
         bool m_premultiplied{};
+        RecoveryRegistration m_registration;
     };
 
     class RenderTarget final : public implement::ReferenceCounted<IRenderTarget>
@@ -121,6 +150,8 @@ namespace core::Graphics::SDLGPU
         SmartReference<Device> m_device;
         Texture m_texture;
         Vector2U m_size;
+        void rebuild();
+        RecoveryRegistration m_registration;
     };
 
     class SamplerState final : public implement::ReferenceCounted<ISamplerState>
@@ -134,5 +165,7 @@ namespace core::Graphics::SDLGPU
         SmartReference<Device> m_device;
         Sampler m_sampler;
         Graphics::SamplerState m_info;
+        void rebuild();
+        RecoveryRegistration m_registration;
     };
 }

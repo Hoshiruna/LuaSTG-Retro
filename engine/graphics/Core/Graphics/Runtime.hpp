@@ -15,6 +15,12 @@ namespace core::Graphics
         Skipped,
         Failed,
     };
+    enum class RecoveryResult
+    {
+        NotNeeded,
+        Recovered,
+        Fatal
+    };
 
     struct GpuFrameStatistics
     {
@@ -32,6 +38,8 @@ namespace core::Graphics
         virtual ISwapChain* swapChain() const noexcept = 0;
         virtual FrameStatus beginFrame() noexcept = 0;
         virtual bool submitFrame(bool present) noexcept = 0;
+        virtual RecoveryResult serviceRecovery() noexcept { return RecoveryResult::NotNeeded; }
+        virtual void drawRecoveryControls() {}
         virtual GpuFrameStatistics statistics() const noexcept = 0;
 
         // The caller owns the ImGui context and SDL platform backend.

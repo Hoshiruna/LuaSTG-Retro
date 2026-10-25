@@ -15,6 +15,8 @@ namespace core::Graphics::SDLGPU
             return true;
         } catch(std::exception const& error) {
             Logger::error("[sdlgpu] Load model '{}': {}", path, error.what());
+            if(dynamic_cast<GpuOperationError const*>(&error))
+                m_device->fail(error);
             return false;
         }
     }

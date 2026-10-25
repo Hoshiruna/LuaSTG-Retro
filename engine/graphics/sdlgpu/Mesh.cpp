@@ -68,17 +68,33 @@ namespace core::Graphics::SDLGPU
     }
     Mesh::Mesh(Device* device, MeshOptions options) : m_device(device), m_data(options)
     {
+        rebuildGpu();
+        m_registration.attach(device->registry(), RecoveryStage::Geometry, "mesh", [this] { releaseGpu(); }, [this] { rebuildGpu(); });
+    }
+    void Mesh::releaseGpu()
+    {
+        m_vertices.reset();
+        m_indices.reset();
+    }
+    void Mesh::rebuildGpu()
+    {
+        auto* device = m_device.get();
         auto allocate = [&](size_t size, SDL_GPUBufferUsageFlags usage) {
             SDL_GPUBufferCreateInfo info{};
             info.size = static_cast<uint32_t>(size);
             info.usage = usage;
-            return GpuResource<SDL_GPUBuffer, SDL_ReleaseGPUBuffer>(require(SDL_CreateGPUBuffer(device->gpu(), &info), "Create mesh buffer"), { device->gpu() });
+            return GpuResource<SDL_GPUBuffer, SDL_ReleaseGPUBuffer>(requireGpu(SDL_CreateGPUBuffer(device->gpu(), &info), "Create mesh buffer"), { device->gpu() });
         };
         if(!m_data.vertices.empty())
             m_vertices = allocate(m_data.vertices.size(), SDL_GPU_BUFFERUSAGE_VERTEX);
         if(!m_data.indices.empty())
             m_indices = allocate(m_data.indices.size(), SDL_GPU_BUFFERUSAGE_INDEX);
-        if(!commit())
+        const bool read_only = m_data.read_only;
+        m_data.read_only = false;
+        m_data.vertices_changed = m_data.indices_changed = true;
+        const bool success = commit();
+        m_data.read_only = read_only;
+        if(!success)
             throw std::runtime_error("Initialize mesh buffers");
     }
     void Mesh::setVertex(uint32_t i, Vector2F const& p, Vector2F const& uv, Color4B c)
@@ -130,8 +146,8 @@ namespace core::Graphics::SDLGPU
                 SDL_GPUTransferBufferCreateInfo info{};
                 info.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
                 info.size = static_cast<uint32_t>(bytes.size());
-                TransferBuffer transfer(require(SDL_CreateGPUTransferBuffer(m_device->gpu(), &info), "Create mesh transfer"), { m_device->gpu() });
-                auto* data = require(SDL_MapGPUTransferBuffer(m_device->gpu(), transfer.get(), false), "Map mesh transfer");
+                TransferBuffer transfer(requireGpu(SDL_CreateGPUTransferBuffer(m_device->gpu(), &info), "Create mesh transfer"), { m_device->gpu() });
+                auto* data = requireGpu(SDL_MapGPUTransferBuffer(m_device->gpu(), transfer.get(), false), "Map mesh transfer");
                 std::memcpy(data, bytes.data(), bytes.size());
                 SDL_UnmapGPUTransferBuffer(m_device->gpu(), transfer.get());
                 m_device->copy([&](SDL_GPUCopyPass* pass) {
@@ -147,7 +163,7 @@ namespace core::Graphics::SDLGPU
             m_data.vertices_changed = m_data.indices_changed = false;
             return true;
         } catch(std::exception const& error) {
-            Logger::error("[sdlgpu] Commit mesh: {}", error.what());
+            m_device->fail(error);
             return false;
         }
     }
@@ -182,7 +198,7 @@ namespace core::Graphics
             *output = new SDLGPU::Mesh(static_cast<SDLGPU::Device*>(device), options);
             return true;
         } catch(std::exception const& error) {
-            Logger::error("[sdlgpu] Create mesh: {}", error.what());
+            static_cast<SDLGPU::Device*>(device)->fail(error);
             return false;
         }
     }

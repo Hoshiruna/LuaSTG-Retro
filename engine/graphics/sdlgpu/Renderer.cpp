@@ -75,8 +75,6 @@ namespace core::Graphics::SDLGPU
     Renderer::Renderer(Device* device)
         : m_device(device)
     {
-        m_vertex_shader = device->compiler().compile(device->gpu(), shaders::sprite_vertex, SDL_GPU_SHADERSTAGE_VERTEX, "runtime sprite vertex");
-        m_fragment_shader = device->compiler().compile(device->gpu(), shaders::sprite_fragment, SDL_GPU_SHADERSTAGE_FRAGMENT, "runtime sprite fragment");
         for(size_t i = 0; i < m_samplers.size(); ++i) {
             Graphics::SamplerState state;
             state.filer = i < 4 ? Filter::Point : Filter::Linear;
@@ -89,21 +87,52 @@ namespace core::Graphics::SDLGPU
         const std::array<uint8_t, 4> pixel{ 255, 255, 255, 255 };
         white->uploadRgba(pixel);
         m_white = white.get();
-        SDL_GPUBufferCreateInfo buffer{};
-        buffer.usage = SDL_GPU_BUFFERUSAGE_VERTEX;
-        buffer.size = vertex_bytes;
-        m_vertex_buffer = { require(SDL_CreateGPUBuffer(device->gpu(), &buffer), "Create sprite vertex buffer"), { device->gpu() } };
-        buffer.usage = SDL_GPU_BUFFERUSAGE_INDEX;
-        buffer.size = index_bytes;
-        m_index_buffer = { require(SDL_CreateGPUBuffer(device->gpu(), &buffer), "Create sprite index buffer"), { device->gpu() } };
-        SDL_GPUTransferBufferCreateInfo upload{};
-        upload.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
-        upload.size = vertex_bytes + index_bytes;
-        m_upload = { require(SDL_CreateGPUTransferBuffer(device->gpu(), &upload), "Create sprite upload buffer"), { device->gpu() } };
+        rebuildGpu();
         m_vertices.reserve(batch_capacity);
         m_indices.reserve(batch_capacity);
         setOrtho({ 0, 0, 0, 640, 480, 1 });
         device->setRenderer(this);
+        m_registration.attach(device->registry(), RecoveryStage::Renderer, "renderer", [this] { releaseGpu(); }, [this] { rebuildGpu(); });
+    }
+    void Renderer::discardFrame() noexcept
+    {
+        m_vertices.clear();
+        m_indices.clear();
+        m_effect_pass = nullptr;
+        m_batch = false;
+    }
+    void Renderer::releaseGpu()
+    {
+        discardFrame();
+        m_pipelines.clear();
+        m_mesh_pipelines.clear();
+        m_model_pipelines.clear();
+        for(auto& shader : m_mesh_shaders) shader.reset();
+        m_model_vertex.reset();
+        m_model_fragment.reset();
+        m_vertex_shader.reset();
+        m_fragment_shader.reset();
+        m_effect_vertex_shader.reset();
+        m_vertex_buffer.reset();
+        m_index_buffer.reset();
+        m_upload.reset();
+    }
+    void Renderer::rebuildGpu()
+    {
+        auto* device = m_device.get();
+        m_vertex_shader = device->compiler().compile(device->gpu(), shaders::sprite_vertex, SDL_GPU_SHADERSTAGE_VERTEX, "runtime sprite vertex");
+        m_fragment_shader = device->compiler().compile(device->gpu(), shaders::sprite_fragment, SDL_GPU_SHADERSTAGE_FRAGMENT, "runtime sprite fragment");
+        SDL_GPUBufferCreateInfo buffer{};
+        buffer.usage = SDL_GPU_BUFFERUSAGE_VERTEX;
+        buffer.size = vertex_bytes;
+        m_vertex_buffer = { requireGpu(SDL_CreateGPUBuffer(device->gpu(), &buffer), "Create sprite vertex buffer"), { device->gpu() } };
+        buffer.usage = SDL_GPU_BUFFERUSAGE_INDEX;
+        buffer.size = index_bytes;
+        m_index_buffer = { requireGpu(SDL_CreateGPUBuffer(device->gpu(), &buffer), "Create sprite index buffer"), { device->gpu() } };
+        SDL_GPUTransferBufferCreateInfo upload{};
+        upload.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
+        upload.size = vertex_bytes + index_bytes;
+        m_upload = { requireGpu(SDL_CreateGPUTransferBuffer(device->gpu(), &upload), "Create sprite upload buffer"), { device->gpu() } };
     }
     Renderer::~Renderer()
     {
@@ -169,6 +198,10 @@ namespace core::Graphics::SDLGPU
 
     bool Renderer::flush()
     {
+        if(m_device->failed() && !m_device->reconstructing()) {
+            discardFrame();
+            return false;
+        }
         if(m_device->failed())
             return false;
         if(m_indices.empty()) {
@@ -185,7 +218,7 @@ namespace core::Graphics::SDLGPU
                 sampler = static_cast<SDLGPU::SamplerState*>(m_samplers[size_t(IRenderer::SamplerState::LinearClamp)].get());
             auto* graphics_pipeline = pipeline();
             frame->endPass();
-            auto* upload = static_cast<uint8_t*>(require(SDL_MapGPUTransferBuffer(m_device->gpu(), m_upload.get(), true), "Map sprite upload"));
+            auto* upload = static_cast<uint8_t*>(requireGpu(SDL_MapGPUTransferBuffer(m_device->gpu(), m_upload.get(), true), "Map sprite upload"));
             const auto used_vertices = static_cast<uint32_t>(m_vertices.size() * sizeof(DrawVertex));
             const auto used_indices = static_cast<uint32_t>(m_indices.size() * sizeof(DrawIndex));
             std::memcpy(upload, m_vertices.data(), used_vertices);

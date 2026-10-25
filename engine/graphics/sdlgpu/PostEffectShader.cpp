@@ -27,7 +27,19 @@ namespace core::Graphics::SDLGPU
             m_layout = std::move(sampled_layout);
         }
         m_shader = device->compiler().create(device->gpu(), spirv, SDL_GPU_SHADERSTAGE_FRAGMENT, m_name.c_str());
+        m_spirv = std::move(spirv);
         m_textures.resize(m_layout.textures.size());
+        m_registration.attach(device->registry(), RecoveryStage::Shader, m_name, [this] { releaseGpu(); }, [this] { rebuildGpu(); });
+    }
+
+    void PostEffectShader::releaseGpu()
+    {
+        m_pipelines.clear();
+        m_shader.reset();
+    }
+    void PostEffectShader::rebuildGpu()
+    {
+        m_shader = m_device->compiler().create(m_device->gpu(), m_spirv, SDL_GPU_SHADERSTAGE_FRAGMENT, m_name.c_str());
     }
 
     bool PostEffectShader::setValue(StringView name, const float* value, uint32_t components)

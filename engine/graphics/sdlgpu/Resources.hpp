@@ -8,6 +8,22 @@
 
 namespace core::Graphics::SDLGPU
 {
+    class GpuOperationError : public std::runtime_error
+    {
+    public:
+        using std::runtime_error::runtime_error;
+    };
+    inline void checkGpu(bool result, std::string_view operation)
+    {
+        if(!result)
+            throw GpuOperationError(std::string(operation) + ": " + SDL_GetError());
+    }
+    template<typename T>
+    T* requireGpu(T* pointer, std::string_view operation)
+    {
+        checkGpu(pointer != nullptr, operation);
+        return pointer;
+    }
     inline void check(const bool result, const std::string_view operation)
     {
         if(!result) {
@@ -47,11 +63,11 @@ namespace core::Graphics::SDLGPU
 
     inline RenderPass beginRenderPass(SDL_GPUCommandBuffer* const command, const SDL_GPUColorTargetInfo& target)
     {
-        return { require(SDL_BeginGPURenderPass(command, &target, 1, nullptr), "SDL_BeginGPURenderPass"), SDL_EndGPURenderPass };
+        return { requireGpu(SDL_BeginGPURenderPass(command, &target, 1, nullptr), "SDL_BeginGPURenderPass"), SDL_EndGPURenderPass };
     }
 
     inline CopyPass beginCopyPass(SDL_GPUCommandBuffer* const command)
     {
-        return { require(SDL_BeginGPUCopyPass(command), "SDL_BeginGPUCopyPass"), SDL_EndGPUCopyPass };
+        return { requireGpu(SDL_BeginGPUCopyPass(command), "SDL_BeginGPUCopyPass"), SDL_EndGPUCopyPass };
     }
 }

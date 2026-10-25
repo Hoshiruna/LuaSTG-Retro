@@ -56,6 +56,9 @@ namespace core::Graphics::SDLGPU
         SmartReference<Device> m_device;
         MeshData m_data;
         GpuResource<SDL_GPUBuffer, SDL_ReleaseGPUBuffer> m_vertices, m_indices;
+        void releaseGpu();
+        void rebuildGpu();
+        RecoveryRegistration m_registration;
     };
 
     class MeshRenderer final : public implement::ReferenceCounted<IMeshRenderer>

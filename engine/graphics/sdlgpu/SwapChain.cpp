@@ -30,6 +30,20 @@ float4 main(float4 position : SV_Position, float2 uv : TEXCOORD0) : SV_Target0 {
     {
         m_canvas.attach(new RenderTarget(device, { 640, 480 }));
         m_depth.attach(new DepthBuffer(device, { 640, 480 }));
+        rebuildGpu();
+        m_registration.attach(device->registry(), RecoveryStage::Presentation, "swapchain", [this] { releaseGpu(); }, [this] { rebuildGpu(); });
+    }
+    void SwapChain::releaseGpu()
+    {
+        m_pipeline.reset();
+        m_vertex_shader.reset();
+        m_fragment_shader.reset();
+        m_point.reset();
+        m_linear.reset();
+    }
+    void SwapChain::rebuildGpu()
+    {
+        auto* device = m_device.get();
         m_vertex_shader = device->compiler().compile(device->gpu(), presentation_vertex, SDL_GPU_SHADERSTAGE_VERTEX, "runtime presentation vertex");
         m_fragment_shader = device->compiler().compile(device->gpu(), presentation_fragment, SDL_GPU_SHADERSTAGE_FRAGMENT, "runtime presentation fragment");
         SDL_GPUColorTargetDescription target{};
@@ -51,6 +65,10 @@ float4 main(float4 position : SV_Position, float2 uv : TEXCOORD0) : SV_Target0 {
         m_point = { require(SDL_CreateGPUSampler(device->gpu(), &sampler), "Create point presentation sampler"), { device->gpu() } };
         sampler.min_filter = sampler.mag_filter = SDL_GPU_FILTER_LINEAR;
         m_linear = { require(SDL_CreateGPUSampler(device->gpu(), &sampler), "Create linear presentation sampler"), { device->gpu() } };
+        if(device->reconstructing()) {
+            if(!device->context().setVSync(m_vsync))
+                throw std::runtime_error("Restore VSync mode");
+        }
     }
     void SwapChain::addEventListener(ISwapChainEventListener* listener)
     {

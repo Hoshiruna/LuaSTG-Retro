@@ -19,12 +19,12 @@ function M:onDestroy()
 end
 
 local function translateFileAction(action)
-    if FileAction.added == action then return "添加" end
-    if FileAction.removed == action then return "移除" end
-    if FileAction.modified == action then return "修改" end
-    if FileAction.renamed_old_name == action then return "重命名（旧）" end
-    if FileAction.renamed_new_name == action then return "重命名（新）" end
-    return "未知"
+    if FileAction.added == action then return "Added" end
+    if FileAction.removed == action then return "Removed" end
+    if FileAction.modified == action then return "Modified" end
+    if FileAction.renamed_old_name == action then return "Renamed (old name)" end
+    if FileAction.renamed_new_name == action then return "Renamed (new name)" end
+    return "Unknown"
 end
 
 function M:onUpdate()

@@ -41,5 +41,8 @@ namespace core::Graphics::SDLGPU
         SwapChainScalingMode m_scaling{ SwapChainScalingMode::AspectRatio };
         bool m_vsync{ true };
         bool m_requested_vsync{ true };
+        void releaseGpu();
+        void rebuildGpu();
+        RecoveryRegistration m_registration;
     };
 }

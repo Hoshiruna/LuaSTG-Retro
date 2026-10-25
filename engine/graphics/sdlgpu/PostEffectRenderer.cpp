@@ -117,7 +117,7 @@ Output main(uint id : SV_VertexID) {
             m_effect_pass = nullptr;
             if(m_device->frame())
                 m_device->frame()->endPass();
-            Logger::error("[sdlgpu] Draw post-effect: {}", error.what());
+            m_device->fail(error);
             return false;
         }
     }
@@ -168,7 +168,7 @@ Output main(uint id : SV_VertexID) {
             m_effect_pass = nullptr;
             if(m_device->frame())
                 m_device->frame()->endPass();
-            Logger::error("[sdlgpu] Draw legacy post-effect: {}", error.what());
+            m_device->fail(error);
             return false;
         }
     }

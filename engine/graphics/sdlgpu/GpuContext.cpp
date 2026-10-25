@@ -7,23 +7,33 @@ namespace core::Graphics::SDLGPU
 {
     Frame::Frame(SDL_GPUDevice* const device, SDL_Window* const window)
     {
-        m_command = require(SDL_AcquireGPUCommandBuffer(device), "SDL_AcquireGPUCommandBuffer");
+        m_command = requireGpu(SDL_AcquireGPUCommandBuffer(device), "SDL_AcquireGPUCommandBuffer");
         if(!SDL_WaitAndAcquireGPUSwapchainTexture(m_command, window, &m_texture, &m_width, &m_height)) {
             const std::string message = std::string("SDL_WaitAndAcquireGPUSwapchainTexture: ") + SDL_GetError();
             SDL_CancelGPUCommandBuffer(m_command);
             m_command = nullptr;
-            throw std::runtime_error(message);
+            throw GpuOperationError(message);
         }
     }
 
     Frame::~Frame()
     {
+        try {
+            finish();
+        } catch(const std::exception& error) {
+            Logger::error("[sdlgpu] Failed to finish abandoned frame: {}", error.what());
+        }
+    }
+
+    void Frame::finish()
+    {
         endPass();
         if(m_command != nullptr) {
-            const bool result = m_texture != nullptr ? SDL_SubmitGPUCommandBuffer(m_command) : SDL_CancelGPUCommandBuffer(m_command);
-            if(!result) {
-                Logger::error("[sdlgpu] Failed to finish abandoned frame: {}", SDL_GetError());
-            }
+            auto* command = std::exchange(m_command, nullptr);
+            if(m_texture != nullptr)
+                checkGpu(SDL_SubmitGPUCommandBuffer(command), "Submit abandoned GPU frame");
+            else
+                checkGpu(SDL_CancelGPUCommandBuffer(command), "Cancel GPU frame without swapchain texture");
         }
     }
 
@@ -39,13 +49,13 @@ namespace core::Graphics::SDLGPU
     SDL_GPURenderPass* Frame::beginRenderPass(const std::span<const SDL_GPUColorTargetInfo> targets, const SDL_GPUDepthStencilTargetInfo* const depth)
     {
         auto* const buffer = commandOutsidePass();
-        m_render_pass = require(SDL_BeginGPURenderPass(buffer, targets.data(), static_cast<Uint32>(targets.size()), depth), "SDL_BeginGPURenderPass");
+        m_render_pass = requireGpu(SDL_BeginGPURenderPass(buffer, targets.data(), static_cast<Uint32>(targets.size()), depth), "SDL_BeginGPURenderPass");
         return m_render_pass;
     }
 
     SDL_GPUCopyPass* Frame::beginCopyPass()
     {
-        m_copy_pass = require(SDL_BeginGPUCopyPass(commandOutsidePass()), "SDL_BeginGPUCopyPass");
+        m_copy_pass = requireGpu(SDL_BeginGPUCopyPass(commandOutsidePass()), "SDL_BeginGPUCopyPass");
         return m_copy_pass;
     }
 
@@ -62,7 +72,7 @@ namespace core::Graphics::SDLGPU
     void Frame::submit()
     {
         commandOutsidePass();
-        check(SDL_SubmitGPUCommandBuffer(std::exchange(m_command, nullptr)), "SDL_SubmitGPUCommandBuffer");
+        checkGpu(SDL_SubmitGPUCommandBuffer(std::exchange(m_command, nullptr)), "SDL_SubmitGPUCommandBuffer");
     }
 
     namespace
@@ -113,11 +123,25 @@ namespace core::Graphics::SDLGPU
             } catch(const std::exception& error) {
                 // Asking for a specific driver and getting a different one silently is worse
                 // than not starting, so name the driver and say what this build can offer.
-                throw std::runtime_error("Cannot use the requested GPU driver \"" + name + "\": " + error.what()
-                    + ". Drivers built into SDL: " + listDrivers());
+                throw std::runtime_error("Cannot use the requested GPU driver \"" + name + "\": " + error.what() + ". Drivers built into SDL: " + listDrivers());
             }
         }
         Logger::info("[sdlgpu] GPU driver: {}", driver());
+    }
+
+    void GpuContext::close() noexcept
+    {
+        if(m_device && !SDL_WaitForGPUIdle(m_device.get()))
+            Logger::error("[sdlgpu] SDL_WaitForGPUIdle before device release: {}", SDL_GetError());
+        if(m_device && m_window)
+            SDL_ReleaseWindowFromGPUDevice(m_device.get(), m_window);
+        m_window = nullptr;
+        m_device.reset();
+    }
+    void GpuContext::reopen(SDL_Window* window, std::string_view driver)
+    {
+        const std::string selected(driver);
+        open(window, selected.c_str(), false);
     }
 
     void GpuContext::open(SDL_Window* const window, const char* const requested_driver, const bool debug)
@@ -164,12 +188,7 @@ namespace core::Graphics::SDLGPU
 
     GpuContext::~GpuContext()
     {
-        if(!SDL_WaitForGPUIdle(m_device.get())) {
-            Logger::error("[sdlgpu] SDL_WaitForGPUIdle during shutdown: {}", SDL_GetError());
-        }
-        if(m_window != nullptr) {
-            SDL_ReleaseWindowFromGPUDevice(m_device.get(), m_window);
-        }
+        close();
     }
 
     void GpuContext::claimWindow(SDL_Window* window)

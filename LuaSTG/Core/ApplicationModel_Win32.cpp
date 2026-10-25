@@ -99,13 +99,24 @@ namespace core
         }
 
         m_rendering = true;
-        const auto status = m_graphics->beginFrame();
-        if(status == Graphics::FrameStatus::Ready) {
-            if(!m_graphics->submitFrame(m_listener->onRender())) {
+        const auto recovery = m_graphics->serviceRecovery();
+        if(recovery != Graphics::RecoveryResult::NotNeeded) {
+            if(recovery == Graphics::RecoveryResult::Fatal) {
                 m_failed = true;
                 requestExit();
             }
-        } else if(status == Graphics::FrameStatus::Failed) {
+            m_rendering = false;
+            return;
+        }
+        const auto status = m_graphics->beginFrame();
+        if(status == Graphics::FrameStatus::Ready) {
+            if(!m_graphics->submitFrame(m_listener->onRender()) &&
+                m_graphics->serviceRecovery() != Graphics::RecoveryResult::Recovered) {
+                m_failed = true;
+                requestExit();
+            }
+        } else if(status == Graphics::FrameStatus::Failed &&
+            m_graphics->serviceRecovery() != Graphics::RecoveryResult::Recovered) {
             m_failed = true;
             requestExit();
         }
@@ -157,6 +168,14 @@ namespace core
 
     void ApplicationModel_Win32::runFrame()
     {
+        m_rendering = true;
+        const auto recovery = m_graphics->serviceRecovery();
+        m_rendering = false;
+        if(recovery == Graphics::RecoveryResult::Fatal) {
+            m_failed = true;
+            requestExit();
+            return;
+        }
         size_t const frame_index = (m_framestate_index + 1) % std::size(m_framestate);
         auto& statistics = m_framestate[frame_index];
         statistics = {};
@@ -177,7 +196,8 @@ namespace core
             bool render_result{};
             tracy_zone_scoped_with_name("OnRender");
             auto const status = m_graphics->beginFrame();
-            if(status == Graphics::FrameStatus::Failed) {
+            if(status == Graphics::FrameStatus::Failed &&
+                m_graphics->serviceRecovery() != Graphics::RecoveryResult::Recovered) {
                 m_failed = true;
                 requestExit();
             }
@@ -189,7 +209,8 @@ namespace core
             if(status == Graphics::FrameStatus::Ready) {
                 tracy_zone_scoped_with_name("OnPresent");
                 ScopeTimer present_timer(statistics.present_time);
-                if(!m_graphics->submitFrame(render_result)) {
+                if(!m_graphics->submitFrame(render_result) &&
+                    m_graphics->serviceRecovery() != Graphics::RecoveryResult::Recovered) {
                     m_failed = true;
                     requestExit();
                 }

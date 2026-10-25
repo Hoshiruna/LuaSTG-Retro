@@ -392,6 +392,8 @@ struct Window
             return;
 
         is_updating = true;
+        if(graphics->serviceRecovery() == core::Graphics::RecoveryResult::Fatal)
+            throw std::runtime_error("Settings GPU recovery failed");
         graphics->newImGuiFrame();
         ImGui_ImplSDL3_NewFrame();
         ImGui::NewFrame();
@@ -412,13 +414,22 @@ struct Window
         }
 
         is_rendering = true;
+        const auto recovery = graphics->serviceRecovery();
+        if(recovery == core::Graphics::RecoveryResult::Fatal)
+            throw std::runtime_error("Settings GPU recovery failed");
+        if(recovery == core::Graphics::RecoveryResult::Recovered) {
+            is_rendering = false;
+            return;
+        }
         const auto status = graphics->beginFrame();
         if(status == core::Graphics::FrameStatus::Ready) {
             graphics->renderImGui(ImGui::GetDrawData());
-            if(!graphics->submitFrame(true)) {
+            if(!graphics->submitFrame(true) &&
+                graphics->serviceRecovery() != core::Graphics::RecoveryResult::Recovered) {
                 throw std::runtime_error("Present Settings frame failed");
             }
-        } else if(status == core::Graphics::FrameStatus::Failed) {
+        } else if(status == core::Graphics::FrameStatus::Failed &&
+            graphics->serviceRecovery() != core::Graphics::RecoveryResult::Recovered) {
             throw std::runtime_error("Begin Settings frame failed");
         }
         is_rendering = false;

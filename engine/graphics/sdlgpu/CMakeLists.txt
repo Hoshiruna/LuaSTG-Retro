@@ -50,7 +50,7 @@ endfunction()
 
 if (LUASTG_USE_SDLGPU)
     add_library(Core.Graphics.SDLGPU.Runtime STATIC
-        Device.hpp Device.cpp
+        Device.hpp Device.cpp Recovery.hpp
         Renderer.hpp Renderer.cpp SpriteShaders.hpp
         Mesh.hpp Mesh.cpp MeshRenderer.cpp MeshShaders.hpp
         ModelData.hpp ModelData.cpp Model.hpp Model.cpp ModelRenderer.cpp ModelShaders.hpp
@@ -70,7 +70,8 @@ if (LUASTG_USE_SDLGPU)
     target_link_libraries(Core.Graphics.SDLGPU.Runtime PRIVATE spirv-cross-c DirectXShaderCompiler::dxcompiler Core.FileSystem tinygltf)
     set_target_properties(Core.Graphics.SDLGPU.Runtime PROPERTIES FOLDER engine)
     if (LUASTG_BUILD_TESTS)
-        add_executable(Core.Graphics.SDLGPU.ShaderTest test/ShaderTest.cpp test/GeometryTest.cpp)
+        target_compile_definitions(Core.Graphics.SDLGPU.Runtime PUBLIC LUASTG_SDLGPU_RECOVERY_TESTS)
+        add_executable(Core.Graphics.SDLGPU.ShaderTest test/ShaderTest.cpp test/GeometryTest.cpp test/RecoveryTest.cpp)
         target_compile_definitions(Core.Graphics.SDLGPU.ShaderTest PRIVATE
             LUASTG_SHADER_FIXTURES="${CMAKE_CURRENT_SOURCE_DIR}/test/fixtures"
             LUASTG_GEOMETRY_FIXTURES="${PROJECT_SOURCE_DIR}/data/test/res/geometry")
@@ -86,6 +87,20 @@ if (LUASTG_USE_SDLGPU)
         set_tests_properties(Core.Graphics.SDLGPU.Shaders PROPERTIES
             WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/test" TIMEOUT 60
         )
+        add_executable(Core.Graphics.SDLGPU.RecoveryCapture test/RecoveryCapture.cpp)
+        luastg_target_common_options(Core.Graphics.SDLGPU.RecoveryCapture)
+        luastg_target_more_warning(Core.Graphics.SDLGPU.RecoveryCapture)
+        target_include_directories(Core.Graphics.SDLGPU.RecoveryCapture PRIVATE ..)
+        target_compile_definitions(Core.Graphics.SDLGPU.RecoveryCapture PRIVATE
+            LUASTG_GEOMETRY_FIXTURES="${PROJECT_SOURCE_DIR}/data/test/res/geometry")
+        target_link_libraries(Core.Graphics.SDLGPU.RecoveryCapture PRIVATE
+            Core.Graphics.SDLGPU.Runtime Core.FileSystem Core.WindowSystem spdlog)
+        set_target_properties(Core.Graphics.SDLGPU.RecoveryCapture PROPERTIES FOLDER engine/test)
+        luastg_copy_sdlgpu_runtime(Core.Graphics.SDLGPU.RecoveryCapture)
+        add_custom_command(TARGET Core.Graphics.SDLGPU.RecoveryCapture POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "$<TARGET_FILE:SDL3::SDL3>" "$<TARGET_FILE_DIR:Core.Graphics.SDLGPU.RecoveryCapture>"
+            VERBATIM)
     endif ()
 endif ()
 

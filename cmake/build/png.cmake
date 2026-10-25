@@ -42,6 +42,8 @@ add_custom_command(
         -DPNG_SHARED=OFF
         -DPNG_TESTS=OFF
         -DPNG_TOOLS=OFF
+        # The fork uses zlib-ng, but its AWK generator still includes zlib.h.
+        "-DPNG_LIBCONF_HEADER:FILEPATH=${libpng_source_directory}/scripts/pnglibconf.h.prebuilt"
     COMMAND ${CMAKE_COMMAND}
         --build ${libpng_build_directory}
         --config $<CONFIG>

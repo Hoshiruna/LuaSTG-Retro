@@ -17,7 +17,7 @@ namespace core::Graphics::SDLGPU
         SDL_GPUTransferBufferCreateInfo info{};
         info.usage = usage;
         info.size = static_cast<uint32_t>(size);
-        m_buffer = TransferBuffer(require(SDL_CreateGPUTransferBuffer(device, &info), "Create texture transfer buffer"), { device });
+        m_buffer = TransferBuffer(requireGpu(SDL_CreateGPUTransferBuffer(device, &info), "Create texture transfer buffer"), { device });
     }
 
     void TextureTransfer::upload(SDL_GPUCopyPass* pass, SDL_GPUTexture* texture, uint32_t x, uint32_t y, std::span<const uint8_t> pixels, uint32_t source_pitch)
@@ -27,7 +27,7 @@ namespace core::Graphics::SDLGPU
             pixels.size() < uint64_t(source_pitch) * (m_height - 1) + row_size) {
             throw std::invalid_argument("Invalid texture upload pixels or row pitch");
         }
-        auto* destination = static_cast<uint8_t*>(require(SDL_MapGPUTransferBuffer(m_device, m_buffer.get(), true), "Map texture upload"));
+        auto* destination = static_cast<uint8_t*>(requireGpu(SDL_MapGPUTransferBuffer(m_device, m_buffer.get(), true), "Map texture upload"));
         for(uint32_t row = 0; row < m_height; ++row) {
             std::memcpy(destination + size_t(row) * m_pitch, pixels.data() + size_t(row) * source_pitch, row_size);
         }
@@ -70,7 +70,7 @@ namespace core::Graphics::SDLGPU
             throw std::logic_error("Cannot read an upload transfer buffer");
         }
         std::vector<uint8_t> pixels(size_t(m_width) * m_height * 4);
-        auto* source = static_cast<const uint8_t*>(require(SDL_MapGPUTransferBuffer(m_device, m_buffer.get(), false), "Map texture readback"));
+        auto* source = static_cast<const uint8_t*>(requireGpu(SDL_MapGPUTransferBuffer(m_device, m_buffer.get(), false), "Map texture readback"));
         for(uint32_t row = 0; row < m_height; ++row) {
             std::memcpy(pixels.data() + size_t(row) * m_width * 4, source + size_t(row) * m_pitch, size_t(m_width) * 4);
         }

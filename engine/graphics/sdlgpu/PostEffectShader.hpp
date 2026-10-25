@@ -38,7 +38,11 @@ namespace core::Graphics::SDLGPU
         EffectLayout m_layout;
         std::vector<SmartReference<ITexture2D>> m_textures;
         Shader m_shader;
+        std::vector<uint32_t> m_spirv;
         using PipelineKey = std::tuple<IRenderer::BlendState, SDL_GPUTextureFormat, bool, SDL_GPUTextureFormat>;
         std::map<PipelineKey, Pipeline> m_pipelines;
+        void releaseGpu();
+        void rebuildGpu();
+        RecoveryRegistration m_registration;
     };
 }
