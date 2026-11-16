@@ -6,6 +6,7 @@
 #include "luastg/mask.hpp"
 #include "generated/scripts.hpp"
 #include "core/FileSystemCommon.hpp"
+#include <cstring>
 #include <ranges>
 #include <algorithm>
 

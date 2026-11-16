@@ -1,6 +1,7 @@
 #include "Core/Graphics/Common/FreeTypeGlyphManager.hpp"
 #include "core/FileSystem.hpp"
 #include "Core/Graphics/Common/SystemFont.hpp"
+#include "utility/utf.hpp"
 #include <algorithm>
 #include <cassert>
 #include <cstring>

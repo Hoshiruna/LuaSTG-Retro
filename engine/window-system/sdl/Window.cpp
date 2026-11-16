@@ -693,6 +693,9 @@ namespace core
         if(!requireMainThread("SDL_SetWindowPosition")) {
             return false;
         }
+        if(auto const* const driver = SDL_GetCurrentVideoDriver(); driver != nullptr && std::string_view(driver) == "wayland") {
+            return !visible || setVisible(true);
+        }
         SDL_DisplayID id{};
         if(display != nullptr) {
             id = display->getSDLDisplayID();

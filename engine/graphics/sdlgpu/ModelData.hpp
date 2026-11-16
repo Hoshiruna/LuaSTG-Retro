@@ -1,7 +1,7 @@
 #pragma once
 #include "Core/Graphics/Device.hpp"
+#include "DirectXMath.hpp"
 #include "core/Vector4.hpp"
-#include <DirectXMath.h>
 #include <vector>
 #include <string_view>
 

@@ -534,6 +534,7 @@ namespace
 
                 ImGui::SliderScalar("Record Range", sizeof(size_t) == 8 ? ImGuiDataType_U64 : ImGuiDataType_U32, &record_range, &record_range_min, &record_range_max);
                 record_range = std::clamp<size_t>(record_range, 2, record_range_max);
+                auto const plot_index = static_cast<ImU64>(arr_index);
 
                 // frame time
 
@@ -589,7 +590,7 @@ namespace
                         ImPlot::PlotLine("Render", arr_render_time.data(), (int)record_range);
                         ImPlot::PlotLine("Update", arr_update_time.data(), (int)record_range);
 
-                        plotInfLinesStyled("##Current Time", &arr_index, 1, ImPlotInfLinesFlags_None, ImVec4(0.2f, 0.2f, 0.2f, 1.0f));
+                        plotInfLinesStyled("##Current Time", &plot_index, 1, ImPlotInfLinesFlags_None, ImVec4(0.2f, 0.2f, 0.2f, 1.0f));
 
                         ImPlot::EndPlot();
                     }
@@ -638,7 +639,7 @@ namespace
 
                         ImPlot::PlotLine("Render", arr_gpu_render_time.data(), (int)record_range);
 
-                        plotInfLinesStyled("##Current Time", &arr_index, 1, ImPlotInfLinesFlags_None, ImVec4(0.2f, 0.2f, 0.2f, 1.0f));
+                        plotInfLinesStyled("##Current Time", &plot_index, 1, ImPlotInfLinesFlags_None, ImVec4(0.2f, 0.2f, 0.2f, 1.0f));
 
                         ImPlot::EndPlot();
                     }
@@ -696,7 +697,7 @@ namespace
                         ImPlot::PlotLine("GPU (MiB)", arr_mem_gpu.data(), (int)record_range);
                         ImPlot::PlotLine("Lua (MiB)", arr_mem_lua.data(), (int)record_range);
 
-                        plotInfLinesStyled("##Current Time", &arr_index, 1, ImPlotInfLinesFlags_None, ImVec4(0.2f, 0.2f, 0.2f, 1.0f));
+                        plotInfLinesStyled("##Current Time", &plot_index, 1, ImPlotInfLinesFlags_None, ImVec4(0.2f, 0.2f, 0.2f, 1.0f));
 
                         ImPlot::EndPlot();
                     }
@@ -751,7 +752,7 @@ namespace
                         ImPlot::PlotLine("Colli Check", arr_obj_colli.data(), (int)record_range);
                         ImPlot::PlotLine("Colli Callback", arr_obj_colli_cb.data(), (int)record_range);
 
-                        plotInfLinesStyled("##Current Time", &arr_index, 1, ImPlotInfLinesFlags_None, ImVec4(0.2f, 0.2f, 0.2f, 1.0f));
+                        plotInfLinesStyled("##Current Time", &plot_index, 1, ImPlotInfLinesFlags_None, ImVec4(0.2f, 0.2f, 0.2f, 1.0f));
 
                         ImPlot::EndPlot();
                     }

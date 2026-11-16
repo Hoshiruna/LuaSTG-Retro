@@ -209,7 +209,7 @@ static std::unordered_map<std::string_view, i18n_entry_t> const g_i18n_map = {
                                                             } },
 
 #pragma warning(disable : 4002)
-#define ADD(KEY, V1, V2) \
+#define ADD(KEY, V1, V2, ...) \
     {                    \
         KEY,             \
         {                \

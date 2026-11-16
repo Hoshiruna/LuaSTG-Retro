@@ -132,7 +132,7 @@ namespace luastg
         for(auto& i : resource_set) {
             auto ptr = i.second;
             index += 1;
-            S.set_array_value<std::string_view>(index, ptr->GetResName());
+            S.set_array_value(index, ptr->GetResName());
         }
     }
 

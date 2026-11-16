@@ -5,7 +5,7 @@
 
 using std::string_view_literals::operator""sv;
 
-namespace random
+namespace luastg::random
 {
     well512::well512()
     {

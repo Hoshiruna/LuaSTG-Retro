@@ -157,7 +157,7 @@ namespace luastg
     {                                                                \
         lua_pushstring(L, luakey);                                   \
         lua_gettable(L, argnum);                                     \
-        info.##cppkey## = (valuetype)luaL_check##valueproc##(L, -1); \
+        info.cppkey = static_cast<valuetype>(luaL_check##valueproc(L, -1)); \
         lua_pop(L, 1);                                               \
     }
 

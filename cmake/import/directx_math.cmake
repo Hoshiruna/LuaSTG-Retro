@@ -30,6 +30,7 @@ foreach(luastg_sal_file IN ITEMS sal.h LICENSE.TXT)
 endforeach()
 
 add_library(luastg_directxmath_headers INTERFACE)
+target_compile_definitions(luastg_directxmath_headers INTERFACE PAL_STDCPP_COMPAT)
 target_include_directories(luastg_directxmath_headers INTERFACE
     "${luastg_directxmath_SOURCE_DIR}/Inc"
     "${luastg_sal_directory}"

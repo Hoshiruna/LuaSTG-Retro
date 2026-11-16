@@ -3,7 +3,7 @@
 #include <string_view>
 #include <string>
 
-namespace random
+namespace luastg::random
 {
     // WELL512 随机数算法
     // 摘自《游戏编程精粹 7》

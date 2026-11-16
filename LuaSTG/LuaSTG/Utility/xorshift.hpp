@@ -17,7 +17,7 @@
 #include <string_view>
 #include <exception>
 
-namespace random
+namespace luastg::random
 {
     class base
     {

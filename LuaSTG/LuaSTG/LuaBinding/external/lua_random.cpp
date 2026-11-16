@@ -198,10 +198,10 @@ public:
 };
 
 #define MAKE_TYPE(T)                                                     \
-    template class RandomBase<random::T>;                                \
-    std::string_view const RandomBase<random::T>::ClassID("random." #T); \
-    std::string_view const RandomBase<random::T>::CreateID(#T);          \
-    using lua_##T##_t = RandomBase<random::T>;
+    template<> std::string_view const RandomBase<luastg::random::T>::ClassID("random." #T); \
+    template<> std::string_view const RandomBase<luastg::random::T>::CreateID(#T);          \
+    template class RandomBase<luastg::random::T>;                                \
+    using lua_##T##_t = RandomBase<luastg::random::T>;
 
 MAKE_TYPE(splitmix64);
 
@@ -253,7 +253,7 @@ public:
         inline void setSeed(lua_Integer seedv)
         {
             seed = seedv;
-            pcg_extras::seed_seq_from<random::splitmix64> seed_rng(static_cast<typename random::splitmix64::result_type>(seed));
+            pcg_extras::seed_seq_from<luastg::random::splitmix64> seed_rng(static_cast<typename luastg::random::splitmix64::result_type>(seed));
             rng.seed(seed_rng);
         }
 
@@ -433,8 +433,11 @@ public:
     }
 };
 
-namespace random
+namespace luastg::random
 {
+    using pcg_extras::operator<<;
+    using pcg_extras::operator>>;
+
     class pcg32_oneseq_ex : public pcg32_oneseq
     {
     protected:
@@ -657,10 +660,10 @@ namespace random
 }
 
 #define MAKE_TYPE(T)                                                             \
-    template class RandomBasePCG<random::T##_ex>;                                \
-    std::string_view const RandomBasePCG<random::T##_ex>::ClassID("random." #T); \
-    std::string_view const RandomBasePCG<random::T##_ex>::CreateID(#T);          \
-    using lua_##T##_t = RandomBasePCG<random::T##_ex>;
+    template<> std::string_view const RandomBasePCG<luastg::random::T##_ex>::ClassID("random." #T); \
+    template<> std::string_view const RandomBasePCG<luastg::random::T##_ex>::CreateID(#T);          \
+    template class RandomBasePCG<luastg::random::T##_ex>;                                \
+    using lua_##T##_t = RandomBasePCG<luastg::random::T##_ex>;
 
 // pcg family
 
@@ -689,7 +692,7 @@ public:
         inline void setSeed(lua_Integer seedv)
         {
             seed = seedv;
-            random::splitmix64 seed_rng(static_cast<typename random::splitmix64::result_type>(seed));
+            luastg::random::splitmix64 seed_rng(static_cast<typename luastg::random::splitmix64::result_type>(seed));
             auto const a = static_cast<typename RNG::result_type>(seed_rng());
             if constexpr(std::is_same<RNG, jsf32>() || std::is_same<RNG, jsf64>()) {
                 rng = RNG(a);
@@ -863,9 +866,9 @@ public:
 };
 
 #define MAKE_TYPE(T)                                                  \
+    template<> std::string_view const RandomBaseOther<T>::ClassID("random." #T); \
+    template<> std::string_view const RandomBaseOther<T>::CreateID(#T);          \
     template class RandomBaseOther<T>;                                \
-    std::string_view const RandomBaseOther<T>::ClassID("random." #T); \
-    std::string_view const RandomBaseOther<T>::CreateID(#T);          \
     using lua_##T##_t = RandomBaseOther<T>;
 
 // jsf family

@@ -63,6 +63,32 @@ find_file(LUASTG_NOTO_CJK_LICENSE NAMES copyright LICENSE OFL.txt
 if (LUASTG_NOTO_CJK_FONT AND LUASTG_NOTO_CJK_LICENSE)
     install(FILES "${LUASTG_NOTO_CJK_FONT}" DESTINATION assets/fonts COMPONENT LinuxRuntime)
     install(FILES "${LUASTG_NOTO_CJK_LICENSE}" DESTINATION licenses/NotoSansCJK COMPONENT LinuxRuntime)
+    add_custom_command(TARGET LuaSTG POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${PROJECT_SOURCE_DIR}/data/example/assets" "$<TARGET_FILE_DIR:LuaSTG>/assets"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${PROJECT_SOURCE_DIR}/data/example/scripts" "$<TARGET_FILE_DIR:LuaSTG>/scripts"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${PROJECT_SOURCE_DIR}/data/example/config.json" "$<TARGET_FILE_DIR:LuaSTG>/config.json"
+        COMMAND ${CMAKE_COMMAND} -E make_directory
+            "$<TARGET_FILE_DIR:LuaSTG>/assets/fonts" "$<TARGET_FILE_DIR:LuaSTG>/licenses/NotoSansCJK"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${LUASTG_NOTO_CJK_FONT}" "$<TARGET_FILE_DIR:LuaSTG>/assets/fonts/NotoSansCJK-Regular.ttc"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${LUASTG_NOTO_CJK_LICENSE}" "$<TARGET_FILE_DIR:LuaSTG>/licenses/NotoSansCJK/copyright"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${PROJECT_SOURCE_DIR}/data/example/assets" "${CMAKE_BINARY_DIR}/bin/assets"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${PROJECT_SOURCE_DIR}/data/example/scripts" "${CMAKE_BINARY_DIR}/bin/scripts"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${PROJECT_SOURCE_DIR}/data/example/config.json" "${CMAKE_BINARY_DIR}/bin/config.json"
+        COMMAND ${CMAKE_COMMAND} -E make_directory
+            "${CMAKE_BINARY_DIR}/bin/assets/fonts" "${CMAKE_BINARY_DIR}/bin/licenses/NotoSansCJK"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${LUASTG_NOTO_CJK_FONT}" "${CMAKE_BINARY_DIR}/bin/assets/fonts/NotoSansCJK-Regular.ttc"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${LUASTG_NOTO_CJK_LICENSE}" "${CMAKE_BINARY_DIR}/bin/licenses/NotoSansCJK/copyright"
+        VERBATIM)
 else ()
     install(CODE [[
         message(FATAL_ERROR "Linux packaging requires NotoSansCJK-Regular.ttc and its license. Install fonts-noto-cjk or set LUASTG_NOTO_CJK_FONT and LUASTG_NOTO_CJK_LICENSE, then configure again.")

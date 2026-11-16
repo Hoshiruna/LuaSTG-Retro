@@ -10,8 +10,8 @@ namespace
         lua::stack_t S(L);
         S.push_value(true);
         S.push_value(false);
-        S.push_value(1i32);
-        S.push_value(1ui32);
+        S.push_value(int32_t{ 1 });
+        S.push_value(uint32_t{ 1 });
         S.push_value(3.14f);
         S.push_value(6.28);
         S.push_value("Hello world!");

@@ -47,14 +47,12 @@ namespace
 
         lua::stack_t const ctx(L);
         auto const graphics = ctx.create_map(2);
-        ctx.set_map_value(graphics, "currentDevice", device->getCurrentGpuName());
+        auto const current_device = device->getCurrentGpuName();
+        ctx.set_map_value(graphics, "currentDevice", current_device);
 
-        auto const count = device->getGpuCount();
-        lua_createtable(L, static_cast<int>(count), 0);
-        for(uint32_t index = 0; index < count; index += 1) {
-            ctx.push_value(device->getGpuName(index));
-            lua_rawseti(L, -2, static_cast<int>(index + 1));
-        }
+        lua_createtable(L, 1, 0);
+        ctx.push_value(current_device);
+        lua_rawseti(L, -2, 1);
         lua_setfield(L, graphics.value, "adapters");
     }
 }
@@ -255,7 +253,6 @@ luastg::binding::BuiltInFunction::Register(lua_State* L) noexcept
     };
 
     luaL_Reg tFunctions[] = {
-#pragma region 框架函数
         { "GetVersionNumber", &Wrapper::GetVersionNumber },
         { "GetVersionName", &Wrapper::GetVersionName },
         { "getSystemInfo", &Wrapper::getSystemInfo },
@@ -268,16 +265,13 @@ luastg::binding::BuiltInFunction::Register(lua_State* L) noexcept
         { "Log", &Wrapper::Log },
         { "DoFile", &Wrapper::DoFile },
         { "LoadTextFile", &Wrapper::LoadTextFile },
-#pragma endregion
 
-#pragma region 窗口与交换链控制函数
         { "ChangeVideoMode", &Wrapper::ChangeVideoMode },
         { "EnumResolutions", &Wrapper::EnumResolutions },
         { "EnumGPUs", &Wrapper::EnumGPUs },
         { "ChangeGPU", &Wrapper::ChangeGPU },
         { "GetCurrentGpuName", &Wrapper::GetCurrentGpuName },
         { "SetSwapChainScalingMode", &Wrapper::SetSwapChainScalingMode },
-#pragma endregion
 
         { NULL, NULL },
     };

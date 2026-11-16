@@ -95,7 +95,7 @@ namespace imgui::binding
             lua::stack_t const ctx(vm);
             auto const self = as(vm, 1);
             auto const result = self->c_str();
-            ctx.push_value(std::string_view(result, strnlen_s(result, self->size())));
+            ctx.push_value(std::string_view(result, static_cast<size_t>(self->size())));
             return 1;
         }
         static int append(lua_State* const vm)

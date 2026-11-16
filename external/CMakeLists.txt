@@ -40,6 +40,8 @@ if (MSVC)
     target_compile_options(lua_cjson PRIVATE
         "/wd4090" # 不同的const限定符（指针传递）
     )
+elseif (NOT WIN32)
+    target_compile_options(lua_cjson PRIVATE -include strings.h)
 endif ()
 target_compile_definitions(lua_cjson PRIVATE
     _CRT_SECURE_NO_WARNINGS

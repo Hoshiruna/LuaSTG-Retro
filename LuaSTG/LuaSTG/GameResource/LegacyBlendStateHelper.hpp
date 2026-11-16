@@ -14,9 +14,9 @@ namespace luastg
     {
         LegacyBlendStateData data;
 #define CASE(A, B, C)                                                                          \
-    case BlendMode::##A:                                                                       \
-        data.vertex_color_blend_state = core::Graphics::IRenderer::VertexColorBlendState::##B; \
-        data.blend_state = core::Graphics::IRenderer::BlendState::##C;                         \
+    case BlendMode::A:                                                                       \
+        data.vertex_color_blend_state = core::Graphics::IRenderer::VertexColorBlendState::B; \
+        data.blend_state = core::Graphics::IRenderer::BlendState::C;                         \
         break
         switch(legacy_blend_state) { // NOLINT(clang-diagnostic-switch-enum)
             default:
