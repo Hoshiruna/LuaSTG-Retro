@@ -1,0 +1,61 @@
+{
+  "version": 6,
+  "include": [
+    "base.json"
+  ],
+  "configurePresets": [
+    {
+      "name": "ninja-amd64-debug",
+      "inherits": [
+        "ninja-amd64"
+      ],
+      "binaryDir": "${sourceDir}/build/ninja/amd64-debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "ninja-amd64-release",
+      "inherits": [
+        "ninja-amd64"
+      ],
+      "binaryDir": "${sourceDir}/build/ninja/amd64-release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "windows-ninja-amd64-debug",
+      "configurePreset": "ninja-amd64-debug",
+      "inherits": [
+        "debug",
+        "target-luastg"
+      ]
+    },
+    {
+      "name": "windows-ninja-amd64-release",
+      "configurePreset": "ninja-amd64-release",
+      "inherits": [
+        "release",
+        "target-luastg"
+      ]
+    }
+  ],
+  "workflowPresets": [
+    {
+      "name": "windows-ninja-amd64-release",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "ninja-amd64-release"
+        },
+        {
+          "type": "build",
+          "name": "windows-ninja-amd64-release"
+        }
+      ]
+    }
+  ]
+}

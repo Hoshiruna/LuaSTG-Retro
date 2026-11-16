@@ -996,6 +996,7 @@ luastg::binding::ResourceManager::Register(lua_State* L) noexcept
         { "LoadPSAsync", &Wrapper::LoadPSAsync },
         { "LoadFont", &Wrapper::LoadFont },
         { "LoadFontAsync", &Wrapper::LoadFontAsync },
+        { "LoadDynamicFont", &Wrapper::LoadDynamicFont },
         { "LoadFX", &Wrapper::LoadFX },
         { "LoadFXAsync", &Wrapper::LoadFXAsync },
         { "LoadModel", &Wrapper::LoadModel },

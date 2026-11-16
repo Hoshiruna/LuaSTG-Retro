@@ -147,6 +147,9 @@ namespace luastg
 
     private:
         size_t m_generation{ 0 };
+        ResourcePoolId m_reloadTargetId{ InvalidResourcePoolId };
+        size_t m_reloadTargetGeneration{};
+        std::vector<std::shared_ptr<AsyncResourceJob>> m_reloadJobs;
     };
 
     // 资源管理器
@@ -161,6 +164,9 @@ namespace luastg
     public:
         ResourcePoolId CreateResourcePool(std::string_view name) noexcept;
         bool DestroyResourcePool(ResourcePoolId id) noexcept;
+        ResourcePoolId BeginResourcePoolReload(ResourcePoolId target_id) noexcept;
+        // Main thread only. Returns nullptr on success, otherwise a static error message.
+        char const* CommitResourcePoolReload(ResourcePoolId staging_id) noexcept;
         ResourcePool* GetResourcePool(ResourcePoolId id) noexcept;
         ResourcePool const* GetResourcePool(ResourcePoolId id) const noexcept;
         ResourcePool* GetResourcePool(std::string_view name);

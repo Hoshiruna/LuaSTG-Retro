@@ -1,0 +1,123 @@
+{
+  "version": 6,
+  "include": [
+    "base.json"
+  ],
+  "configurePresets": [
+    {
+      "name": "vs2022-x86",
+      "inherits": [
+        "vs2022"
+      ],
+      "architecture": "Win32",
+      "binaryDir": "${sourceDir}/build/vs2022/x86"
+    },
+    {
+      "name": "vs2022-amd64",
+      "inherits": [
+        "vs2022"
+      ],
+      "architecture": "x64",
+      "binaryDir": "${sourceDir}/build/vs2022/amd64"
+    },
+    {
+      "name": "vs2022-arm64",
+      "inherits": [
+        "vs2022"
+      ],
+      "architecture": "ARM64",
+      "binaryDir": "${sourceDir}/build/vs2022/arm64"
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "windows-x86-debug",
+      "configurePreset": "vs2022-x86",
+      "inherits": [
+        "debug",
+        "target-luastg"
+      ]
+    },
+    {
+      "name": "windows-x86-release",
+      "configurePreset": "vs2022-x86",
+      "inherits": [
+        "release",
+        "target-luastg"
+      ]
+    },
+    {
+      "name": "windows-amd64-debug",
+      "configurePreset": "vs2022-amd64",
+      "inherits": [
+        "debug",
+        "target-luastg"
+      ]
+    },
+    {
+      "name": "windows-amd64-release",
+      "configurePreset": "vs2022-amd64",
+      "inherits": [
+        "release",
+        "target-luastg"
+      ]
+    },
+    {
+      "name": "windows-arm64-debug",
+      "configurePreset": "vs2022-arm64",
+      "inherits": [
+        "debug",
+        "target-luastg"
+      ]
+    },
+    {
+      "name": "windows-arm64-release",
+      "configurePreset": "vs2022-arm64",
+      "inherits": [
+        "release",
+        "target-luastg"
+      ]
+    }
+  ],
+  "workflowPresets": [
+    {
+      "name": "windows-x86-release",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "vs2022-x86"
+        },
+        {
+          "type": "build",
+          "name": "windows-x86-release"
+        }
+      ]
+    },
+    {
+      "name": "windows-amd64-release",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "vs2022-amd64"
+        },
+        {
+          "type": "build",
+          "name": "windows-amd64-release"
+        }
+      ]
+    },
+    {
+      "name": "windows-arm64-release",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "vs2022-arm64"
+        },
+        {
+          "type": "build",
+          "name": "windows-arm64-release"
+        }
+      ]
+    }
+  ]
+}

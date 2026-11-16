@@ -30,58 +30,27 @@ The release workflow runs both steps:
 cmake --workflow --preset windows-x64-release
 ```
 
-## Linux x64
+## Optional presets
+
+The default menu contains only VS2026 x64 Debug and Release builds. Enable other configurations by adding the files you need to `include` in the root `CMakeUserPresets.json`:
+
+```json
+{
+  "version": 6,
+  "include": [
+    "cmake/presets/vs2022.json"
+  ]
+}
+```
+The VS2026 generator requires [CMake 4.2 or newer](https://cmake.org/cmake/help/latest/generator/Visual%20Studio%2018%202026.html). The VS2022 presets can still be used with the project's CMake 3.31 minimum.
+
+## x86 32-bit (Deprecated)
 
 The current presets configure the portable module boundary and build `Core.WindowSystem` and `Core.InputSystem`:
 
-```bash
-cmake --preset linux-x64-debug
-cmake --build --preset linux-x64-debug
-```
+Enable `cmake/presets/vs2022.json` before running these commands.
 
-Use `linux-x64-release` for a release configuration.
-
-## macOS universal
-
-The macOS preset targets macOS 12 or newer and produces universal x86_64 and arm64 libraries for the portable modules:
-
-```bash
-cmake --preset macos-universal-debug
-cmake --build --preset macos-universal-debug
-```
-
-Use `macos-universal-release` for a release configuration.
-
-## Steam API support
-
-Steam support is optional. To enable it:
-
-1. Download the Steamworks SDK from the [Steamworks partner site](https://partner.steamgames.com/downloads/list).
-2. Copy its `sdk` directory to `external/steam_api/SteamworksSDK`.
-3. Set `LUASTG_STEAM_API_ENABLE` to `TRUE` and provide `LUASTG_STEAM_API_APP_ID`.
-4. Set `LUASTG_STEAM_API_FORCE_LAUNCH_BY_STEAM` to `TRUE` only when the game must be launched through Steam.
-
-The example at `cmake/example/CMakeUserPresets.SteamAPI.json` contains these settings. Copy it to the repository root as `CMakeUserPresets.json`, change the application ID, and run:
-
-```powershell
-cmake --workflow --preset windows-x64-my-steam-api-release
-```
-
-# 编译 LuaSTG Retro
-
-## 当前平台支持
-
-完整运行时目前支持 Windows 10 1809 及更高版本，仅支持 x64。Linux 和 macOS 预设目前只编译可移植的窗口与输入模块。其余平台后端完成迁移后，这两个平台才会开放完整运行时编译。
-
-编译要求如下：
-
-需要 CMake 3.31 或更高版本以及 Git。
-Windows 使用 Visual Studio 2022 的 x64 C++ 工具链。
-Linux 和 macOS 预设使用 Ninja 与系统默认的 C/C++ 编译器。
-
-## Windows x64
-
-配置项目：
+CMake configuration:  
 
 ```shell
 cmake --preset windows-x64
@@ -104,9 +73,17 @@ cmake --workflow --preset windows-x64-release
 
 当前预设用于验证可移植模块边界，并编译 `Core.WindowSystem` 和 `Core.InputSystem`：
 
-```bash
-cmake --preset linux-x64-debug
-cmake --build --preset linux-x64-debug
+ARM64 presets are available in the optional Visual Studio files above. They are not part of the default menu.
+
+## Build with Ninja
+
+Enable `cmake/presets/ninja.json` first.
+
+Run these commands from an AMD64 Visual Studio developer environment with Ninja available:
+
+```shell
+cmake --preset ninja-amd64-debug
+cmake --build --preset windows-ninja-amd64-debug
 ```
 
 发布配置请改用 `linux-x64-release`。
@@ -126,13 +103,145 @@ cmake --build --preset macos-universal-debug
 
 Steam 支持是可选功能。启用方法如下：
 
-1. 从 [Steamworks 合作伙伴网站](https://partner.steamgames.com/downloads/list) 下载 Steamworks SDK。
-2. 将 SDK 中的 `sdk` 目录复制到 `external/steam_api/SteamworksSDK`。
-3. 将 `LUASTG_STEAM_API_ENABLE` 设为 `TRUE`，并填写 `LUASTG_STEAM_API_APP_ID`。
-4. 只有在游戏必须通过 Steam 启动时，才将 `LUASTG_STEAM_API_FORCE_LAUNCH_BY_STEAM` 设为 `TRUE`。
+## Packaging
+
+`tool/package.ps1` builds both x64 and x86. Its default toolchain is `vs2026-v143`, so enable `cmake/presets/vs2026-v143.json` first. For `-Toolchain vs2022`, enable `vs2022.json`; for `-Toolchain vs2026`, enable `vs2026-extra.json`. 
+The script reads binaries from the selected toolchain's build directories.
+
+## Steam API Support  
 
 `cmake/example/CMakeUserPresets.SteamAPI.json` 提供了示例配置。将它复制到仓库根目录并重命名为 `CMakeUserPresets.json`，修改应用 ID 后执行：
 
 ```powershell
 cmake --workflow --preset windows-x64-my-steam-api-release
 ```
+
+编译：  
+
+```shell
+cmake --build --preset windows-amd64-debug
+cmake --build --preset windows-amd64-release
+```
+
+一键发行（CMake 配置、编译发行版）：  
+
+```shell
+cmake --workflow --preset windows-amd64-release
+```
+
+## 可选预设
+
+默认菜单仅保留 VS2026 x64 的 Debug 和 Release 构建。其他配置通过项目根目录的 `CMakeUserPresets.json` 按需启用：
+
+```json
+{
+  "version": 6,
+  "include": [
+    "cmake/presets/vs2022.json"
+  ]
+}
+```
+
+VS2026 生成器要求 [CMake 4.2 或更新版本](https://cmake.org/cmake/help/latest/generator/Visual%20Studio%2018%202026.html)。
+VS2022 预设仍可使用项目要求的最低版本 CMake 3.31。
+
+## x86 32 位版本（已弃用）
+
+> 警告：x86 32 位版本即将停止支持
+
+执行以下命令前，先启用 `cmake/presets/vs2022.json`。
+
+CMake 配置：  
+
+```shell
+cmake --preset vs2022-x86
+```
+
+编译（调试版或发行版）：  
+
+```shell
+cmake --build --preset windows-x86-debug
+cmake --build --preset windows-x86-release
+```
+
+一键发行（CMake 配置、编译发行版）：  
+
+```shell
+cmake --workflow --preset windows-x86-release
+```
+
+## arm64 版本（未完成）  
+
+> 未完成：等我买一台 Windows on arm 笔记本  
+
+ARM64 预设保留在上述 Visual Studio 可选配置文件中，不进入默认菜单。
+
+## 使用 Ninja 编译项目
+
+先启用 `cmake/presets/ninja.json`。
+
+首先需要初始化环境，比如初始化为以下环境：
+
+* Visual Studio 2026 Community v143 (MSVC 14.44)
+* Windows SDK 10.0.26100
+* AMD64 (x64)
+
+那么对应的命令为：
+
+```batch
+"C:\Program Files\Microsoft Visual Studio\18\Community\VC\Auxiliary\Build\vcvarsall.bat" x64 10.0.26100.0 -vcvars_ver=14.44
+```
+
+接下来，使用预配配置并编译 Debug 版本：
+
+```batch
+cmake --preset ninja-amd64-debug
+cmake --build --preset windows-ninja-amd64-debug
+```
+
+将 `debug` 替换为 `release` 即可编译 Release 版本。也可以用工作流一次完成 Release 配置和编译：
+
+```batch
+cmake --workflow --preset windows-ninja-amd64-release
+```
+
+## 开始编写代码
+
+接下来你就可以用 Visual Studio 2022 打开 sln 解决方案开始开发。
+
+注意：请编译 LuaSTG 项目至少一次，否则 libflac、libogg、libvorbis、zlib-ng、minizip-ng 等依赖库的头文件不存在。
+
+## 打包
+
+`tool/package.ps1` 会同时构建 x64 和 x86，默认工具链为 `vs2026-v143`，需要先启用 `cmake/presets/vs2026-v143.json`。
+使用 `-Toolchain vs2022` 时启用 `vs2022.json`；使用 `-Toolchain vs2026` 时启用 `vs2026-extra.json`。
+脚本从所选工具链的独立构建目录读取产物。
+
+## Steam API 支持  
+
+如果你需要使用 Steam API，请遵循以下步骤：  
+
+1. 从 Steamworks 官网下载 Steamworks SDK  
+    1. 打开网站：https://partner.steamgames.com/doc/sdk  
+    2. 登录你的 Steamworks 账号  
+    3. 下载最新版本的 Steamworks SDK（截至 2025 年 11 月 11 日，最新版本为 `1.62`）：https://partner.steamgames.com/downloads/list  
+2. 解压 Steamworks SDK  
+    1. 下载完成后会得到 `steamworks_sdk_xyy.zip` 压缩包，其中 `xyy` 是版本号（截至 2025 年 11 月 11 日，最新版本号为 `162`）  
+    2. 用任意支持 `zip` 压缩包的软件打开压缩包，可以看到压缩包中有一个 `sdk` 文件夹  
+    3. 将压缩包中的 `sdk` 文件夹解压到 `external/steam_api/SteamworksSDK` 文件夹中  
+3. 在 CMake 中启用 Steam API  
+    1. 将 CMake 选项 `LUASTG_STEAM_API_ENABLE` 设置为 `TRUE`  
+    2. 将 CMake 选项 `LUASTG_STEAM_API_APP_ID` 修改为你的 AppID
+    3. 为了避免玩家直接双击 `exe` 启动造成 Steam API 初始化失败，可以将 CMake 选项 `LUASTG_STEAM_API_FORCE_LAUNCH_BY_STEAM` 设置为 `TRUE`  
+4. 重新运行一次 CMake 配置（CMake Configure）  
+
+### 通过 `CMakeUserPresets.json` 快速配置  
+
+为了方便开发者，我们提供了样板文件 `cmake/example/CMakeUserPresets.SteamAPI.json`，只需要少许修改即可使用：  
+
+1. 将 `cmake/example/CMakeUserPresets.SteamAPI.json` 文件复制到项目根目录  
+2. 将文件重命名为 `CMakeUserPresets.json`  
+3. 修改 `LUASTG_STEAM_API_APP_ID` 的值  
+4. 执行命令 `cmake --workflow --preset windows-amd64-my-steam-api-release` 执行 CMake 工作流  
+
+如果样板文件无法满足你的需求，可以自行修改。  

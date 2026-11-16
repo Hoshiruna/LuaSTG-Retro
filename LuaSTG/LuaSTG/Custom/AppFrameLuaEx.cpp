@@ -87,7 +87,7 @@ namespace luastg
 
     bool AppFrame::OnLoadMainScriptAndFiles()
     {
-        spdlog::info("[luastg] 加载入口点脚本");
+        spdlog::info("[luastg] Loading entry-point script");
         std::string_view entry_scripts[3] = {
             "core.lua",
             "main.lua",
@@ -98,14 +98,14 @@ namespace luastg
         for(auto& v : entry_scripts) {
             if(core::FileSystemManager::readFile(v, src.put())) {
                 if(SafeCallScript((char const*)src->data(), src->size(), v.data())) {
-                    spdlog::info("[luastg] 加载脚本'{}'", v);
+                    spdlog::info("[luastg] Loading Script'{}'", v);
                     is_load = true;
                     break;
                 }
             }
         }
         if(!is_load) {
-            spdlog::error("[luastg] 找不到文件'{}'、'{}'或'{}'", entry_scripts[0], entry_scripts[1], entry_scripts[2]);
+            spdlog::error("[luastg] 找不到文件'{}'、'{}'or'{}'", entry_scripts[0], entry_scripts[1], entry_scripts[2]);
         }
         return true;
     }

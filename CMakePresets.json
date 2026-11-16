@@ -1,142 +1,48 @@
 {
   "version": 6,
+  "include": [
+    "cmake/presets/base.json"
+  ],
   "configurePresets": [
     {
-      "name": "common",
-      "hidden": true,
-      "cacheVariables": {
-        "CPM_SOURCE_CACHE": {
-          "type": "PATH",
-          "value": "${sourceDir}/build/packages"
-        }
-      }
-    },
-    {
-      "name": "windows-x64",
-      "displayName": "Windows x64",
-      "inherits": "common",
-      "generator": "Visual Studio 17 2022",
+      "name": "vs2026-amd64",
+      "inherits": [
+        "vs2026"
+      ],
       "architecture": "x64",
-      "binaryDir": "${sourceDir}/build/windows-x64",
-      "condition": {
-        "type": "equals",
-        "lhs": "${hostSystemName}",
-        "rhs": "Windows"
-      },
-      "cacheVariables": {
-        "LUASTG_BUILD_RUNTIME": true,
-        "LUASTG_BUILD_TESTS": true
-      }
-    },
-    {
-      "name": "linux-x64-debug",
-      "displayName": "Linux x64 Debug",
-      "inherits": "common",
-      "generator": "Ninja",
-      "binaryDir": "${sourceDir}/build/linux-x64-debug",
-      "condition": {
-        "type": "equals",
-        "lhs": "${hostSystemName}",
-        "rhs": "Linux"
-      },
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug",
-        "LUASTG_BUILD_RUNTIME": false,
-        "LUASTG_BUILD_TESTS": true
-      }
-    },
-    {
-      "name": "linux-x64-release",
-      "displayName": "Linux x64 Release",
-      "inherits": "linux-x64-debug",
-      "binaryDir": "${sourceDir}/build/linux-x64-release",
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Release"
-      }
-    },
-    {
-      "name": "macos-universal-debug",
-      "displayName": "macOS Universal Debug",
-      "inherits": "common",
-      "generator": "Ninja",
-      "binaryDir": "${sourceDir}/build/macos-universal-debug",
-      "condition": {
-        "type": "equals",
-        "lhs": "${hostSystemName}",
-        "rhs": "Darwin"
-      },
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug",
-        "CMAKE_OSX_ARCHITECTURES": "x86_64;arm64",
-        "CMAKE_OSX_DEPLOYMENT_TARGET": "12.0",
-        "LUASTG_BUILD_RUNTIME": false,
-        "LUASTG_BUILD_TESTS": true
-      }
-    },
-    {
-      "name": "macos-universal-release",
-      "displayName": "macOS Universal Release",
-      "inherits": "macos-universal-debug",
-      "binaryDir": "${sourceDir}/build/macos-universal-release",
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Release"
-      }
+      "binaryDir": "${sourceDir}/build/vs2026/amd64"
     }
   ],
   "buildPresets": [
     {
-      "name": "windows-x64-debug",
-      "configurePreset": "windows-x64",
-      "configuration": "Debug",
-      "targets": ["LuaSTG", "Setting"]
+      "name": "windows-vs2026-amd64-debug",
+      "configurePreset": "vs2026-amd64",
+      "inherits": [
+        "debug",
+        "target-luastg"
+      ]
     },
     {
-      "name": "windows-x64-release",
-      "configurePreset": "windows-x64",
-      "configuration": "Release",
-      "targets": ["LuaSTG", "Setting"]
-    },
-    {
-      "name": "linux-x64-debug",
-      "configurePreset": "linux-x64-debug",
-      "targets": ["Core.WindowSystem", "Core.InputSystem"]
-    },
-    {
-      "name": "linux-x64-release",
-      "configurePreset": "linux-x64-release",
-      "targets": ["Core.WindowSystem", "Core.InputSystem"]
-    },
-    {
-      "name": "macos-universal-debug",
-      "configurePreset": "macos-universal-debug",
-      "targets": ["Core.WindowSystem", "Core.InputSystem"]
-    },
-    {
-      "name": "macos-universal-release",
-      "configurePreset": "macos-universal-release",
-      "targets": ["Core.WindowSystem", "Core.InputSystem"]
+      "name": "windows-vs2026-amd64-release",
+      "configurePreset": "vs2026-amd64",
+      "inherits": [
+        "release",
+        "target-luastg"
+      ]
     }
   ],
   "workflowPresets": [
     {
-      "name": "windows-x64-release",
+      "name": "windows-vs2026-amd64-release",
       "steps": [
-        {"type": "configure", "name": "windows-x64"},
-        {"type": "build", "name": "windows-x64-release"}
-      ]
-    },
-    {
-      "name": "linux-x64-release",
-      "steps": [
-        {"type": "configure", "name": "linux-x64-release"},
-        {"type": "build", "name": "linux-x64-release"}
-      ]
-    },
-    {
-      "name": "macos-universal-release",
-      "steps": [
-        {"type": "configure", "name": "macos-universal-release"},
-        {"type": "build", "name": "macos-universal-release"}
+        {
+          "type": "configure",
+          "name": "vs2026-amd64"
+        },
+        {
+          "type": "build",
+          "name": "windows-vs2026-amd64-release"
+        }
       ]
     }
   ]
