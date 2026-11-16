@@ -13,7 +13,6 @@ install(IMPORTED_RUNTIME_ARTIFACTS DirectXShaderCompiler::dxcompiler
     LIBRARY DESTINATION . COMPONENT LinuxRuntime
 )
 install(RUNTIME_DEPENDENCY_SET luastg_linux_runtime
-    LIBRARY DESTINATION . COMPONENT LinuxRuntime
     PRE_EXCLUDE_REGEXES
         "^ld-linux.*"
         "^libc\\.so.*"
@@ -25,6 +24,7 @@ install(RUNTIME_DEPENDENCY_SET luastg_linux_runtime
         "^libutil\\.so.*"
         "^libstdc\\+\\+\\.so.*"
         "^libgcc_s\\.so.*"
+    LIBRARY DESTINATION . COMPONENT LinuxRuntime
 )
 
 install(PROGRAMS "${PROJECT_SOURCE_DIR}/tool/run-luastg.sh"

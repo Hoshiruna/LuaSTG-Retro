@@ -213,7 +213,7 @@ namespace core
                         error_callback(std::format("[/application/uuid] require uuid string, but obtain '{}'"sv, s));
                         return false;
                     }
-                    loader.application.setUuid(uuid);
+                    loader.application.setUuid(s);
                 }
                 if(application.contains("single_instance"sv)) {
                     auto const& single_instance = application.at("single_instance"sv);

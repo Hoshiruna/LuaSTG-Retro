@@ -39,6 +39,8 @@ add_custom_command(
         -B ${zlib_ng_build_directory}
         # generator
         ${LUASTG_CMAKE_EXTERNAL_BUILD_GENERATOR_OPTIONS}
+        # zlib-ng exports zlib-ng::zlibstatic only when BUILD_SHARED_LIBS is unset.
+        -UBUILD_SHARED_LIBS
         # msvc runtime library
         # install
         -DCMAKE_INSTALL_PREFIX=${zlib_ng_install_directory}
