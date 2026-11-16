@@ -2,22 +2,22 @@
 
 namespace core
 {
-    double FrameRateStatistics::getDuration(const size_t index) const noexcept
+    double FrameRateStatistics::getDuration(const std::size_t index) const noexcept
     {
         const auto normalized_index = index % durations.size();
         return durations[(current_index + durations.size() - normalized_index) % durations.size()];
     }
 
-    double FrameRateStatistics::getAverage(const size_t count) const noexcept
+    double FrameRateStatistics::getAverage(const std::size_t count) const noexcept
     {
         if(count == 0 || frame_count == 0) {
             return 0.0;
         }
         double result = 0;
-        const auto m = count < frame_count ? count : static_cast<size_t>(frame_count);
+        const auto m = count < frame_count ? count : static_cast<std::size_t>(frame_count);
         const auto n = m < durations.size() ? m : durations.size();
-        size_t l{};
-        for(size_t i = 0; i < n; i += 1) {
+        std::size_t l{};
+        for(std::size_t i = 0; i < n; i += 1) {
             const auto t = getDuration(i);
             if(t >= 0.0) {
                 result += t;

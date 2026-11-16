@@ -1,6 +1,7 @@
 #pragma once
-#include <cstdint>
 #include <array>
+#include <cstddef>
+#include <cstdint>
 
 namespace core
 {
@@ -12,11 +13,11 @@ namespace core
         double duration_max{};
         double duration_total{};
         uint64_t frame_count;
-        size_t current_index{};
+        std::size_t current_index{};
 
-        double getDuration(size_t index) const noexcept;
+        double getDuration(std::size_t index) const noexcept;
 
-        double getAverage(size_t count) const noexcept;
+        double getAverage(std::size_t count) const noexcept;
 
         void reset() noexcept;
 
