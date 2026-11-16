@@ -77,6 +77,9 @@ if (LUASTG_USE_SDLGPU)
     target_link_libraries(Core.Graphics.SDLGPU.Runtime PUBLIC
         Core.Graphics.SDLGPU Core.Image Core.WindowSystem Core.Logging imgui_impl_sdlgpu3
     )
+    if (NOT WIN32)
+        target_link_libraries(Core.Graphics.SDLGPU.Runtime PUBLIC luastg_directxmath_headers)
+    endif ()
     target_link_libraries(Core.Graphics.SDLGPU.Runtime PRIVATE spirv-cross-c DirectXShaderCompiler::dxcompiler Core.FileSystem tinygltf utf8)
     set_target_properties(Core.Graphics.SDLGPU.Runtime PROPERTIES FOLDER engine)
     if (LUASTG_BUILD_TESTS)
