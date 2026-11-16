@@ -16,7 +16,7 @@ endif ()
 set(libogg_source_directory  ${libogg_SOURCE_DIR})
 set(libogg_build_directory   ${CMAKE_BINARY_DIR}/build/libogg/$<CONFIG>)
 set(libogg_install_directory ${CMAKE_BINARY_DIR}/install/$<CONFIG>)
-set(libogg_library_file      ${libogg_install_directory}/lib/ogg.lib)
+set(libogg_library_file      ${libogg_install_directory}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}ogg${CMAKE_STATIC_LIBRARY_SUFFIX})
 
 luastg_cmake_external_build_prepare_directories(include/ogg)
 
@@ -32,15 +32,11 @@ add_custom_command(
         # generator
         ${LUASTG_CMAKE_EXTERNAL_BUILD_GENERATOR_OPTIONS}
         # msvc runtime library
-        -DCMAKE_POLICY_DEFAULT_CMP0091=NEW
-        -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded$<$<CONFIG:Debug>:Debug>
         # install
         -DCMAKE_INSTALL_PREFIX=${libogg_install_directory}
         # cmake 4.0 breaking changes
         -DCMAKE_POLICY_VERSION_MINIMUM=3.5
         # utf-8
-        -DCMAKE_C_FLAGS=/utf-8
-        -DCMAKE_CXX_FLAGS=/utf-8
         # options
         -DINSTALL_DOCS=OFF
         -DBUILD_TESTING=OFF
@@ -76,7 +72,7 @@ INTERFACE
     ${libogg_install_directory}/include
 )
 set_target_properties(libogg PROPERTIES
-    IMPORTED_LOCATION       ${CMAKE_BINARY_DIR}/install/Release/lib/ogg.lib
-    IMPORTED_LOCATION_DEBUG ${CMAKE_BINARY_DIR}/install/Debug/lib/ogg.lib
+    IMPORTED_LOCATION       ${CMAKE_BINARY_DIR}/install/Release/lib/${CMAKE_STATIC_LIBRARY_PREFIX}ogg${CMAKE_STATIC_LIBRARY_SUFFIX}
+    IMPORTED_LOCATION_DEBUG ${CMAKE_BINARY_DIR}/install/Debug/lib/${CMAKE_STATIC_LIBRARY_PREFIX}ogg${CMAKE_STATIC_LIBRARY_SUFFIX}
 )
 add_dependencies(libogg libogg_build)

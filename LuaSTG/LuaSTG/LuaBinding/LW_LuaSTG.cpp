@@ -1,20 +1,27 @@
 #include "LuaBinding/LuaWrapper.hpp"
 #include "lua/plus.hpp"
 #include "AppFrame.h"
+#ifdef _WIN32
 #include "Platform/ProcessorInfo.hpp"
 #include <Windows.h>
+#endif
 
 namespace
 {
     void pushCpuInfo(lua_State* L)
     {
+#ifdef _WIN32
         lua::stack_t const ctx(L);
         auto const cpu = ctx.create_map(1);
         ctx.set_map_value(cpu, "name", Platform::ProcessorInfo::name());
+#else
+        lua_pushnil(L);
+#endif
     }
 
     void pushMemoryInfo(lua_State* L)
     {
+#ifdef _WIN32
         MEMORYSTATUSEX info{ sizeof(MEMORYSTATUSEX) };
         if(!GlobalMemoryStatusEx(&info)) {
             lua_pushnil(L);
@@ -26,6 +33,9 @@ namespace
         ctx.set_map_value(memory, "totalBytes", static_cast<lua_Number>(info.ullTotalPhys));
         ctx.set_map_value(memory, "availableBytes", static_cast<lua_Number>(info.ullAvailPhys));
         ctx.set_map_value(memory, "loadPercent", static_cast<uint32_t>(info.dwMemoryLoad));
+#else
+        lua_pushnil(L);
+#endif
     }
 
     void pushGraphicsInfo(lua_State* L, core::Graphics::IDevice* const device)

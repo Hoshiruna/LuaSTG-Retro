@@ -19,8 +19,8 @@ set(Core_SRC
     Core/FrameRateController.cpp
 
     Core/ApplicationModel.hpp
-    Core/ApplicationModel_Win32.hpp
-    Core/ApplicationModel_Win32.cpp
+    Core/ApplicationModel_SDL.hpp
+    Core/ApplicationModel_SDL.cpp
 )
 source_group(TREE ${CMAKE_CURRENT_LIST_DIR} FILES ${Core_SRC})
 target_precompile_headers(Core PRIVATE
@@ -41,16 +41,6 @@ target_link_libraries(Core PUBLIC
     utf8
     simdutf::simdutf
     PlatformAPI
-    beautiful_win32_api
-    GeneratedShaderHeaders
-    # win32
-    winmm.lib
-    imm32.lib
-    # dx
-    dxguid.lib
-    dxgi.lib
-    d3d11.lib
-    Microsoft.Windows.ImplementationLibrary
     # math
     xmath
     # database
@@ -62,5 +52,17 @@ target_link_libraries(Core PUBLIC
     Core.FileSystem
     Core.WindowSystem
     Core.InputSystem
-    win32
 )
+
+if (WIN32)
+    target_link_libraries(Core PUBLIC
+        beautiful_win32_api
+        winmm.lib
+        imm32.lib
+        Microsoft.Windows.ImplementationLibrary
+        win32
+    )
+    if (NOT LUASTG_USE_SDLGPU)
+        target_link_libraries(Core PUBLIC GeneratedShaderHeaders dxguid.lib dxgi.lib d3d11.lib)
+    endif ()
+endif ()

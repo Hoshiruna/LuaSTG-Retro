@@ -1,7 +1,9 @@
 # ==================== beautiful win32 api ====================
 
-add_subdirectory(beautiful-win32-api)
-set_target_properties(beautiful_win32_api PROPERTIES FOLDER external)
+if (WIN32)
+    add_subdirectory(beautiful-win32-api)
+    set_target_properties(beautiful_win32_api PROPERTIES FOLDER external)
+endif ()
 
 # ==================== luajit ====================
 
@@ -34,9 +36,11 @@ set_target_properties(lua_filesystem PROPERTIES FOLDER lualib)
 
 add_library(lua_cjson STATIC)
 luastg_target_common_options(lua_cjson)
-target_compile_options(lua_cjson PRIVATE
-    "/wd4090" # 不同的const限定符（指针传递）
-)
+if (MSVC)
+    target_compile_options(lua_cjson PRIVATE
+        "/wd4090" # 不同的const限定符（指针传递）
+    )
+endif ()
 target_compile_definitions(lua_cjson PRIVATE
     _CRT_SECURE_NO_WARNINGS
     DISABLE_INVALID_NUMBERS
@@ -138,11 +142,19 @@ target_include_directories(libqoi PUBLIC
 target_sources(libqoi PRIVATE
     image.qoi/qoi.h
     image.qoi-patch/qoi.c
-    image.qoi-patch/QOITextureLoader11.h
-    image.qoi-patch/QOITextureLoader11.cpp
 )
 
 set_target_properties(libqoi PROPERTIES FOLDER external)
+
+if (WIN32 AND NOT LUASTG_USE_SDLGPU)
+    add_library(libqoi_d3d11 STATIC
+        image.qoi-patch/QOITextureLoader11.h
+        image.qoi-patch/QOITextureLoader11.cpp
+    )
+    luastg_target_common_options(libqoi_d3d11)
+    target_link_libraries(libqoi_d3d11 PUBLIC libqoi PRIVATE d3d11)
+    set_target_properties(libqoi_d3d11 PROPERTIES FOLDER external)
+endif ()
 
 # ==================== steam api ====================
 
@@ -152,7 +164,9 @@ add_subdirectory(steam_api)
 
 set(BUILD_EXAMPLES OFF CACHE BOOL "Build discord-rpc examples" FORCE)
 set(CLANG_FORMAT_CMD "" CACHE FILEPATH "Disable discord-rpc clang-format target" FORCE)
-add_subdirectory(discord-rpc)
-set_target_properties(discord-rpc PROPERTIES FOLDER external)
+if (LUASTG_DISCORD_RPC_ENABLE)
+    add_subdirectory(discord-rpc)
+    set_target_properties(discord-rpc PROPERTIES FOLDER external)
+endif ()
 
 add_subdirectory(tracy-patch)

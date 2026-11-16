@@ -15,12 +15,12 @@ endif ()
 # prepare
 
 set(zlib_ng_install_directory ${CMAKE_BINARY_DIR}/install/$<CONFIG>)
-set(zlib_ng_library_file      ${zlib_ng_install_directory}/lib/zlibstatic-ng$<$<CONFIG:Debug>:d>.lib)
+set(zlib_ng_library_file ${zlib_ng_install_directory}/lib/${zlib_ng_library_name})
 
 set(minizip_ng_source_directory  ${minizip_ng_SOURCE_DIR})
 set(minizip_ng_build_directory   ${CMAKE_BINARY_DIR}/build/minizip_ng/$<CONFIG>)
 set(minizip_ng_install_directory ${CMAKE_BINARY_DIR}/install/$<CONFIG>)
-set(minizip_ng_library_file      ${minizip_ng_install_directory}/lib/minizip-ng.lib)
+set(minizip_ng_library_file      ${minizip_ng_install_directory}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}minizip-ng${CMAKE_STATIC_LIBRARY_SUFFIX})
 
 luastg_cmake_external_build_prepare_directories(include/minizip-ng)
 
@@ -36,12 +36,9 @@ add_custom_command(
         # generator
         ${LUASTG_CMAKE_EXTERNAL_BUILD_GENERATOR_OPTIONS}
         # msvc runtime library
-        -DCMAKE_POLICY_DEFAULT_CMP0091=NEW
-        -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded$<$<CONFIG:Debug>:Debug>
         # install
         -DCMAKE_INSTALL_PREFIX=${minizip_ng_install_directory}
         # Windows 10 baseline and UTF-8 source files
-        "-DCMAKE_C_FLAGS=/utf-8 /D_WIN32_WINNT=0x0A00"
         # options
         -DMZ_COMPAT=OFF
         -DMZ_BZIP2=OFF
@@ -85,11 +82,11 @@ INTERFACE
     ${minizip_ng_install_directory}/include/minizip-ng
 )
 set_target_properties(minizip_ng PROPERTIES
-    IMPORTED_LOCATION       ${CMAKE_BINARY_DIR}/install/Release/lib/minizip-ng.lib
-    IMPORTED_LOCATION_DEBUG ${CMAKE_BINARY_DIR}/install/Debug/lib/minizip-ng.lib
+    IMPORTED_LOCATION       ${CMAKE_BINARY_DIR}/install/Release/lib/${CMAKE_STATIC_LIBRARY_PREFIX}minizip-ng${CMAKE_STATIC_LIBRARY_SUFFIX}
+    IMPORTED_LOCATION_DEBUG ${CMAKE_BINARY_DIR}/install/Debug/lib/${CMAKE_STATIC_LIBRARY_PREFIX}minizip-ng${CMAKE_STATIC_LIBRARY_SUFFIX}
 )
 target_link_libraries(minizip_ng INTERFACE
     zlib-ng::zlibstatic
-    bcrypt.lib # for win32
+    $<$<PLATFORM_ID:Windows>:bcrypt>
 )
 add_dependencies(minizip_ng minizip_ng_build)

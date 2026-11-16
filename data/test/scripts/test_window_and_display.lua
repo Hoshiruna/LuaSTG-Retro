@@ -13,7 +13,7 @@ function M:onCreate()
     local font, font_error = resources.loadDynamicFont("body", {
         pixelWidth = 0,
         pixelHeight = 24,
-        sources = { { path = "C:/Windows/Fonts/msyh.ttc", faceIndex = 0 } },
+        sources = { { path = os.getenv("LUASTG_TEST_FONT") or "C:/Windows/Fonts/msyh.ttc", faceIndex = 0 } },
     })
     self.body_font = assert(font, font_error)
     self.main_window = Window.getMain()

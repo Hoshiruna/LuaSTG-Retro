@@ -1,12 +1,15 @@
 file(GLOB_RECURSE lib_src RELATIVE ${CMAKE_CURRENT_LIST_DIR} "core/*.hpp")
 list(APPEND lib_src
     core/CommandLineArguments.cpp
+    core/ConfigurationCommandLine.cpp
     core/Configuration.cpp
 )
 if (WIN32)
     list(APPEND lib_src
         core/ConfigurationWindows.cpp
     )
+else ()
+    list(APPEND lib_src core/ConfigurationPosix.cpp)
 endif ()
 source_group(TREE ${CMAKE_CURRENT_LIST_DIR} FILES ${lib_src})
 

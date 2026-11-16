@@ -5,7 +5,9 @@
 #include <print>
 #include <iostream>
 #include <vector>
+#ifdef _WIN32
 #include "core/FileSystemWindows.hpp"
+#endif
 #include "core/FileSystem.hpp"
 #include "core/FileSystemDATArchive.hpp"
 #include "core/SmartReference.hpp"
@@ -46,6 +48,7 @@ namespace
     }
 }
 
+#ifdef _WIN32
 TEST(FileSystemWindows, isFilePathCaseCorrect)
 {
     std::filesystem::path const path1(LR"(Hello world 你好世界.txt)"sv);
@@ -56,6 +59,7 @@ TEST(FileSystemWindows, isFilePathCaseCorrect)
     ASSERT_TRUE(win32::isFilePathCaseCorrect(R"(Hello world 你好世界.txt)"sv, c1));
     ASSERT_FALSE(win32::isFilePathCaseCorrect(R"(hello world 你好世界.txt)"sv, c1));
 }
+#endif
 
 /*
 TEST(FileSystemArchive, all) {

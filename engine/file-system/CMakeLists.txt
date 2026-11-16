@@ -1,4 +1,7 @@
 file(GLOB_RECURSE lib_src RELATIVE ${CMAKE_CURRENT_LIST_DIR} core/*.hpp core/*.cpp)
+if (NOT WIN32)
+    list(REMOVE_ITEM lib_src core/FileSystemWindows.cpp core/FileSystemWindows.hpp)
+endif ()
 source_group(TREE ${CMAKE_CURRENT_LIST_DIR} FILES ${lib_src})
 
 set(lib_name "Core.FileSystem")
@@ -17,8 +20,11 @@ target_link_libraries(${lib_name} PUBLIC
     Core.ReferenceCounted
     Core.String
     Core.Logging
-    Microsoft.Windows.ImplementationLibrary
 )
+
+if (WIN32)
+    target_link_libraries(${lib_name} PRIVATE Microsoft.Windows.ImplementationLibrary)
+endif ()
 
 set_target_properties(${lib_name} PROPERTIES FOLDER engine)
 

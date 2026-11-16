@@ -1,3 +1,9 @@
+if (WIN32)
+    set(libpng_library_name libpng16_static.lib)
+else ()
+    set(libpng_library_name libpng16.a)
+endif ()
+
 # libpng
 
 CPMAddPackage(
@@ -15,9 +21,9 @@ endif ()
 # prepare
 
 set(libpng_source_directory  ${libpng_SOURCE_DIR})
-set(libpng_build_directory   ${CMAKE_BINARY_DIR}/build/libpng)
+set(libpng_build_directory   ${CMAKE_BINARY_DIR}/build/libpng/$<CONFIG>)
 set(libpng_install_directory ${CMAKE_BINARY_DIR}/install/$<CONFIG>)
-set(libpng_library_file      ${libpng_install_directory}/lib/libpng16_static.lib)
+set(libpng_library_file      ${libpng_install_directory}/lib/${libpng_library_name})
 
 luastg_cmake_external_build_prepare_directories(include/libpng16)
 
@@ -33,7 +39,6 @@ add_custom_command(
         # generator
         ${LUASTG_CMAKE_EXTERNAL_BUILD_GENERATOR_OPTIONS}
         # crt
-        -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded$<$<CONFIG:Debug>:Debug>
         # install
         -DCMAKE_INSTALL_PREFIX=${libpng_install_directory}
         # options
@@ -81,7 +86,7 @@ INTERFACE
     zlib-ng::zlibstatic
 )
 set_target_properties(png_static PROPERTIES
-    IMPORTED_LOCATION       ${CMAKE_CURRENT_BINARY_DIR}/install/Release/lib/libpng16_static.lib
-    IMPORTED_LOCATION_DEBUG ${CMAKE_CURRENT_BINARY_DIR}/install/Debug/lib/libpng16_static.lib
+    IMPORTED_LOCATION       ${CMAKE_CURRENT_BINARY_DIR}/install/Release/lib/${libpng_library_name}
+    IMPORTED_LOCATION_DEBUG ${CMAKE_CURRENT_BINARY_DIR}/install/Debug/lib/${libpng_library_name}
 )
 add_dependencies(png_static libpng_build)

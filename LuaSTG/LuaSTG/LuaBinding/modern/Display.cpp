@@ -2,7 +2,7 @@
 #include "Window.hpp"
 #include "core/SmartReference.hpp"
 #include "lua/plus.hpp"
-#include "wil/resource.h"
+#include <memory>
 
 static void
 pushSize(lua_State* L, lua_Number const width, lua_Number const height)
@@ -161,15 +161,16 @@ namespace luastg::binding
                 return luaL_error(L, "lstg.Display.getAll failed");
             }
 
-            std::vector<core::IDisplay*> list(count);
-            [[maybe_unused]] auto release_list = wil::scope_exit([&]() -> void {
-                for(auto ptr : list) {
-                    if(ptr) {
-                        ptr->release();
+            auto release_list = [count](core::IDisplay** list) {
+                for(size_t i = 0; i < count; ++i) {
+                    if(list[i]) {
+                        list[i]->release();
                     }
                 }
-            });
-            if(!core::IDisplay::getAll(&count, list.data())) {
+                delete[] list;
+            };
+            std::unique_ptr<core::IDisplay*[], decltype(release_list)> list(new core::IDisplay*[count]{}, release_list);
+            if(!core::IDisplay::getAll(&count, list.get())) {
                 return luaL_error(L, "lstg.Display.getAll failed");
             }
 

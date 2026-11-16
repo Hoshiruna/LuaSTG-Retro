@@ -3,7 +3,9 @@
 
 #include <algorithm>
 #include <cmath>
+#ifdef _WIN32
 #include <objbase.h>
+#endif
 #include <stdexcept>
 #include <utility>
 
@@ -120,8 +122,10 @@ namespace luastg
 
     void ResourceVideoImpl::workerMain()
     {
+#ifdef _WIN32
         HRESULT const hr = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
         bool const should_uninitialize_com = SUCCEEDED(hr);
+#endif
 
         for(;;) {
             bool do_seek = false;
@@ -210,9 +214,11 @@ namespace luastg
             }
         }
 
+#ifdef _WIN32
         if(should_uninitialize_com) {
             CoUninitialize();
         }
+#endif
     }
 
     void ResourceVideoImpl::Update(double const delta_seconds)

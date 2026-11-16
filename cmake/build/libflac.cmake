@@ -17,7 +17,7 @@ endif ()
 set(libflac_source_directory  ${libflac_SOURCE_DIR})
 set(libflac_build_directory   ${CMAKE_BINARY_DIR}/build/libflac/$<CONFIG>)
 set(libflac_install_directory ${CMAKE_BINARY_DIR}/install/$<CONFIG>)
-set(libflac_library_file      ${libflac_install_directory}/lib/FLAC.lib)
+set(libflac_library_file      ${libflac_install_directory}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}FLAC${CMAKE_STATIC_LIBRARY_SUFFIX})
 
 luastg_cmake_external_build_prepare_directories(include/FLAC)
 
@@ -33,13 +33,9 @@ add_custom_command(
         # generator
         ${LUASTG_CMAKE_EXTERNAL_BUILD_GENERATOR_OPTIONS}
         # msvc runtime library
-        -DCMAKE_POLICY_DEFAULT_CMP0091=NEW
-        -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded$<$<CONFIG:Debug>:Debug>
         # install
         -DCMAKE_INSTALL_PREFIX=${libflac_install_directory}
         # utf-8
-        -DCMAKE_C_FLAGS=/utf-8
-        -DCMAKE_CXX_FLAGS=/utf-8
         # options
         -DBUILD_CXXLIBS=OFF
         -DBUILD_PROGRAMS=OFF
@@ -87,8 +83,8 @@ INTERFACE
     ${libflac_install_directory}/include
 )
 set_target_properties(libflac PROPERTIES
-    IMPORTED_LOCATION       ${CMAKE_BINARY_DIR}/install/Release/lib/FLAC.lib
-    IMPORTED_LOCATION_DEBUG ${CMAKE_BINARY_DIR}/install/Debug/lib/FLAC.lib
+    IMPORTED_LOCATION       ${CMAKE_BINARY_DIR}/install/Release/lib/${CMAKE_STATIC_LIBRARY_PREFIX}FLAC${CMAKE_STATIC_LIBRARY_SUFFIX}
+    IMPORTED_LOCATION_DEBUG ${CMAKE_BINARY_DIR}/install/Debug/lib/${CMAKE_STATIC_LIBRARY_PREFIX}FLAC${CMAKE_STATIC_LIBRARY_SUFFIX}
 )
 target_link_libraries(libflac
 INTERFACE

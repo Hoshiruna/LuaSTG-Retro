@@ -1,9 +1,13 @@
 # LuaSTG configurer
 
-add_subdirectory(Shader)
+if (WIN32 AND NOT LUASTG_USE_SDLGPU)
+    add_subdirectory(Shader)
+endif ()
 include(Platform.cmake)
 include(Core.cmake)
-add_subdirectory(Configurer)
+if (WIN32)
+    add_subdirectory(Configurer)
+endif ()
 
 # LuaSTG Engine
 
@@ -20,9 +24,9 @@ target_include_directories(LuaSTG PRIVATE
     LuaSTG
     LuaSTG/LuaBinding
 )
-target_include_directories(Setting PRIVATE
-    LuaSTG
-)
+if (TARGET Setting)
+    target_include_directories(Setting PRIVATE LuaSTG)
+endif ()
 target_compile_definitions(LuaSTG PRIVATE
     LDEVVERSION
 )
@@ -202,8 +206,10 @@ set(LUASTG_ENGINE_SOURCES
     LuaSTG/ApplicationRestart.cpp
     LuaSTG/SdlMain.cpp
 
-    LuaSTG/LuaSTG.manifest
 )
+if (WIN32)
+    list(APPEND LUASTG_ENGINE_SOURCES LuaSTG/LuaSTG.manifest)
+endif ()
 source_group(TREE ${CMAKE_CURRENT_LIST_DIR} FILES ${LUASTG_ENGINE_SOURCES})
 target_sources(LuaSTG PRIVATE
     ${LUASTG_ENGINE_SOURCES}
@@ -213,7 +219,6 @@ target_link_libraries(LuaSTG PRIVATE
     spdlog
     utility
     utf8
-    win32
     PlatformAPI
     Core
     xmath
@@ -237,10 +242,16 @@ target_link_libraries(LuaSTG PRIVATE
     Core.Http
     Core.ShellIntegration
     Core.Audio
-    Core.Video
     SDL3::SDL3
     LuaSTG.InternalLuaScriptsFileSystem
 )
+
+if (WIN32)
+    target_link_libraries(LuaSTG PRIVATE win32 Core.Video)
+else ()
+    target_link_libraries(LuaSTG PRIVATE Core.Video luastg_directxmath_headers)
+    target_link_options(LuaSTG PRIVATE -Wl,--export-dynamic)
+endif ()
 
 if (LUASTG_DISCORD_RPC_ENABLE)
     target_link_libraries(LuaSTG PRIVATE discord-rpc)
@@ -257,12 +268,18 @@ add_custom_command(TARGET LuaSTG POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:LuaSTG>/licenses/efsw" "${CMAKE_BINARY_DIR}/bin/licenses/efsw"
     COMMAND ${CMAKE_COMMAND} -E copy_if_different "${LUASTG_EFSW_NOTICE}" "$<TARGET_FILE_DIR:LuaSTG>/licenses/efsw/LICENSE"
     COMMAND ${CMAKE_COMMAND} -E copy_if_different "${LUASTG_EFSW_NOTICE}" "${CMAKE_BINARY_DIR}/bin/licenses/efsw/LICENSE"
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Microsoft.D3DCompiler.Redist> $<TARGET_FILE_DIR:LuaSTG>/$<TARGET_FILE_NAME:Microsoft.D3DCompiler.Redist>
     COMMAND ${CMAKE_COMMAND} -E make_directory                                                ${CMAKE_BINARY_DIR}/bin
     COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:LuaSTG>                       ${CMAKE_BINARY_DIR}/bin/$<TARGET_FILE_NAME:LuaSTG>
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Microsoft.D3DCompiler.Redist> ${CMAKE_BINARY_DIR}/bin/$<TARGET_FILE_NAME:Microsoft.D3DCompiler.Redist>
     VERBATIM
 )
+
+if (WIN32 AND NOT LUASTG_USE_SDLGPU)
+    add_custom_command(TARGET LuaSTG POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Microsoft.D3DCompiler.Redist> $<TARGET_FILE_DIR:LuaSTG>/$<TARGET_FILE_NAME:Microsoft.D3DCompiler.Redist>
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Microsoft.D3DCompiler.Redist> ${CMAKE_BINARY_DIR}/bin/$<TARGET_FILE_NAME:Microsoft.D3DCompiler.Redist>
+        VERBATIM
+    )
+endif ()
 
 if (LUASTG_USE_SDLGPU)
     luastg_copy_sdlgpu_runtime(LuaSTG)
@@ -273,3 +290,5 @@ if (LUASTG_USE_SDLGPU)
         VERBATIM
     )
 endif ()
+
+include(${PROJECT_SOURCE_DIR}/cmake/package-linux.cmake)

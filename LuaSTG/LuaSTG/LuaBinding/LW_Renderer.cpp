@@ -40,8 +40,8 @@ namespace luastg
 
     inline void rotate_float2(float& x, float& y, const float r)
     {
-        float const sinv = std::sinf(r);
-        float const cosv = std::cosf(r);
+        float const sinv = std::sin(r);
+        float const cosv = std::cos(r);
         float const tx = x * cosv - y * sinv;
         float const ty = x * sinv + y * cosv;
         x = tx;
@@ -49,8 +49,8 @@ namespace luastg
     }
     inline void rotate_float2x4(float& x1, float& y1, float& x2, float& y2, float& x3, float& y3, float& x4, float& y4, const float r)
     {
-        float const sinv = std::sinf(r);
-        float const cosv = std::cosf(r);
+        float const sinv = std::sin(r);
+        float const cosv = std::cos(r);
         {
             float const tx = x1 * cosv - y1 * sinv;
             float const ty = x1 * sinv + y1 * cosv;

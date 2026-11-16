@@ -29,4 +29,4 @@ jobs:
           '{"version":6,"include":["cmake/presets/vs2022.json"]}' | Set-Content CMakeUserPresets.json
 
       - name: CMake workflow
-        run: cmake --workflow --preset windows-x64-release
+        run: cmake --workflow --preset windows-amd64-release

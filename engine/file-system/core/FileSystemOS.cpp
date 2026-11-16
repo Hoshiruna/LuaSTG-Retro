@@ -1,5 +1,7 @@
 #include "core/FileSystemOS.hpp"
+#ifdef _WIN32
 #include "core/FileSystemWindows.hpp"
+#endif
 #include "core/SmartReference.hpp"
 #include "core/Logger.hpp"
 #include "core/FileSystemCommon.hpp"
@@ -13,11 +15,13 @@ namespace
     bool readFileData(std::filesystem::path const& path, core::IData** const data)
     {
         assert(data != nullptr);
+#ifdef _WIN32
         if(std::string correct; !win32::isFilePathCaseCorrect(path, correct)) {
             auto const name = path.u8string();
             core::Logger::error("[core] There is a difference in case between file paths '{}' and '{}'", getStringView(name), correct);
             return false;
         }
+#endif
         std::ifstream file(path, std::ifstream::in | std::ifstream::binary);
         if(!file.is_open()) {
             return false;

@@ -1,9 +1,11 @@
 #include "Utility/Utility.h"
 #include <SDL3/SDL_timer.h>
+#ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
 #include <Windows.h>
 #include <combaseapi.h>
+#endif
 
 namespace luastg
 {
@@ -32,6 +34,7 @@ namespace luastg
         _out = operator()();
     }
 
+#ifdef _WIN32
     CoInitializeScope::CoInitializeScope()
     {
         _result = SUCCEEDED(::CoInitializeEx(nullptr, COINIT_MULTITHREADED));
@@ -42,4 +45,5 @@ namespace luastg
             ::CoUninitialize();
         }
     }
+#endif
 }

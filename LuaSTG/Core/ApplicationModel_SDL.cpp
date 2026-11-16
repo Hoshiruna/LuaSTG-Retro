@@ -1,7 +1,6 @@
-#include "Core/ApplicationModel_Win32.hpp"
+#include "Core/ApplicationModel_SDL.hpp"
 
-#include "Platform/ProcessorInfo.hpp"
-#include "Platform/WindowsVersion.hpp"
+#include "Platform/Application.hpp"
 #include "core/Configuration.hpp"
 #include "core/InputSystem.hpp"
 #include "sdl/EventDispatcher.hpp"
@@ -10,55 +9,11 @@
 #include <SDL3/SDL.h>
 
 #include <cassert>
-#include <cstdio>
 #include <iterator>
 #include <stdexcept>
-#include <string>
 
 namespace core
 {
-    static std::string bytesCountToString(DWORDLONG const size)
-    {
-        char buffer[64]{};
-        int count{};
-        if(size < 1024llu) {
-            count = std::snprintf(buffer, std::size(buffer), "%u B", static_cast<unsigned int>(size));
-        } else if(size < 1024llu * 1024llu) {
-            count = std::snprintf(buffer, std::size(buffer), "%.2f KiB", static_cast<double>(size) / 1024.0);
-        } else if(size < 1024llu * 1024llu * 1024llu) {
-            count = std::snprintf(buffer, std::size(buffer), "%.2f MiB", static_cast<double>(size) / 1048576.0);
-        } else {
-            count = std::snprintf(buffer, std::size(buffer), "%.2f GiB", static_cast<double>(size) / 1073741824.0);
-        }
-        return std::string(buffer, static_cast<size_t>(count));
-    }
-
-    static void logSystemMemoryStatus()
-    {
-        MEMORYSTATUSEX info{ sizeof(MEMORYSTATUSEX) };
-        if(!GlobalMemoryStatusEx(&info)) {
-            spdlog::error("[core] Failed to retrieve system memory usage");
-            return;
-        }
-
-        spdlog::info(
-            "[core] System memory usage:\n"
-            "    Physical memory usage: {}%\n"
-            "    Total physical memory: {}\n"
-            "    Available physical memory: {}\n"
-            "    Current process commit memory limit: {}\n"
-            "    Current process available commit memory: {}\n"
-            "    Current process user-mode address space limit: {}\n"
-            "    Current process available user-mode address space: {}",
-            info.dwMemoryLoad,
-            bytesCountToString(info.ullTotalPhys),
-            bytesCountToString(info.ullAvailPhys),
-            bytesCountToString(info.ullTotalPageFile),
-            bytesCountToString(info.ullAvailPageFile),
-            bytesCountToString(info.ullTotalVirtual),
-            bytesCountToString(info.ullAvailVirtual));
-    }
-
     class ScopeTimer
     {
     public:
@@ -78,9 +33,9 @@ namespace core
         uint64_t m_start;
     };
 
-    bool SDLCALL ApplicationModel_Win32::sdlEventWatch(void* const userdata, SDL_Event* const event)
+    bool SDLCALL ApplicationModel_SDL::sdlEventWatch(void* const userdata, SDL_Event* const event)
     {
-        auto* const self = static_cast<ApplicationModel_Win32*>(userdata);
+        auto* const self = static_cast<ApplicationModel_SDL*>(userdata);
         if(self == nullptr || event == nullptr || event->type != SDL_EVENT_WINDOW_EXPOSED || !self->m_running) {
             return true;
         }
@@ -92,7 +47,7 @@ namespace core
         return true;
     }
 
-    void ApplicationModel_Win32::renderExposedFrame()
+    void ApplicationModel_SDL::renderExposedFrame()
     {
         if(!m_has_updated || m_updating || m_rendering || m_exit_flag.load(std::memory_order_relaxed)) {
             return;
@@ -123,10 +78,9 @@ namespace core
         m_rendering = false;
     }
 
-    bool ApplicationModel_Win32::runSingleThread()
+    bool ApplicationModel_SDL::runSingleThread()
     {
-        SetThreadAffinityMask(GetCurrentThread(), 1);
-        SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_HIGHEST);
+        Platform::prepareApplicationThread();
 
         FrameMark;
         {
@@ -135,7 +89,7 @@ namespace core
             m_frame_rate_controller.update();
         }
 
-        if(!SDL_AddEventWatch(&ApplicationModel_Win32::sdlEventWatch, this)) {
+        if(!SDL_AddEventWatch(&ApplicationModel_SDL::sdlEventWatch, this)) {
             spdlog::error("[sdl] SDL_AddEventWatch failed: {}", SDL_GetError());
             return false;
         }
@@ -162,11 +116,11 @@ namespace core
         }
 
         m_running = false;
-        SDL_RemoveEventWatch(&ApplicationModel_Win32::sdlEventWatch, this);
+        SDL_RemoveEventWatch(&ApplicationModel_SDL::sdlEventWatch, this);
         return !m_failed;
     }
 
-    void ApplicationModel_Win32::runFrame()
+    void ApplicationModel_SDL::runFrame()
     {
         m_rendering = true;
         const auto recovery = m_graphics->serviceRecovery();
@@ -231,17 +185,17 @@ namespace core
         FrameMark;
     }
 
-    FrameStatistics ApplicationModel_Win32::getFrameStatistics()
+    FrameStatistics ApplicationModel_SDL::getFrameStatistics()
     {
         return m_framestate[m_framestate_index];
     }
 
-    FrameRenderStatistics ApplicationModel_Win32::getFrameRenderStatistics()
+    FrameRenderStatistics ApplicationModel_SDL::getFrameRenderStatistics()
     {
         return m_graphics->statistics();
     }
 
-    void ApplicationModel_Win32::requestExit()
+    void ApplicationModel_SDL::requestExit()
     {
         m_exit_flag.store(true, std::memory_order_relaxed);
         SDL_Event event{};
@@ -251,12 +205,12 @@ namespace core
         }
     }
 
-    bool ApplicationModel_Win32::run()
+    bool ApplicationModel_SDL::run()
     {
         return runSingleThread();
     }
 
-    ApplicationModel_Win32::ApplicationModel_Win32(IApplicationEventListener* const listener)
+    ApplicationModel_SDL::ApplicationModel_SDL(IApplicationEventListener* const listener)
         : m_listener(listener)
     {
         assert(m_listener);
@@ -264,10 +218,7 @@ namespace core
             throw std::runtime_error("SdlRuntime::initialize");
         }
 
-        spdlog::info("[core] System: {}", Platform::WindowsVersion::GetName());
-        spdlog::info("[core] Kernel: {}", Platform::WindowsVersion::GetKernelVersionString());
-        spdlog::info("[core] CPU: {}", Platform::ProcessorInfo::name());
-        logSystemMemoryStatus();
+        Platform::logSystemInfo();
 
         if(!IWindow::create(m_window.put())) {
             throw std::runtime_error("IWindow::create");
@@ -278,7 +229,7 @@ namespace core
         }
     }
 
-    ApplicationModel_Win32::~ApplicationModel_Win32()
+    ApplicationModel_SDL::~ApplicationModel_SDL()
     {
         InputSystem::getInstance().shutdown();
         m_graphics.reset();
@@ -288,7 +239,7 @@ namespace core
     bool IApplicationModel::create(IApplicationEventListener* const listener, IApplicationModel** const model)
     {
         try {
-            *model = new ApplicationModel_Win32(listener);
+            *model = new ApplicationModel_SDL(listener);
             return true;
         } catch(std::exception const& exception) {
             spdlog::error("[core] Application initialization failed: {}", exception.what());

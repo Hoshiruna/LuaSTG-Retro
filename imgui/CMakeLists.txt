@@ -64,23 +64,25 @@ set_target_properties(implot PROPERTIES FOLDER external)
 
 # imgui backend dx11
 
-add_library(imgui_impl_dx11 STATIC)
-luastg_target_common_options(imgui_impl_dx11)
-target_include_directories(imgui_impl_dx11 PUBLIC
-    backend
-    ${CMAKE_SOURCE_DIR}/LuaSTG/Shader/generated
-)
-target_sources(imgui_impl_dx11 PRIVATE
-    #imgui/backends/imgui_impl_dx11.h
-    #imgui/backends/imgui_impl_dx11.cpp
-    backend/imgui_impl_dx11.h
-    backend/imgui_impl_dx11.cpp
-)
-target_link_libraries(imgui_impl_dx11 PUBLIC
-    imgui
-    GeneratedShaderHeaders
-)
-set_target_properties(imgui_impl_dx11 PROPERTIES FOLDER external)
+if (WIN32 AND NOT LUASTG_USE_SDLGPU)
+    add_library(imgui_impl_dx11 STATIC)
+    luastg_target_common_options(imgui_impl_dx11)
+    target_include_directories(imgui_impl_dx11 PUBLIC
+        backend
+        ${CMAKE_SOURCE_DIR}/LuaSTG/Shader/generated
+    )
+    target_sources(imgui_impl_dx11 PRIVATE
+        #imgui/backends/imgui_impl_dx11.h
+        #imgui/backends/imgui_impl_dx11.cpp
+        backend/imgui_impl_dx11.h
+        backend/imgui_impl_dx11.cpp
+    )
+    target_link_libraries(imgui_impl_dx11 PUBLIC
+        imgui
+        GeneratedShaderHeaders
+    )
+    set_target_properties(imgui_impl_dx11 PROPERTIES FOLDER external)
+endif ()
 
 # Dear ImGui SDL3 platform backend
 

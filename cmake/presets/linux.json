@@ -1,0 +1,56 @@
+{
+  "version": 6,
+  "configurePresets": [
+    {
+      "name": "linux-x64",
+      "hidden": true,
+      "inherits": "cpm-cache",
+      "generator": "Ninja",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      },
+      "cacheVariables": {
+        "LUASTG_BUILD_RUNTIME": true,
+        "LUASTG_BUILD_TESTS": false,
+        "LUASTG_GRAPHICS_BACKEND": "SDLGPU",
+        "LUASTG_STEAM_API_ENABLE": false,
+        "LUASTG_DISCORD_RPC_ENABLE": false
+      }
+    },
+    {
+      "name": "linux-x64-debug",
+      "inherits": "linux-x64",
+      "binaryDir": "${sourceDir}/build/linux-x64-debug",
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Debug" }
+    },
+    {
+      "name": "linux-x64-release",
+      "inherits": "linux-x64",
+      "binaryDir": "${sourceDir}/build/linux-x64-release",
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Release" }
+    },
+    {
+      "name": "linux-x64-ci",
+      "inherits": "linux-x64-release",
+      "binaryDir": "${sourceDir}/build/linux-x64-ci",
+      "cacheVariables": { "LUASTG_BUILD_TESTS": true }
+    }
+  ],
+  "buildPresets": [
+    { "name": "linux-x64-debug", "configurePreset": "linux-x64-debug", "targets": ["LuaSTG"] },
+    { "name": "linux-x64-release", "configurePreset": "linux-x64-release", "targets": ["LuaSTG"] },
+    { "name": "linux-x64-ci", "configurePreset": "linux-x64-ci", "targets": ["LuaSTG", "luastg-cpu-tests"] },
+    { "name": "linux-x64-gpu-tools", "configurePreset": "linux-x64-ci", "targets": ["Core.Graphics.SDLGPU.RecoveryCapture"] }
+  ],
+  "testPresets": [
+    {
+      "name": "linux-x64-ci",
+      "configurePreset": "linux-x64-ci",
+      "filter": { "include": { "label": "^cpu$" } },
+      "output": { "outputOnFailure": true },
+      "execution": { "noTestsAction": "error" }
+    }
+  ]
+}

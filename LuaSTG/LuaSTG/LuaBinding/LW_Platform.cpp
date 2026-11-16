@@ -1,11 +1,13 @@
 #include "LuaBinding/LuaWrapper.hpp"
 #include "lua/plus.hpp"
 #include "ApplicationRestart.hpp"
+#ifdef _WIN32
 #include "Platform/KnownDirectory.hpp"
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
 #include <Windows.h>
 #include <shellapi.h>
+#endif
 #include <SDL3/SDL.h>
 #include "utf8.hpp"
 
@@ -16,6 +18,7 @@ luastg::binding::Platform::Register(lua_State* L) noexcept
     {
         static int GetLocalAppDataPath(lua_State* L) noexcept
         {
+#ifdef _WIN32
             try {
                 std::string path;
                 if(::Platform::KnownDirectory::getLocalAppData(path)) {
@@ -27,9 +30,13 @@ luastg::binding::Platform::Register(lua_State* L) noexcept
                 lua_pushstring(L, "");
             }
             return 1;
+#else
+            return luaL_error(L, "GetLocalAppDataPath is unavailable on this platform.");
+#endif
         }
         static int GetRoamingAppDataPath(lua_State* L) noexcept
         {
+#ifdef _WIN32
             try {
                 std::string path;
                 if(::Platform::KnownDirectory::getRoamingAppData(path)) {
@@ -41,6 +48,9 @@ luastg::binding::Platform::Register(lua_State* L) noexcept
                 lua_pushstring(L, "");
             }
             return 1;
+#else
+            return luaL_error(L, "GetRoamingAppDataPath is unavailable on this platform.");
+#endif
         }
         static int RestartWithCommandLineArguments(lua_State* const vm) noexcept
         {
@@ -60,6 +70,7 @@ luastg::binding::Platform::Register(lua_State* L) noexcept
 #ifdef LUASTG_ENABLE_EXECUTE_API
         static int Execute(lua_State* L) noexcept
         {
+#ifdef _WIN32
             struct Detail_
             {
                 static bool Execute(const char* path, const char* args, const char* directory, bool bWait, bool bShow) noexcept
@@ -109,22 +120,25 @@ luastg::binding::Platform::Register(lua_State* L) noexcept
 
             lua_pushboolean(L, Detail_::Execute(path, args, directory, bWait, bShow));
             return 1;
+#else
+            return luaL_error(L, "Execute is unavailable on this platform.");
+#endif
         }
 #endif
         static int api_MessageBox(lua_State* L)
         {
             char const* title = luaL_checkstring(L, 1);
             char const* text = luaL_checkstring(L, 2);
-            UINT flags = (UINT)luaL_checkinteger(L, 3);
+            uint32_t flags = static_cast<uint32_t>(luaL_checkinteger(L, 3));
             SDL_MessageBoxFlags type = SDL_MESSAGEBOX_INFORMATION;
-            if((flags & MB_ICONERROR) != 0) {
+            if((flags & 0x10u) != 0) {
                 type = SDL_MESSAGEBOX_ERROR;
-            } else if((flags & MB_ICONWARNING) != 0) {
+            } else if((flags & 0x30u) != 0) {
                 type = SDL_MESSAGEBOX_WARNING;
             }
             const auto window = LAPP.GetAppModel() ? LAPP.GetAppModel()->getWindow()->getSDLWindow() : nullptr;
             const bool shown = SDL_ShowSimpleMessageBox(type, title, text, window);
-            lua_pushinteger(L, shown ? IDOK : 0);
+            lua_pushinteger(L, shown ? 1 : 0);
             return 1;
         }
     };

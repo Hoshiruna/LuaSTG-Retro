@@ -1,247 +1,138 @@
-# Building LuaSTG Retro
+# 构建 LuaSTG Retro
 
-## Current platform support
+## 当前目标
 
-The shipping runtime currently builds on Windows 10 1809 or newer for x64. The Linux and macOS presets build the portable window and input modules only. Full runtime builds on those platforms will become available as the remaining platform backends are migrated.
+完整 runtime 的构建入口面向 Windows x64/MSVC 与 Linux x64/SDL GPU。Linux 的实际编译、兼容性与发行包运行结果待记录，详见 [SDL Linux 兼容性验收](engine/doc/sdl-linux-validation.md)。macOS 移植安排在后续阶段。
 
-The build requirements are as follows:
-CMake 3.31 or newer and Git. 
-Windows builds use Visual Studio 2022 with the x64 C++ toolchain. 
-Linux and macOS presets use Ninja with the platform's default C and C++ compilers.
+基础工具为 Git、CMake 3.31 或更新版本和支持 C++20 的编译器。测试及部分工具还使用 C++23 标准库。Linux CI 配置选用 Ubuntu 24.04、GCC 14 和 Ninja。Visual Studio 2026 生成器要求 CMake 4.2 或更新版本。
+
+取得完整源码与测试素材后再配置项目。
+
+```sh
+git submodule update --init --recursive
+git lfs pull
+```
+
+依赖源码通过 CPM 获取，缓存位于 `build/packages`。DXC 使用项目固定的发行版本，首次配置需要下载相应的平台包。
 
 ## Windows x64
 
-Configure the project:
+默认预设使用 Visual Studio 2026。Debug 与 Release 构建命令如下。
 
-```shell
-cmake --preset windows-x64
+```powershell
+cmake --preset vs2026-amd64
+cmake --build --preset windows-vs2026-amd64-debug
+cmake --build --preset windows-vs2026-amd64-release
 ```
 
-Build either configuration:
+Release 工作流预设为 `windows-vs2026-amd64-release`。默认图形后端为 D3D11，配置时传入 `-DLUASTG_GRAPHICS_BACKEND=SDLGPU` 可选择 SDL GPU。
 
-```shell
-cmake --build --preset windows-x64-debug
-cmake --build --preset windows-x64-release
-```
-
-The release workflow runs both steps:
-
-```shell
-cmake --workflow --preset windows-x64-release
-```
-
-## Optional presets
-
-The default menu contains only VS2026 x64 Debug and Release builds. Enable other configurations by adding the files you need to `include` in the root `CMakeUserPresets.json`:
+使用 Visual Studio 2022 时，在根目录 `CMakeUserPresets.json` 中启用相应预设。
 
 ```json
 {
   "version": 6,
-  "include": [
-    "cmake/presets/vs2022.json"
-  ]
+  "include": ["cmake/presets/vs2022.json"]
 }
 ```
-The VS2026 generator requires [CMake 4.2 or newer](https://cmake.org/cmake/help/latest/generator/Visual%20Studio%2018%202026.html). The VS2022 presets can still be used with the project's CMake 3.31 minimum.
 
-## x86 32-bit (Deprecated)
-
-The current presets configure the portable module boundary and build `Core.WindowSystem` and `Core.InputSystem`:
-
-Enable `cmake/presets/vs2022.json` before running these commands.
-
-CMake configuration:  
-
-```shell
-cmake --preset windows-x64
-```
-
-编译测试版或发布版：
-
-```shell
-cmake --build --preset windows-x64-debug
-cmake --build --preset windows-x64-release
-```
-
-发布工作流会依次执行配置和编译：
-
-```shell
-cmake --workflow --preset windows-x64-release
-```
-
-## Linux x64
-
-当前预设用于验证可移植模块边界，并编译 `Core.WindowSystem` 和 `Core.InputSystem`：
-
-ARM64 presets are available in the optional Visual Studio files above. They are not part of the default menu.
-
-## Build with Ninja
-
-Enable `cmake/presets/ninja.json` first.
-
-Run these commands from an AMD64 Visual Studio developer environment with Ninja available:
-
-```shell
-cmake --preset ninja-amd64-debug
-cmake --build --preset windows-ninja-amd64-debug
-```
-
-发布配置请改用 `linux-x64-release`。
-
-## macOS 通用版
-
-macOS 预设的最低系统版本为 macOS 12，可移植模块会生成同时包含 x86_64 和 arm64 的通用库：
-
-```bash
-cmake --preset macos-universal-debug
-cmake --build --preset macos-universal-debug
-```
-
-发布配置请改用 `macos-universal-release`。
-
-## Steam API 支持
-
-Steam 支持是可选功能。启用方法如下：
-
-## Packaging
-
-`tool/package.ps1` builds both x64 and x86. Its default toolchain is `vs2026-v143`, so enable `cmake/presets/vs2026-v143.json` first. For `-Toolchain vs2022`, enable `vs2022.json`; for `-Toolchain vs2026`, enable `vs2026-extra.json`. 
-The script reads binaries from the selected toolchain's build directories.
-
-## Steam API Support  
-
-`cmake/example/CMakeUserPresets.SteamAPI.json` 提供了示例配置。将它复制到仓库根目录并重命名为 `CMakeUserPresets.json`，修改应用 ID 后执行：
+随后执行。
 
 ```powershell
-cmake --workflow --preset windows-x64-my-steam-api-release
-```
-
-编译：  
-
-```shell
-cmake --build --preset windows-amd64-debug
+cmake --preset vs2022-amd64
 cmake --build --preset windows-amd64-release
 ```
 
-一键发行（CMake 配置、编译发行版）：  
+其他预设保留在 `cmake/presets`。Windows Ninja 预设通过 `ninja.json` 启用，需要在 AMD64 Visual Studio 开发者终端中使用。当前完整 runtime 限制为 x64，目录中的旧 x86、ARM64 预设仍需后续迁移。
 
-```shell
-cmake --workflow --preset windows-amd64-release
+## Linux x64
+
+Ubuntu 24.04 的构建依赖与 CI 配置一致。
+
+```sh
+sudo apt-get update
+sudo apt-get install -y gcc-14 g++-14 ninja-build nasm pkg-config python3-venv \
+  libssl-dev libvulkan-dev libx11-dev libxext-dev libxrandr-dev \
+  libxcursor-dev libxi-dev libxfixes-dev libxss-dev libxtst-dev \
+  libwayland-dev libxkbcommon-dev libdecor-0-dev libasound2-dev \
+  libpulse-dev libudev-dev libdrm-dev libgbm-dev libegl1-mesa-dev \
+  libgl1-mesa-dev fonts-noto-cjk
 ```
 
-## 可选预设
+若系统 CMake 低于 3.31，可在虚拟环境中安装 3.x 版本。
 
-默认菜单仅保留 VS2026 x64 的 Debug 和 Release 构建。其他配置通过项目根目录的 `CMakeUserPresets.json` 按需启用：
-
-```json
-{
-  "version": 6,
-  "include": [
-    "cmake/presets/vs2022.json"
-  ]
-}
+```sh
+python3 -m venv build/venv
+. build/venv/bin/activate
+python -m pip install 'cmake>=3.31,<4'
 ```
 
-VS2026 生成器要求 [CMake 4.2 或更新版本](https://cmake.org/cmake/help/latest/generator/Visual%20Studio%2018%202026.html)。
-VS2022 预设仍可使用项目要求的最低版本 CMake 3.31。
+选择编译器后，从仓库根目录配置并构建。
 
-## x86 32 位版本（已弃用）
-
-> 警告：x86 32 位版本即将停止支持
-
-执行以下命令前，先启用 `cmake/presets/vs2022.json`。
-
-CMake 配置：  
-
-```shell
-cmake --preset vs2022-x86
+```sh
+export CC=gcc-14
+export CXX=g++-14
+cmake --preset linux-x64-release
+cmake --build --preset linux-x64-release
 ```
 
-编译（调试版或发行版）：  
+Debug 使用 `linux-x64-debug`。可执行文件与构建时复制的 DXC 位于对应构建目录的 `bin/` 中。
 
-```shell
-cmake --build --preset windows-x86-debug
-cmake --build --preset windows-x86-release
+Linux 预设选择 SDL GPU，并关闭 Steam、Discord 集成。当前视频后端不可用，调用会返回失败并记录原因。系统字体名称查找尚待迁移，游戏应提供字体文件路径。平台专属 Lua API 的不可用功能会明确报错。
+
+## CPU 测试与 GPU 回归
+
+以下命令会实际构建并执行测试，按需要手动运行。
+
+```sh
+cmake --preset linux-x64-ci
+cmake --build --preset linux-x64-ci
+ctest --preset linux-x64-ci
 ```
 
-一键发行（CMake 配置、编译发行版）：  
+`linux-x64-ci` 使用独立构建目录并打开测试。构建预设包含 runtime 与 `luastg-cpu-tests`，CTest 按 `cpu` 标签选择已有测试。HTTP 集成测试需要 Python 3。
 
-```shell
-cmake --workflow --preset windows-x86-release
+图像测试使用构建目录内的素材副本。SDL GPU 的 CPU 测试覆盖 HLSL 编译、反射、几何数据及恢复策略。需要图形设备的 capture 工具和音频交互场景在目标机上运行，步骤及记录表见 [SDL Linux 兼容性验收](engine/doc/sdl-linux-validation.md)。
+
+Linux CI 工作流定义在 `.github/workflows/linux.yml`，包含核心构建、CPU 测试、独立 Release 构建与发行候选包归档。
+
+## Linux 目录式发行包
+
+使用关闭测试的 `linux-x64-release` 构建发行包，可避免将故障注入界面带入发行 runtime。构建成功后执行。
+
+```sh
+cpack --config build/linux-x64-release/CPackConfig.cmake
 ```
 
-## arm64 版本（未完成）  
+归档输出到 `build/linux-x64-release/releases/`，文件名使用 `version.json` 中的版本号。也可以将同一组件安装到指定目录。
 
-> 未完成：等我买一台 Windows on arm 笔记本  
-
-ARM64 预设保留在上述 Visual Studio 可选配置文件中，不进入默认菜单。
-
-## 使用 Ninja 编译项目
-
-先启用 `cmake/presets/ninja.json`。
-
-首先需要初始化环境，比如初始化为以下环境：
-
-* Visual Studio 2026 Community v143 (MSVC 14.44)
-* Windows SDK 10.0.26100
-* AMD64 (x64)
-
-那么对应的命令为：
-
-```batch
-"C:\Program Files\Microsoft Visual Studio\18\Community\VC\Auxiliary\Build\vcvarsall.bat" x64 10.0.26100.0 -vcvars_ver=14.44
+```sh
+cmake --install build/linux-x64-release --component LinuxRuntime \
+  --prefix "$PWD/build/linux-x64-release/stage"
 ```
 
-接下来，使用预配配置并编译 Debug 版本：
+包内包含 runtime、DXC、收集到的其他共享库、示例资源、Noto CJK 字体与许可证。安装后的 runtime 通过 `$ORIGIN` 查找随包库，`run-luastg` 会先切换到发行包目录，再传递参数启动程序。
 
-```batch
-cmake --preset ninja-amd64-debug
-cmake --build --preset windows-ninja-amd64-debug
+```sh
+cd build/linux-x64-release/stage
+./run-luastg
 ```
 
-将 `debug` 替换为 `release` 即可编译 Release 版本。也可以用工作流一次完成 Release 配置和编译：
+glibc、libstdc++ 和 GCC 基础运行库由目标系统提供。目标环境应兼容构建基线，并安装 Vulkan loader、对应 GPU 驱动及桌面和音频运行库。使用 GCC 14 构建时，目标机也需要兼容的 libstdc++。
 
-```batch
-cmake --workflow --preset windows-ninja-amd64-release
+打包时使用已安装的 `NotoSansCJK-Regular.ttc` 和对应许可证。其他安装布局可以在配置时指定以下路径。
+
+```sh
+cmake --preset linux-x64-release \
+  -DLUASTG_NOTO_CJK_FONT=/absolute/path/NotoSansCJK-Regular.ttc \
+  -DLUASTG_NOTO_CJK_LICENSE=/absolute/path/font-license \
+  -DLUASTG_OPENSSL_LICENSE=/absolute/path/openssl-license
 ```
 
-## 开始编写代码
+`LinuxRuntime` 组件在缺少这些打包素材时报告具体缺项。安装依赖后重新配置即可更新查找结果。
 
-接下来你就可以用 Visual Studio 2022 打开 sln 解决方案开始开发。
+## Windows Steam 配置
 
-注意：请编译 LuaSTG 项目至少一次，否则 libflac、libogg、libvorbis、zlib-ng、minizip-ng 等依赖库的头文件不存在。
+将 Steamworks SDK 放入 `external/steam_api/SteamworksSDK/sdk`。设置 `LUASTG_STEAM_API_ENABLE=TRUE` 和 `LUASTG_STEAM_API_APP_ID` 后重新配置。需要从 Steam 启动时，再开启 `LUASTG_STEAM_API_FORCE_LAUNCH_BY_STEAM`。
 
-## 打包
-
-`tool/package.ps1` 会同时构建 x64 和 x86，默认工具链为 `vs2026-v143`，需要先启用 `cmake/presets/vs2026-v143.json`。
-使用 `-Toolchain vs2022` 时启用 `vs2022.json`；使用 `-Toolchain vs2026` 时启用 `vs2026-extra.json`。
-脚本从所选工具链的独立构建目录读取产物。
-
-## Steam API 支持  
-
-如果你需要使用 Steam API，请遵循以下步骤：  
-
-1. 从 Steamworks 官网下载 Steamworks SDK  
-    1. 打开网站：https://partner.steamgames.com/doc/sdk  
-    2. 登录你的 Steamworks 账号  
-    3. 下载最新版本的 Steamworks SDK（截至 2025 年 11 月 11 日，最新版本为 `1.62`）：https://partner.steamgames.com/downloads/list  
-2. 解压 Steamworks SDK  
-    1. 下载完成后会得到 `steamworks_sdk_xyy.zip` 压缩包，其中 `xyy` 是版本号（截至 2025 年 11 月 11 日，最新版本号为 `162`）  
-    2. 用任意支持 `zip` 压缩包的软件打开压缩包，可以看到压缩包中有一个 `sdk` 文件夹  
-    3. 将压缩包中的 `sdk` 文件夹解压到 `external/steam_api/SteamworksSDK` 文件夹中  
-3. 在 CMake 中启用 Steam API  
-    1. 将 CMake 选项 `LUASTG_STEAM_API_ENABLE` 设置为 `TRUE`  
-    2. 将 CMake 选项 `LUASTG_STEAM_API_APP_ID` 修改为你的 AppID
-    3. 为了避免玩家直接双击 `exe` 启动造成 Steam API 初始化失败，可以将 CMake 选项 `LUASTG_STEAM_API_FORCE_LAUNCH_BY_STEAM` 设置为 `TRUE`  
-4. 重新运行一次 CMake 配置（CMake Configure）  
-
-### 通过 `CMakeUserPresets.json` 快速配置  
-
-为了方便开发者，我们提供了样板文件 `cmake/example/CMakeUserPresets.SteamAPI.json`，只需要少许修改即可使用：  
-
-1. 将 `cmake/example/CMakeUserPresets.SteamAPI.json` 文件复制到项目根目录  
-2. 将文件重命名为 `CMakeUserPresets.json`  
-3. 修改 `LUASTG_STEAM_API_APP_ID` 的值  
-4. 执行命令 `cmake --workflow --preset windows-amd64-my-steam-api-release` 执行 CMake 工作流  
-
-如果样板文件无法满足你的需求，可以自行修改。  
+`cmake/example/CMakeUserPresets.SteamAPI.json` 提供自定义预设的参考。预设名称应以所包含的 Visual Studio 预设文件为准。

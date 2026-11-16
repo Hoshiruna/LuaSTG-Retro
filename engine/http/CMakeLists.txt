@@ -16,7 +16,7 @@ if (LUASTG_BUILD_TESTS)
         add_test(NAME Core.Http.Integration
             COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/test/run_integration.py" "$<TARGET_FILE:Core.Http.Test>"
         )
-        set_tests_properties(Core.Http.Integration PROPERTIES TIMEOUT 45)
+        set_tests_properties(Core.Http.Integration PROPERTIES TIMEOUT 45 LABELS "cpu;http")
     else ()
         message(STATUS "Core.Http integration runner requires Python 3; the test executable is still built")
     endif ()

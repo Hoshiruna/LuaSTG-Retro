@@ -1,5 +1,7 @@
 #include "Core/Graphics/Common/SpriteRenderer.hpp"
 #include <cassert>
+#include <cmath>
+#include <limits>
 
 namespace core::Graphics::Common
 {
@@ -71,8 +73,8 @@ namespace core::Graphics::Common
         m_vertex[2].y = rect.b.y;
         m_vertex[3].x = rect.a.x;
         m_vertex[3].y = rect.b.y;
-        auto const sin_v = std::sinf(rotation);
-        auto const cos_v = std::cosf(rotation);
+        auto const sin_v = std::sin(rotation);
+        auto const cos_v = std::cos(rotation);
 #define ROTATE_X_Y(UNIT)                                                    \
     {                                                                       \
         auto const x = m_vertex[UNIT].x * cos_v - m_vertex[UNIT].y * sin_v; \

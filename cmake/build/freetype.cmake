@@ -1,3 +1,12 @@
+if (WIN32)
+    set(freetype_library_name "freetype$<$<CONFIG:Debug>:d>.lib")
+    set(freetype_release_library_name freetype.lib)
+    set(freetype_debug_library_name freetyped.lib)
+else ()
+    set(freetype_library_name libfreetype.a)
+    set(freetype_release_library_name libfreetype.a)
+    set(freetype_debug_library_name libfreetype.a)
+endif ()
 # freetype
 
 CPMAddPackage(
@@ -17,7 +26,7 @@ endif ()
 set(freetype_source_directory  ${libfreetype_SOURCE_DIR})
 set(freetype_build_directory   ${CMAKE_BINARY_DIR}/build/freetype/$<CONFIG>)
 set(freetype_install_directory ${CMAKE_BINARY_DIR}/install/$<CONFIG>)
-set(freetype_library_file      ${freetype_install_directory}/lib/freetype$<$<CONFIG:Debug>:d>.lib)
+set(freetype_library_file      ${freetype_install_directory}/lib/${freetype_library_name})
 
 luastg_cmake_external_build_prepare_directories(include/freetype2)
 
@@ -33,12 +42,9 @@ add_custom_command(
         # generator
         ${LUASTG_CMAKE_EXTERNAL_BUILD_GENERATOR_OPTIONS}
         # msvc runtime library
-        -DCMAKE_POLICY_DEFAULT_CMP0091=NEW
-        -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded$<$<CONFIG:Debug>:Debug>
         # install location
         -DCMAKE_INSTALL_PREFIX=${freetype_install_directory}
         # force utf-8
-        -DCMAKE_C_FLAGS=/utf-8
         # options
         -DFT_DISABLE_ZLIB=ON
         -DFT_DISABLE_BZIP2=ON
@@ -78,7 +84,7 @@ INTERFACE
     ${freetype_install_directory}/include/freetype2
 )
 set_target_properties(freetype PROPERTIES
-    IMPORTED_LOCATION       ${CMAKE_BINARY_DIR}/install/Release/lib/freetype.lib
-    IMPORTED_LOCATION_DEBUG ${CMAKE_BINARY_DIR}/install/Debug/lib/freetyped.lib
+    IMPORTED_LOCATION       ${CMAKE_BINARY_DIR}/install/Release/lib/${freetype_release_library_name}
+    IMPORTED_LOCATION_DEBUG ${CMAKE_BINARY_DIR}/install/Debug/lib/${freetype_debug_library_name}
 )
 add_dependencies(freetype freetype_build)

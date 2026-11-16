@@ -1,10 +1,7 @@
 #include "ShaderCompiler.hpp"
+#include "DxcObject.hpp"
 #include "core/Logger.hpp"
 #include <SDL3_shadercross/SDL_shadercross.h>
-#if defined(_WIN32)
-#include <unknwn.h>
-#endif
-#include <dxcapi.h>
 #include <cstring>
 #include <iterator>
 
@@ -12,19 +9,34 @@ namespace core::Graphics::SDLGPU
 {
     ShaderCompiler::ShaderCompiler(const std::string_view driver)
     {
+#if !defined(__APPLE__)
         const std::string directory = require(SDL_GetBasePath(), "SDL_GetBasePath");
+#endif
         // DXC is the HLSL front end on every driver, because shadercross is built with
         // SDL_SHADERCROSS_DXC: even the Vulkan path goes through HLSL -> SPIR-V in DXC.
-        m_dxc.reset(require(SDL_LoadObject((directory + "dxcompiler.dll").c_str()), "Load packaged dxcompiler.dll"));
-        require(SDL_LoadFunction(m_dxc.get(), "DxcCreateInstance"), "Find DxcCreateInstance in dxcompiler.dll");
+#if defined(__APPLE__)
+        m_dxc.reset(require(SDL_LoadObject("@rpath/libdxcompiler.dylib"), "Load packaged DXC library"));
+#else
+#if defined(_WIN32)
+        constexpr const char* compiler_name = "dxcompiler.dll";
+#else
+        constexpr const char* compiler_name = "libdxcompiler.so";
+#endif
+        m_dxc.reset(require(SDL_LoadObject((directory + compiler_name).c_str()), "Load packaged DXC library"));
+#endif
+        require(SDL_LoadFunction(m_dxc.get(), "DxcCreateInstance"), "Find DxcCreateInstance in DXC library");
         // Only DXIL signing is Direct3D-specific, so a machine that runs Vulkan must not be
         // held back by a missing dxil.dll.
+#if defined(_WIN32)
         if(driver == "direct3d12") {
             m_dxil.reset(SDL_LoadObject((directory + "dxil.dll").c_str()));
             if(m_dxil == nullptr) {
                 throw std::runtime_error(std::string("Load packaged dxil.dll: ") + SDL_GetError() + ". Restore the packaged dxil.dll beside the executable.");
             }
         }
+#else
+        (void)driver;
+#endif
         check(SDL_ShaderCross_Init(), "SDL_ShaderCross_Init");
     }
 
@@ -80,33 +92,22 @@ namespace core::Graphics::SDLGPU
         };
     }
 
-    namespace
-    {
-        template<typename T>
-        struct ReleaseCom
-        {
-            void operator()(T* value) const noexcept { value->Release(); }
-        };
-        template<typename T>
-        using ComOwner = std::unique_ptr<T, ReleaseCom<T>>;
-    }
-
     std::vector<uint32_t> ShaderCompiler::compileLegacy(std::string_view source, std::string_view name) const
     {
         IDxcCompiler3* raw_compiler{};
         if(FAILED(DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&raw_compiler))))
             throw std::runtime_error("Create DXC compiler for " + std::string(name));
-        ComOwner<IDxcCompiler3> compiler(raw_compiler);
+        DxcObject<IDxcCompiler3> compiler(raw_compiler);
         // Reflection preserves HLSL semantics; DX layout preserves legacy cbuffer offsets.
         const wchar_t* arguments[]{ L"-E", L"main", L"-T", L"ps_6_0", L"-HV", L"2016", L"-spirv", L"-fvk-use-dx-layout", L"-fspv-reflect", L"-fspv-preserve-bindings", L"-fspv-preserve-interface" };
         DxcBuffer input{ source.data(), source.size(), DXC_CP_UTF8 };
         IDxcResult* raw_result{};
         if(FAILED(compiler->Compile(&input, arguments, static_cast<UINT32>(std::size(arguments)), nullptr, IID_PPV_ARGS(&raw_result))))
             throw std::runtime_error("DXC compile invocation failed for " + std::string(name));
-        ComOwner<IDxcResult> result(raw_result);
+        DxcObject<IDxcResult> result(raw_result);
         IDxcBlobUtf8* raw_errors{};
         result->GetOutput(DXC_OUT_ERRORS, IID_PPV_ARGS(&raw_errors), nullptr);
-        ComOwner<IDxcBlobUtf8> errors(raw_errors);
+        DxcObject<IDxcBlobUtf8> errors(raw_errors);
         const std::string diagnostic = errors && errors->GetStringLength() ? std::string(errors->GetStringPointer(), errors->GetStringLength()) : std::string();
         HRESULT status{};
         if(FAILED(result->GetStatus(&status)) || FAILED(status))
@@ -116,7 +117,7 @@ namespace core::Graphics::SDLGPU
         IDxcBlob* raw_code{};
         if(FAILED(result->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(&raw_code), nullptr)))
             throw std::runtime_error("Read compiled post-effect " + std::string(name));
-        ComOwner<IDxcBlob> code(raw_code);
+        DxcObject<IDxcBlob> code(raw_code);
         std::vector<uint32_t> words(code->GetBufferSize() / sizeof(uint32_t));
         std::memcpy(words.data(), code->GetBufferPointer(), code->GetBufferSize());
         return words;

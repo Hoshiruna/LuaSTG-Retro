@@ -1,0 +1,80 @@
+name: Linux core runtime
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  linux-x64:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    env:
+      CC: gcc-14
+      CXX: g++-14
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+          lfs: true
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-14 g++-14 ninja-build nasm pkg-config python3-venv \
+            libssl-dev libvulkan-dev libx11-dev libxext-dev libxrandr-dev \
+            libxcursor-dev libxi-dev libxfixes-dev libxss-dev libxtst-dev \
+            libwayland-dev libxkbcommon-dev libdecor-0-dev libasound2-dev \
+            libpulse-dev libudev-dev libdrm-dev libgbm-dev libegl1-mesa-dev \
+            libgl1-mesa-dev fonts-noto-cjk
+          python3 -m venv "$RUNNER_TEMP/luastg-tools"
+          "$RUNNER_TEMP/luastg-tools/bin/pip" install 'cmake>=3.31,<4'
+          echo "$RUNNER_TEMP/luastg-tools/bin" >> "$GITHUB_PATH"
+
+      - name: Cache source dependencies
+        uses: actions/cache@v6
+        with:
+          path: build/packages
+          key: linux-x64-cpm-${{ hashFiles('cmake/import/*.cmake', 'cmake/build/*.cmake', 'cmake/packages.lua.cmake') }}
+          restore-keys: |
+            linux-x64-cpm-
+
+      - name: Configure CPU tests and runtime
+        run: cmake --preset linux-x64-ci
+
+      - name: Build CPU tests and runtime
+        run: cmake --build --preset linux-x64-ci --parallel 2
+
+      - name: Run CPU tests
+        run: ctest --preset linux-x64-ci --output-junit "$GITHUB_WORKSPACE/build/linux-x64-ci/cpu-tests.xml"
+
+      - name: Configure distribution runtime
+        run: cmake --preset linux-x64-release
+
+      - name: Build distribution runtime
+        run: cmake --build --preset linux-x64-release --parallel 2
+
+      - name: Package distribution runtime
+        run: cpack --config build/linux-x64-release/CPackConfig.cmake
+
+      - name: Upload CPU test report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: linux-x64-cpu-tests
+          path: |
+            build/linux-x64-ci/cpu-tests.xml
+            build/linux-x64-ci/Testing/Temporary/LastTest.log
+          if-no-files-found: warn
+
+      - name: Upload runtime candidate
+        uses: actions/upload-artifact@v7
+        with:
+          name: linux-x64-runtime-candidate
+          path: build/linux-x64-release/releases/*.tar.gz
+          if-no-files-found: error

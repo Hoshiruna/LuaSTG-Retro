@@ -1,3 +1,12 @@
+if (WIN32)
+    set(zlib_ng_library_name "zlibstatic-ng$<$<CONFIG:Debug>:d>.lib")
+    set(zlib_ng_release_library_name zlibstatic-ng.lib)
+    set(zlib_ng_debug_library_name zlibstatic-ngd.lib)
+else ()
+    set(zlib_ng_library_name libz-ng.a)
+    set(zlib_ng_release_library_name libz-ng.a)
+    set(zlib_ng_debug_library_name libz-ng.a)
+endif ()
 # zlib-ng
 
 CPMAddPackage(
@@ -17,7 +26,7 @@ endif ()
 set(zlib_ng_source_directory  ${zlib_ng_SOURCE_DIR})
 set(zlib_ng_build_directory   ${CMAKE_BINARY_DIR}/build/zlib_ng/$<CONFIG>)
 set(zlib_ng_install_directory ${CMAKE_BINARY_DIR}/install/$<CONFIG>)
-set(zlib_ng_library_file      ${zlib_ng_install_directory}/lib/zlibstatic-ng$<$<CONFIG:Debug>:d>.lib)
+set(zlib_ng_library_file      ${zlib_ng_install_directory}/lib/${zlib_ng_library_name})
 
 # external cmake build
 
@@ -31,8 +40,6 @@ add_custom_command(
         # generator
         ${LUASTG_CMAKE_EXTERNAL_BUILD_GENERATOR_OPTIONS}
         # msvc runtime library
-        -DCMAKE_POLICY_DEFAULT_CMP0091=NEW
-        -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded$<$<CONFIG:Debug>:Debug>
         # install
         -DCMAKE_INSTALL_PREFIX=${zlib_ng_install_directory}
         # options
@@ -47,16 +54,20 @@ add_custom_command(
         --install ${zlib_ng_build_directory}
         --config $<CONFIG>
         --prefix ${zlib_ng_install_directory}
+    VERBATIM
+)
+if (WIN32)
+    add_custom_command(APPEND OUTPUT ${zlib_ng_library_file}
     # MAGIC: replace shared library with static library, force other libraries link to zlib-ng-static
     COMMAND ${CMAKE_COMMAND}
         -E rm -f
         ${zlib_ng_install_directory}/lib/zlib-ng$<$<CONFIG:Debug>:d>.lib
     COMMAND ${CMAKE_COMMAND}
         -E copy_if_different
-        ${zlib_ng_install_directory}/lib/zlibstatic-ng$<$<CONFIG:Debug>:d>.lib
+        ${zlib_ng_install_directory}/lib/${zlib_ng_library_name}
         ${zlib_ng_install_directory}/lib/zlib-ng$<$<CONFIG:Debug>:d>.lib
-    VERBATIM
-)
+    )
+endif ()
 add_custom_target(zlib_ng_build ALL
     DEPENDS ${zlib_ng_library_file}
 )
@@ -80,7 +91,7 @@ INTERFACE
     ${zlib_ng_install_directory}/include
 )
 set_target_properties(zlib_ng_static PROPERTIES
-    IMPORTED_LOCATION       ${CMAKE_BINARY_DIR}/install/Release/lib/zlibstatic-ng.lib
-    IMPORTED_LOCATION_DEBUG ${CMAKE_BINARY_DIR}/install/Debug/lib/zlibstatic-ngd.lib
+    IMPORTED_LOCATION       ${CMAKE_BINARY_DIR}/install/Release/lib/${zlib_ng_release_library_name}
+    IMPORTED_LOCATION_DEBUG ${CMAKE_BINARY_DIR}/install/Debug/lib/${zlib_ng_debug_library_name}
 )
 add_dependencies(zlib_ng_static zlib_ng_build)

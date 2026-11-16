@@ -1,6 +1,15 @@
 # Video
 
-file(GLOB_RECURSE lib_src RELATIVE ${CMAKE_CURRENT_LIST_DIR} core/*.hpp core/*.cpp backend/*.hpp backend/*.cpp)
+set(lib_src core/VideoDecoder.hpp)
+if (WIN32)
+    list(APPEND lib_src
+        backend/VideoDecoder.cpp
+        backend/VideoDecoderMediaFoundation.hpp
+        backend/VideoDecoderMediaFoundation.cpp
+    )
+else ()
+    list(APPEND lib_src backend/VideoDecoderUnavailable.cpp)
+endif ()
 source_group(TREE ${CMAKE_CURRENT_LIST_DIR} FILES ${lib_src})
 
 set(lib_name "Core.Video")
@@ -15,12 +24,17 @@ target_link_libraries(${lib_name} PUBLIC
     Core.FileSystem
     Core.Logging
     utf8
-    win32
-    mfplat.lib
-    mfreadwrite.lib
-    mfuuid.lib
-    ole32.lib
 )
+
+if (WIN32)
+    target_link_libraries(${lib_name} PRIVATE
+        win32
+        mfplat.lib
+        mfreadwrite.lib
+        mfuuid.lib
+        ole32.lib
+    )
+endif ()
 target_link_libraries(${lib_name} PRIVATE options_compile_utf8)
 
 set_target_properties(${lib_name} PROPERTIES FOLDER engine)

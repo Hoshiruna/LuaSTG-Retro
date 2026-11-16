@@ -2,6 +2,11 @@
 #include "core/SmartReference.hpp"
 #include "core/implement/ReferenceCounted.hpp"
 #include <cstdint>
+#include <algorithm>
+#include <cstdlib>
+#ifdef _WIN32
+#include <malloc.h>
+#endif
 
 namespace core
 {
@@ -22,21 +27,31 @@ namespace core
             } else {
                 static_assert(sizeof(size_t) == sizeof(uint64_t) || sizeof(size_t) == sizeof(uint32_t), "unsupported architecture");
             }
+#ifdef _WIN32
             m_data = _aligned_malloc(size, align);
+#else
+            if(align != 0 && (align & (align - 1)) == 0) {
+                (void)posix_memalign(&m_data, std::max(align, sizeof(void*)), size);
+            }
+#endif
         }
         Data(Data const&) = delete;
         Data(Data&&) = delete;
         ~Data() override
         {
-            m_size = 0;
             if(m_data != nullptr) {
+#ifdef _WIN32
                 if(isAligned()) {
                     _aligned_free(m_data);
                 } else {
                     std::free(m_data);
                 }
+#else
+                std::free(m_data);
+#endif
                 m_data = nullptr;
             }
+            m_size = 0;
         }
 
         Data& operator=(Data const&) = delete;

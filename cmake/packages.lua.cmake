@@ -72,13 +72,22 @@ if(luasocket_ADDED)
         #${LUA_SOCKET_ROOT}/src/url.lua
         #${LUA_SOCKET_ROOT}/src/usocket.c
         #${LUA_SOCKET_ROOT}/src/usocket.h
-        ${LUA_SOCKET_ROOT}/src/wsocket.c
-        ${LUA_SOCKET_ROOT}/src/wsocket.h
     )
+    if (WIN32)
+        target_sources(luasocket PRIVATE
+            ${LUA_SOCKET_ROOT}/src/wsocket.c
+            ${LUA_SOCKET_ROOT}/src/wsocket.h
+        )
+        target_link_libraries(luasocket PRIVATE ws2_32.lib)
+    else ()
+        target_sources(luasocket PRIVATE
+            ${LUA_SOCKET_ROOT}/src/usocket.c
+            ${LUA_SOCKET_ROOT}/src/usocket.h
+        )
+    endif ()
     target_link_libraries(luasocket
     PUBLIC
         lua51_static
-        ws2_32.lib
     )
     set_target_properties(luasocket PROPERTIES FOLDER lualib)
 endif()

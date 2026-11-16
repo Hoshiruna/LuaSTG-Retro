@@ -1,10 +1,13 @@
 if (NOT WIN32)
-    message(FATAL_ERROR "Core.Graphics currently requires the Windows D3D11 adapter")
+    if (NOT LUASTG_USE_SDLGPU)
+        message(FATAL_ERROR "The D3D11 graphics backend requires Windows")
+    endif ()
 endif ()
 
 set(core_graphics_common_sources
     Core/Graphics/Common/FreeTypeGlyphManager.cpp
     Core/Graphics/Common/FreeTypeGlyphManager.hpp
+    Core/Graphics/Common/SystemFont.hpp
     Core/Graphics/Common/Sprite.cpp
     Core/Graphics/Common/Sprite.hpp
     Core/Graphics/Common/SpriteRenderer.cpp
@@ -59,6 +62,11 @@ set(core_graphics_d3d11_sources
 )
 
 set(core_graphics_sources ${core_graphics_common_sources})
+if (WIN32)
+    list(APPEND core_graphics_sources Core/Graphics/Windows/SystemFont.cpp)
+else ()
+    list(APPEND core_graphics_sources Core/Graphics/Common/SystemFont.cpp)
+endif ()
 if (NOT LUASTG_USE_SDLGPU)
     list(APPEND core_graphics_sources ${core_graphics_d3d11_sources})
 endif ()
@@ -79,29 +87,32 @@ target_include_directories(Core.Graphics
 )
 target_sources(Core.Graphics PRIVATE ${core_graphics_sources})
 source_group(TREE ${CMAKE_CURRENT_LIST_DIR} FILES ${core_graphics_sources})
-target_precompile_headers(Core.Graphics PRIVATE
-    ${PROJECT_SOURCE_DIR}/LuaSTG/Core/framework.hpp
-)
+if (LUASTG_USE_SDLGPU)
+    target_precompile_headers(Core.Graphics PRIVATE ${PROJECT_SOURCE_DIR}/LuaSTG/Core/framework.hpp)
+else ()
+    target_precompile_headers(Core.Graphics PRIVATE ${PROJECT_SOURCE_DIR}/LuaSTG/Platform/Windows/GraphicsFramework.hpp)
+endif ()
 
 target_link_libraries(Core.Graphics PUBLIC
     Core.Configuration
     Core.FileSystem
+    Core.Logging
     Core.Math
     Core.ReferenceCounted
     Core.String
     Core.WindowSystem
     Freetype::Freetype
-    Microsoft.Windows.ImplementationLibrary
-    PlatformAPI
     TracyAPI
-    beautiful_win32_api
     libqoi
     simdutf::simdutf
     spdlog
     utf8
     utility
-    win32
 )
+
+if (WIN32)
+    target_link_libraries(Core.Graphics PRIVATE advapi32 shell32 user32)
+endif ()
 
 set_target_properties(Core.Graphics PROPERTIES FOLDER engine)
 
@@ -113,12 +124,13 @@ if (LUASTG_USE_SDLGPU)
     target_link_libraries(Core.Graphics PUBLIC Core.Graphics.SDLGPU.Runtime)
 else ()
     target_link_libraries(Core.Graphics PUBLIC
+        Microsoft.Windows.ImplementationLibrary PlatformAPI beautiful_win32_api win32 libqoi_d3d11
         DirectX::TextureMini imgui_impl_dx11 GeneratedShaderHeaders
         d3d11.lib dxgi.lib dxguid.lib tinygltf
     )
 endif ()
 
-if (LUASTG_BUILD_TESTS)
+if (LUASTG_BUILD_TESTS AND WIN32)
     add_executable(Core.Graphics.GeometryCapture test/GeometryCapture.cpp)
     luastg_target_common_options(Core.Graphics.GeometryCapture)
     luastg_target_more_warning(Core.Graphics.GeometryCapture)

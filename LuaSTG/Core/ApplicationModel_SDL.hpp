@@ -13,11 +13,11 @@
 
 namespace core
 {
-    class ApplicationModel_Win32 final : public implement::ReferenceCounted<IApplicationModel>
+    class ApplicationModel_SDL final : public implement::ReferenceCounted<IApplicationModel>
     {
     public:
-        explicit ApplicationModel_Win32(IApplicationEventListener* listener);
-        ~ApplicationModel_Win32();
+        explicit ApplicationModel_SDL(IApplicationEventListener* listener);
+        ~ApplicationModel_SDL();
 
         IWindow* getWindow() override { return *m_window; }
         void requestExit() override;

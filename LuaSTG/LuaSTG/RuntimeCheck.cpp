@@ -1,6 +1,7 @@
 #include "RuntimeCheck.hpp"
 #include "core/Configuration.hpp"
 #include "Platform/MessageBox.hpp"
+#if !defined(LUASTG_GRAPHICS_SDLGPU)
 #include "Platform/WindowsVersion.hpp"
 #include "Platform/CleanWindows.hpp"
 #include "Platform/ModuleLoader.hpp"
@@ -10,6 +11,7 @@
 #include "Platform/Direct3D11.hpp"
 #endif
 #include <shellapi.h>
+#endif
 
 namespace luastg
 {

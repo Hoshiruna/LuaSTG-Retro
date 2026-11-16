@@ -29,5 +29,13 @@ if(miniaudio_ADDED)
         Vorbis::vorbis
         Vorbis::vorbisfile
     )
+    if (UNIX)
+        find_package(Threads REQUIRED)
+        target_link_libraries(miniaudio PUBLIC Threads::Threads ${CMAKE_DL_LIBS} m)
+    endif ()
+    if (APPLE)
+        target_link_libraries(miniaudio PUBLIC
+            "-framework CoreAudio" "-framework AudioToolbox" "-framework CoreFoundation")
+    endif ()
     set_target_properties(miniaudio PROPERTIES FOLDER external)
 endif()

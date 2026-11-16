@@ -2,7 +2,9 @@
 #include "Main.h"
 #include "core/implement/ReferenceCountedDebugger.hpp"
 #include "Platform/MessageBox.hpp"
+#ifdef _WIN32
 #include "Platform/ApplicationSingleInstance.hpp"
+#endif
 #include "Debugger/Logger.hpp"
 #include "DiscordRPC/DiscordRPC.hpp"
 #include "SteamAPI/SteamAPI.hpp"
@@ -15,7 +17,7 @@
 int
 luastg::main()
 {
-#ifdef _DEBUG
+#if defined(_MSC_VER) && defined(_DEBUG)
     _CrtSetDbgFlag(_CrtSetDbgFlag(_CRTDBG_REPORT_FLAG) | _CRTDBG_LEAK_CHECK_DF);
     // _CrtSetBreakAlloc(5351);
 #endif
@@ -23,6 +25,7 @@ luastg::main()
 
     // STAGE 1: initialize COM
 
+#ifdef _WIN32
     CoInitializeScope com_runtime;
     if(!com_runtime()) {
         Platform::MessageBox::Error(LUASTG_INFO,
@@ -30,6 +33,7 @@ luastg::main()
             "未能正常初始化COM组件库，请尝试重新启动此应用程序。");
         return EXIT_FAILURE;
     }
+#endif
 
     // STAGE 2: load application configurations
 
@@ -38,14 +42,24 @@ luastg::main()
         Platform::MessageBox::Error(LUASTG_INFO, config_loader.getFormattedMessage());
         return EXIT_FAILURE;
     }
-    config_loader.loadFromCommandLineArguments();
+    if(!config_loader.loadFromCommandLineArguments()) {
+        Platform::MessageBox::Error(LUASTG_INFO, config_loader.getFormattedMessage());
+        return EXIT_FAILURE;
+    }
 
     // STAGE 3: configure single instance
 
+#ifdef _WIN32
     Platform::ApplicationSingleInstance single_instance(LUASTG_INFO);
     if(auto const& config_app = config_loader.getApplication(); config_app.isSingleInstance()) {
         single_instance.Initialize(config_app.getUuid());
     }
+#else
+    if(config_loader.getApplication().isSingleInstance()) {
+        Platform::MessageBox::Error(LUASTG_INFO, "Single-instance mode is unavailable on this platform.");
+        return EXIT_FAILURE;
+    }
+#endif
 
     // STAGE 4: check runtime
 

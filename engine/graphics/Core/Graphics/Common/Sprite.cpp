@@ -1,4 +1,6 @@
 #include "Core/Graphics/Common/Sprite.hpp"
+#include <cmath>
+#include <limits>
 
 namespace core::Graphics::Common
 {
@@ -124,8 +126,8 @@ namespace core::Graphics::Common
             IRenderer::DrawVertex(rect.a.x, rect.b.y, m_z, m_uv.a.x, m_uv.b.y, m_color[3].color()),
         };
 
-        float const sin_v = std::sinf(rotation);
-        float const cos_v = std::cosf(rotation);
+        float const sin_v = std::sin(rotation);
+        float const cos_v = std::cos(rotation);
 
 #define rotate_xy(UNIT)                                               \
     {                                                                 \

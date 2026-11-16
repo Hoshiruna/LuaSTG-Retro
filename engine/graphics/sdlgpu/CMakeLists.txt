@@ -11,7 +11,7 @@ add_library(Core.Graphics.SDLGPU STATIC
 )
 luastg_target_common_options(Core.Graphics.SDLGPU)
 luastg_target_more_warning(Core.Graphics.SDLGPU)
-target_include_directories(Core.Graphics.SDLGPU PUBLIC . PRIVATE "${luastg_dxc_SOURCE_DIR}/inc")
+target_include_directories(Core.Graphics.SDLGPU PUBLIC . PRIVATE ${LUASTG_DXC_INCLUDE_DIRECTORIES})
 target_link_libraries(Core.Graphics.SDLGPU
     PUBLIC SDL3::SDL3
     PRIVATE SDL3_shadercross::SDL3_shadercross-static DirectXShaderCompiler::dxcompiler Core.Logging nothings_stb
@@ -32,14 +32,24 @@ configure_file("${libfreetype_SOURCE_DIR}/LICENSE.TXT" "${LUASTG_SDLGPU_LICENSE_
 configure_file("${spdlog_SOURCE_DIR}/LICENSE" "${LUASTG_SDLGPU_LICENSE_DIRECTORY}/spdlog/LICENSE" COPYONLY)
 configure_file("${nothings_stb_SOURCE_DIR}/LICENSE" "${LUASTG_SDLGPU_LICENSE_DIRECTORY}/stb/LICENSE" COPYONLY)
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/THIRD_PARTY_NOTICES.md" "${LUASTG_SDLGPU_LICENSE_DIRECTORY}/THIRD_PARTY_NOTICES.md" COPYONLY)
+if (NOT WIN32)
+    file(MAKE_DIRECTORY "${LUASTG_SDLGPU_LICENSE_DIRECTORY}/DirectXMath" "${LUASTG_SDLGPU_LICENSE_DIRECTORY}/CoreRT")
+    configure_file("${luastg_directxmath_SOURCE_DIR}/LICENSE" "${LUASTG_SDLGPU_LICENSE_DIRECTORY}/DirectXMath/LICENSE" COPYONLY)
+    configure_file("${luastg_sal_directory}/LICENSE.TXT" "${LUASTG_SDLGPU_LICENSE_DIRECTORY}/CoreRT/LICENSE.TXT" COPYONLY)
+endif ()
 if (LUASTG_USE_SDLGPU)
     file(MAKE_DIRECTORY "${LUASTG_SDLGPU_LICENSE_DIRECTORY}/TinyGLTF")
     configure_file("${tinygltf_SOURCE_DIR}/LICENSE" "${LUASTG_SDLGPU_LICENSE_DIRECTORY}/TinyGLTF/LICENSE" COPYONLY)
 endif ()
 
 function(luastg_copy_sdlgpu_runtime target)
-    target_link_libraries(${target} PRIVATE delayimp.lib)
-    target_link_options(${target} PRIVATE /DELAYLOAD:dxcompiler.dll)
+    if (WIN32 AND MSVC)
+        target_link_libraries(${target} PRIVATE delayimp.lib)
+        target_link_options(${target} PRIVATE /DELAYLOAD:dxcompiler.dll)
+    endif ()
+    if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
+        set_property(TARGET ${target} APPEND PROPERTY BUILD_RPATH "$ORIGIN")
+    endif ()
     add_custom_command(TARGET ${target} POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different ${LUASTG_SDLGPU_COMPILER_LIBRARIES} "$<TARGET_FILE_DIR:${target}>"
         COMMAND ${CMAKE_COMMAND} -E copy_directory "${LUASTG_SDLGPU_LICENSE_DIRECTORY}" "$<TARGET_FILE_DIR:${target}>/licenses"
@@ -63,11 +73,11 @@ if (LUASTG_USE_SDLGPU)
     )
     luastg_target_common_options(Core.Graphics.SDLGPU.Runtime)
     luastg_target_more_warning(Core.Graphics.SDLGPU.Runtime)
-    target_include_directories(Core.Graphics.SDLGPU.Runtime PRIVATE .. "${luastg_dxc_SOURCE_DIR}/inc")
+    target_include_directories(Core.Graphics.SDLGPU.Runtime PRIVATE .. ${LUASTG_DXC_INCLUDE_DIRECTORIES})
     target_link_libraries(Core.Graphics.SDLGPU.Runtime PUBLIC
         Core.Graphics.SDLGPU Core.Image Core.WindowSystem Core.Logging imgui_impl_sdlgpu3
     )
-    target_link_libraries(Core.Graphics.SDLGPU.Runtime PRIVATE spirv-cross-c DirectXShaderCompiler::dxcompiler Core.FileSystem tinygltf)
+    target_link_libraries(Core.Graphics.SDLGPU.Runtime PRIVATE spirv-cross-c DirectXShaderCompiler::dxcompiler Core.FileSystem tinygltf utf8)
     set_target_properties(Core.Graphics.SDLGPU.Runtime PROPERTIES FOLDER engine)
     if (LUASTG_BUILD_TESTS)
         target_compile_definitions(Core.Graphics.SDLGPU.Runtime PUBLIC LUASTG_SDLGPU_RECOVERY_TESTS)
@@ -85,6 +95,7 @@ if (LUASTG_USE_SDLGPU)
         luastg_copy_sdlgpu_runtime(Core.Graphics.SDLGPU.ShaderTest)
         add_test(NAME Core.Graphics.SDLGPU.Shaders COMMAND Core.Graphics.SDLGPU.ShaderTest)
         set_tests_properties(Core.Graphics.SDLGPU.Shaders PROPERTIES
+            LABELS "cpu;shader;geometry;recovery"
             WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/test" TIMEOUT 60
         )
         add_executable(Core.Graphics.SDLGPU.RecoveryCapture test/RecoveryCapture.cpp)
@@ -125,7 +136,6 @@ target_link_libraries(Core.Graphics.SDLGPU.Smoke PRIVATE
     spdlog
     imgui_impl_sdl3
     imgui_impl_sdlgpu3
-    delayimp.lib
 )
 
 set_target_properties(Core.Graphics.SDLGPU.Smoke PROPERTIES

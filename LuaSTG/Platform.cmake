@@ -1,40 +1,47 @@
-# Windows Platform
+# Platform services
 
-set(PLATFORM_SOURCES
-    Platform/Shared.hpp
-    Platform/RuntimeLoader/DXGI.hpp
-    Platform/RuntimeLoader/D3DKMT.hpp
-    Platform/RuntimeLoader/D3DKMT.cpp
-    Platform/RuntimeLoader/Direct3D11.hpp
-    Platform/RuntimeLoader/Direct2D1.hpp
-    Platform/RuntimeLoader/Direct3DCompiler.hpp
-    Platform/RuntimeLoader/DirectComposition.hpp
-    Platform/RuntimeLoader/DirectWrite.hpp
-    Platform/RuntimeLoader/DesktopWindowManager.hpp
-    Platform/RuntimeLoader/All.cpp
-    Platform/DesktopWindowManager.hpp
-    Platform/Direct3D11.hpp
-    Platform/DXGI.hpp
-    Platform/ModuleLoader.hpp
-    Platform/All.cpp
-    Platform/ApplicationSingleInstance.hpp
+set(PLATFORM_SOURCES Platform/Application.hpp Platform/Console.hpp)
+if (WIN32)
+    list(APPEND PLATFORM_SOURCES
+        Platform/Windows/Application.cpp
+        Platform/Windows/Console.cpp
+        Platform/Shared.hpp
+        Platform/RuntimeLoader/DXGI.hpp
+        Platform/RuntimeLoader/D3DKMT.hpp
+        Platform/RuntimeLoader/D3DKMT.cpp
+        Platform/RuntimeLoader/Direct3D11.hpp
+        Platform/RuntimeLoader/Direct2D1.hpp
+        Platform/RuntimeLoader/Direct3DCompiler.hpp
+        Platform/RuntimeLoader/DirectComposition.hpp
+        Platform/RuntimeLoader/DirectWrite.hpp
+        Platform/RuntimeLoader/DesktopWindowManager.hpp
+        Platform/RuntimeLoader/All.cpp
+        Platform/DesktopWindowManager.hpp
+        Platform/Direct3D11.hpp
+        Platform/DXGI.hpp
+        Platform/ModuleLoader.hpp
+        Platform/All.cpp
+        Platform/ApplicationSingleInstance.hpp
 
-    Platform/CleanWindows.hpp
-    Platform/KnownDirectory.hpp
-    Platform/KnownDirectory.cpp
-    Platform/WindowsVersion.hpp
-    Platform/WindowsVersion.cpp
-    Platform/HResultChecker.hpp
-    Platform/HResultChecker.cpp
-    #Platform/DetectCPU.hpp
-    #Platform/DetectCPU.cpp
-    Platform/ProcessorInfo.hpp
-    Platform/ProcessorInfo.cpp
-    Platform/AdapterPolicy.hpp
-    Platform/AdapterPolicy.cpp
-    Platform/MessageBox.hpp
-    Platform/MessageBox.cpp
-)
+        Platform/CleanWindows.hpp
+        Platform/KnownDirectory.hpp
+        Platform/KnownDirectory.cpp
+        Platform/WindowsVersion.hpp
+        Platform/WindowsVersion.cpp
+        Platform/HResultChecker.hpp
+        Platform/HResultChecker.cpp
+        #Platform/DetectCPU.hpp
+        #Platform/DetectCPU.cpp
+        Platform/ProcessorInfo.hpp
+        Platform/ProcessorInfo.cpp
+        Platform/AdapterPolicy.hpp
+        Platform/AdapterPolicy.cpp
+        Platform/MessageBox.hpp
+        Platform/MessageBox.cpp
+    )
+else ()
+    list(APPEND PLATFORM_SOURCES Platform/SDL/Application.cpp Platform/SDL/Console.cpp Platform/SDL/MessageBox.cpp)
+endif ()
 source_group(TREE ${CMAKE_CURRENT_LIST_DIR} FILES ${PLATFORM_SOURCES})
 
 add_library(PlatformAPI STATIC)
@@ -47,7 +54,14 @@ target_sources(PlatformAPI PRIVATE
     ${PLATFORM_SOURCES}
 )
 target_link_libraries(PlatformAPI PRIVATE
-    Microsoft.Windows.ImplementationLibrary
-    utf8
-    beautiful_win32_api
+    spdlog
+    SDL3::SDL3
 )
+if (WIN32)
+    target_link_libraries(PlatformAPI PRIVATE
+        Microsoft.Windows.ImplementationLibrary
+        utf8
+        beautiful_win32_api
+        user32
+    )
+endif ()

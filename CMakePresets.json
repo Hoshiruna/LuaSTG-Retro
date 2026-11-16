@@ -1,7 +1,9 @@
 {
   "version": 6,
   "include": [
-    "cmake/presets/base.json"
+    "cmake/presets/base.json",
+    "cmake/presets/linux.json",
+    "cmake/presets/macos.json"
   ],
   "configurePresets": [
     {

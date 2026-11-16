@@ -1,10 +1,12 @@
 #include "ImGuiExtension.h"
 #include "LuaHotReload.hpp"
 
+#ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
-#include <d3d11.h>
+#include <Windows.h>
 #include <psapi.h>
+#endif
 
 #include "imgui.h"
 #include "imgui_stdlib.h"
@@ -34,12 +36,14 @@ using std::string_view_literals::operator""sv;
 
 namespace
 {
+#ifdef _WIN32
     struct ProcessMemoryCountersEx2
     {
         PROCESS_MEMORY_COUNTERS_EX counters;
         SIZE_T private_working_set_size;
         ULONG64 shared_commit_usage;
     };
+#endif
 
     std::string toReadableDataSize(uint64_t const size)
     {
@@ -119,6 +123,7 @@ namespace imgui
                     if(ImGui::Button("Auto Size")) {
                         m_want_fit_window_size = true;
                     }
+#ifdef _WIN32
                     if(ImGui::CollapsingHeader("Global", ImGuiTreeNodeFlags_DefaultOpen)) {
                         MEMORYSTATUSEX info = { sizeof(MEMORYSTATUSEX) };
                         if(GlobalMemoryStatusEx(&info)) {
@@ -198,11 +203,14 @@ namespace imgui
                             }
                         }
                     }
+#else
+                    ImGui::TextUnformatted("System and process memory statistics are unavailable on this platform.");
+#endif
                     if(ImGui::CollapsingHeader("Lua", ImGuiTreeNodeFlags_DefaultOpen)) {
                         lua_State* L = LAPP.GetLuaEngine();
                         auto const vm_kb = lua_gc(L, LUA_GCCOUNT, 0);
                         auto const vm_b = lua_gc(L, LUA_GCCOUNTB, 0);
-                        auto const size = (DWORDLONG)vm_kb * (DWORDLONG)1024 + (DWORDLONG)vm_b;
+                        auto const size = static_cast<uint64_t>(vm_kb) * 1024 + static_cast<uint64_t>(vm_b);
                         ImGui::Text("Lua Virtual Machine: %s", format_size(size));
                     }
                     if(ImGui::CollapsingHeader("Graphics", ImGuiTreeNodeFlags_DefaultOpen)) {
@@ -639,16 +647,22 @@ namespace
                 // memory
 
                 if(ImGui::CollapsingHeader("Memory Usage")) {
+#ifdef _WIN32
                     MEMORYSTATUSEX mem_info = { sizeof(MEMORYSTATUSEX) };
                     GlobalMemoryStatusEx(&mem_info);
+#endif
                     auto gpu_info = LAPP.GetAppModel()->getDevice()->getMemoryUsageStatistics();
                     lua_State* L_ = LAPP.GetLuaEngine();
                     int lua_infokb = lua_gc(L_, LUA_GCCOUNT, 0);
                     int lua_infob = lua_gc(L_, LUA_GCCOUNTB, 0);
-                    DWORDLONG lua_info = (DWORDLONG)lua_infokb * (DWORDLONG)1024 + (DWORDLONG)lua_infob;
+                    uint64_t lua_info = static_cast<uint64_t>(lua_infokb) * 1024 + static_cast<uint64_t>(lua_infob);
 
+#ifdef _WIN32
                     ImGui::Text("Avalid User Mode Memory Space: %s", toReadableDataSize(mem_info.ullAvailVirtual).c_str());
                     ImGui::Text("User Mode Memory Space Usage: %s", toReadableDataSize(mem_info.ullTotalVirtual - mem_info.ullAvailVirtual).c_str());
+#else
+                    ImGui::TextUnformatted("Process memory usage: unavailable");
+#endif
                     ImGui::Text("Lua Runtime Memory Usage: %s", toReadableDataSize(lua_info).c_str());
                     ImGui::Text("Adapter Local Usage: %s", (gpu_info.local.available ? toReadableDataSize(gpu_info.local.current_usage) : "unavailable").c_str());
                     ImGui::Text("Adapter Non-Local Usage: %s", (gpu_info.non_local.available ? toReadableDataSize(gpu_info.non_local.current_usage) : "unavailable").c_str());
@@ -659,7 +673,11 @@ namespace
                     ImGui::Checkbox("Auto-Fit Y Axis##Memory Usage", &time_line_auto_fit);
 
                     constexpr double const byte_to_MiB = 1.0 / (1024.0 * 1024.0);
+#ifdef _WIN32
                     arr_mem_mem[arr_index] = (double)(mem_info.ullTotalVirtual - mem_info.ullAvailVirtual) * byte_to_MiB;
+#else
+                    arr_mem_mem[arr_index] = std::numeric_limits<double>::quiet_NaN();
+#endif
                     arr_mem_gpu[arr_index] = gpu_info.local.available && gpu_info.non_local.available ? (double)(gpu_info.local.current_usage + gpu_info.non_local.current_usage) * byte_to_MiB : std::numeric_limits<double>::quiet_NaN();
                     arr_mem_lua[arr_index] = (double)lua_info * byte_to_MiB;
 

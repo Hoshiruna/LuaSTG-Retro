@@ -558,8 +558,8 @@ namespace luastg
 							{ -tHalfSize.x,         0.0f, 0.5f, fillColor.argb, 1.0f, 1.0f },
 							{         0.0f,  tHalfSize.y, 0.5f, fillColor.argb, 1.0f, 0.0f }
 						};
-						float tCos = std::cosf((float)p->rot);
-						float tSin = std::sinf((float)p->rot);
+						float tCos = std::cos((float)p->rot);
+						float tSin = std::sin((float)p->rot);
 						// 变换
 						for (int i = 0; i < 4; i++)
 						{
@@ -582,8 +582,8 @@ namespace luastg
 							{ -tHalfSize.x,  tHalfSize.y, 0.5f, fillColor.argb, 1.0f, 1.0f },
 							{ -tHalfSize.x,  tHalfSize.y, 0.5f, fillColor.argb, 1.0f, 1.0f },//和第三个点相同
 						};
-						float tCos = std::cosf((float)p->rot);
-						float tSin = std::sinf((float)p->rot);
+						float tCos = std::cos((float)p->rot);
+						float tSin = std::sin((float)p->rot);
 						// 变换
 						for (int i = 0; i < 4; i++)
 						{

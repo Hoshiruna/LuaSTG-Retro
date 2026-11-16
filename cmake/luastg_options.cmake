@@ -114,7 +114,7 @@ luastg_cmake_option(
     NAME LUASTG_DISCORD_RPC_ENABLE
     TYPE BOOL
     HELP "LuaSTG: Discord RPC: Enable Discord Rich Presence support"
-    VALUE TRUE
+    VALUE ${WIN32}
 )
 luastg_cmake_option(
     NAME LUASTG_DISCORD_RPC_APP_ID

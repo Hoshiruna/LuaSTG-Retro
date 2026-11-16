@@ -201,21 +201,21 @@ luastg::binding::FileManager::Register(lua_State* L) noexcept
         {
             lua::stack_t S(L);
             // path ? t
-            std::wstring wextpath(utf8::to_wstring(cfg.extpath));
+            auto const extension = std::filesystem::u8path(cfg.extpath);
             std::error_code ec;
-            for(auto& p : std::filesystem::directory_iterator(utf8::to_wstring(cfg.searchpath), ec)) {
+            for(auto& p : std::filesystem::directory_iterator(std::filesystem::u8path(cfg.searchpath), ec)) {
                 bool is_dir = p.is_directory();
                 if((cfg.checkext || cfg.findfiles) && is_dir) {
                     continue; // 需要检查拓展名，那就不可能是文件夹了，或者为 FindFiles 模式（忽略文件夹）
                 }
                 if(p.is_regular_file() || is_dir) {
-                    if(cfg.checkext && p.path().extension().wstring() != wextpath) {
+                    if(cfg.checkext && p.path().extension() != extension) {
                         continue;
                     }
                     lua_pushinteger(L, cfg.index); // path ? t index
                     lua_createtable(L, 2, 0); // path ? t index tt
                     lua_pushinteger(L, 1); // path ? t index tt 1
-                    std::string u8path(utf8::to_string(p.path().generic_wstring()));
+                    std::string u8path(utf8::to_string(p.path().generic_u8string()));
                     if(cfg.headlen)
                         u8path = u8path.substr(cfg.headlen);
                     if(is_dir)
@@ -386,7 +386,7 @@ luastg::binding::FileManager::Register(lua_State* L) noexcept
             lua::stack_t S(L);
             std::string_view const path = S.get_value<std::string_view>(1);
             std::error_code ec;
-            std::filesystem::current_path(utf8::to_wstring(path), ec);
+            std::filesystem::current_path(std::filesystem::u8path(path), ec);
             if(ec) {
                 lua_pushboolean(L, false);
                 S.push_value(ec.message());
@@ -408,7 +408,7 @@ luastg::binding::FileManager::Register(lua_State* L) noexcept
                 lua_pushinteger(L, ec.value());
                 return 3;
             } else {
-                std::string str = utf8::to_string(path.wstring());
+                std::string str = utf8::to_string(path.generic_u8string());
                 utility::path::to_slash(str);
                 S.push_value(str);
                 return 1;
@@ -419,7 +419,7 @@ luastg::binding::FileManager::Register(lua_State* L) noexcept
             lua::stack_t S(L);
             std::string_view const path = S.get_value<std::string_view>(1);
             std::error_code ec;
-            bool result = std::filesystem::create_directories(utf8::to_wstring(path), ec);
+            bool result = std::filesystem::create_directories(std::filesystem::u8path(path), ec);
             lua_pushboolean(L, result);
             if(ec) {
                 S.push_value(ec.message());
@@ -434,7 +434,7 @@ luastg::binding::FileManager::Register(lua_State* L) noexcept
             lua::stack_t S(L);
             std::string_view const path = S.get_value<std::string_view>(1);
             std::error_code ec;
-            uintmax_t result = std::filesystem::remove_all(utf8::to_wstring(path), ec);
+            uintmax_t result = std::filesystem::remove_all(std::filesystem::u8path(path), ec);
             lua_pushboolean(L, result != static_cast<std::uintmax_t>(-1));
             if(ec) {
                 S.push_value(ec.message());

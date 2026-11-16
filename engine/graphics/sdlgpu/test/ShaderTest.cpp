@@ -36,7 +36,11 @@ float4 main(float2 uv : TEXCOORD0, float4 vertex : COLOR0) : SV_Target {
         {
             if(!spdlog::default_logger())
                 spdlog::set_default_logger(spdlog::null_logger_mt("shader-test"));
+#ifdef _WIN32
             compiler = std::make_unique<ShaderCompiler>("direct3d12");
+#else
+            compiler = std::make_unique<ShaderCompiler>("vulkan");
+#endif
             core::FileSystemManager::addSearchPath(LUASTG_SHADER_FIXTURES);
         }
         void TearDown() override { core::FileSystemManager::removeSearchPath(LUASTG_SHADER_FIXTURES); }
@@ -160,6 +164,7 @@ float4 main(float2 uv : TEXCOORD0) : SV_Target {
         }
     }
 
+#ifdef _WIN32
     TEST_F(ShaderTest, GeometryShadersCompileReflectAndTranslateToDxil)
     {
         auto verify = [](const char* source, SDL_ShaderCross_ShaderStage stage, uint32_t uniforms, uint32_t samplers) {
@@ -194,4 +199,5 @@ float4 main(float2 uv : TEXCOORD0) : SV_Target {
         verify(shaders::model_vertex, SDL_SHADERCROSS_SHADERSTAGE_VERTEX, 2, 0);
         verify(shaders::model_fragment, SDL_SHADERCROSS_SHADERSTAGE_FRAGMENT, 1, 1);
     }
+#endif
 }

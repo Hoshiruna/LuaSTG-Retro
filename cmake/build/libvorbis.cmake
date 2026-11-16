@@ -17,9 +17,9 @@ set(libvorbis_source_directory  ${libvorbis_SOURCE_DIR})
 set(libvorbis_build_directory   ${CMAKE_BINARY_DIR}/build/libvorbis/$<CONFIG>)
 set(libvorbis_install_directory ${CMAKE_BINARY_DIR}/install/$<CONFIG>)
 set(libvorbis_library_files
-    ${libvorbis_install_directory}/lib/vorbis.lib
-    ${libvorbis_install_directory}/lib/vorbisenc.lib
-    ${libvorbis_install_directory}/lib/vorbisfile.lib
+    ${libvorbis_install_directory}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}vorbis${CMAKE_STATIC_LIBRARY_SUFFIX}
+    ${libvorbis_install_directory}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}vorbisenc${CMAKE_STATIC_LIBRARY_SUFFIX}
+    ${libvorbis_install_directory}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}vorbisfile${CMAKE_STATIC_LIBRARY_SUFFIX}
 )
 
 luastg_cmake_external_build_prepare_directories(include/vorbis)
@@ -36,15 +36,11 @@ add_custom_command(
         # generator
         ${LUASTG_CMAKE_EXTERNAL_BUILD_GENERATOR_OPTIONS}
         # msvc runtime library
-        -DCMAKE_POLICY_DEFAULT_CMP0091=NEW
-        -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded$<$<CONFIG:Debug>:Debug>
         # install
         -DCMAKE_INSTALL_PREFIX=${libvorbis_install_directory}
         # cmake 4.0 breaking changes
         -DCMAKE_POLICY_VERSION_MINIMUM=3.5
         # utf-8
-        -DCMAKE_C_FLAGS=/utf-8
-        -DCMAKE_CXX_FLAGS=/utf-8
     COMMAND ${CMAKE_COMMAND}
         --build ${libvorbis_build_directory}
         --config $<CONFIG>
@@ -80,8 +76,8 @@ INTERFACE
     ${libvorbis_install_directory}/include
 )
 set_target_properties(libvorbis PROPERTIES
-    IMPORTED_LOCATION       ${CMAKE_BINARY_DIR}/install/Release/lib/vorbis.lib
-    IMPORTED_LOCATION_DEBUG ${CMAKE_BINARY_DIR}/install/Debug/lib/vorbis.lib
+    IMPORTED_LOCATION       ${CMAKE_BINARY_DIR}/install/Release/lib/${CMAKE_STATIC_LIBRARY_PREFIX}vorbis${CMAKE_STATIC_LIBRARY_SUFFIX}
+    IMPORTED_LOCATION_DEBUG ${CMAKE_BINARY_DIR}/install/Debug/lib/${CMAKE_STATIC_LIBRARY_PREFIX}vorbis${CMAKE_STATIC_LIBRARY_SUFFIX}
 )
 target_link_libraries(libvorbis
 INTERFACE
@@ -98,8 +94,8 @@ INTERFACE
     ${libvorbis_install_directory}/include
 )
 set_target_properties(libvorbisfile PROPERTIES
-    IMPORTED_LOCATION       ${CMAKE_BINARY_DIR}/install/Release/lib/vorbisfile.lib
-    IMPORTED_LOCATION_DEBUG ${CMAKE_BINARY_DIR}/install/Debug/lib/vorbisfile.lib
+    IMPORTED_LOCATION       ${CMAKE_BINARY_DIR}/install/Release/lib/${CMAKE_STATIC_LIBRARY_PREFIX}vorbisfile${CMAKE_STATIC_LIBRARY_SUFFIX}
+    IMPORTED_LOCATION_DEBUG ${CMAKE_BINARY_DIR}/install/Debug/lib/${CMAKE_STATIC_LIBRARY_PREFIX}vorbisfile${CMAKE_STATIC_LIBRARY_SUFFIX}
 )
 target_link_libraries(libvorbisfile
 INTERFACE
@@ -116,8 +112,8 @@ INTERFACE
     ${libvorbis_install_directory}/include
 )
 set_target_properties(libvorbisenc PROPERTIES
-    IMPORTED_LOCATION       ${CMAKE_BINARY_DIR}/install/Release/lib/vorbisenc.lib
-    IMPORTED_LOCATION_DEBUG ${CMAKE_BINARY_DIR}/install/Debug/lib/vorbisenc.lib
+    IMPORTED_LOCATION       ${CMAKE_BINARY_DIR}/install/Release/lib/${CMAKE_STATIC_LIBRARY_PREFIX}vorbisenc${CMAKE_STATIC_LIBRARY_SUFFIX}
+    IMPORTED_LOCATION_DEBUG ${CMAKE_BINARY_DIR}/install/Debug/lib/${CMAKE_STATIC_LIBRARY_PREFIX}vorbisenc${CMAKE_STATIC_LIBRARY_SUFFIX}
 )
 target_link_libraries(libvorbisenc
 INTERFACE

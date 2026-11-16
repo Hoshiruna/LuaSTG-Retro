@@ -62,10 +62,10 @@ namespace luastg
                 return true;
             }
 
-            std::filesystem::path wide_path(utf8::to_wstring(base_path));
-            wide_path.remove_filename();
-            wide_path /= utf8::to_wstring(file_path);
-            resolved_path = utf8::to_string(wide_path.wstring());
+            std::filesystem::path resource_path(std::filesystem::u8path(base_path));
+            resource_path.remove_filename();
+            resource_path /= std::filesystem::u8path(file_path);
+            resolved_path = utf8::to_string(resource_path.generic_u8string());
             if(readFile(resolved_path, data, error)) {
                 return true;
             }

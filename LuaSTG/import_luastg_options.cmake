@@ -21,7 +21,9 @@ configure_file(
     @ONLY
 )
 target_include_directories(LuaSTG PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
-target_include_directories(Setting PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
+if (TARGET Setting)
+    target_include_directories(Setting PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
+endif ()
 set(luastg_generated_sources "${CMAKE_CURRENT_BINARY_DIR}/luastg_config_generated.h")
 source_group(TREE "${CMAKE_CURRENT_BINARY_DIR}" PREFIX "generated" FILES ${luastg_generated_sources})
 target_sources(LuaSTG PRIVATE ${luastg_generated_sources})

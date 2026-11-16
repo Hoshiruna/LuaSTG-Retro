@@ -1,3 +1,11 @@
+if (WIN32)
+    set(turbojpeg_library_name turbojpeg-static.lib)
+    set(jpeg_library_name jpeg-static.lib)
+else ()
+    set(turbojpeg_library_name libturbojpeg.a)
+    set(jpeg_library_name libjpeg.a)
+endif ()
+
 # libjpeg-turbo
 
 CPMAddPackage(
@@ -15,11 +23,11 @@ endif ()
 # prepare
 
 set(libjpeg_source_directory  ${libjpeg_turbo_SOURCE_DIR})
-set(libjpeg_build_directory   ${CMAKE_BINARY_DIR}/build/libjpeg_turbo)
+set(libjpeg_build_directory   ${CMAKE_BINARY_DIR}/build/libjpeg_turbo/$<CONFIG>)
 set(libjpeg_install_directory ${CMAKE_BINARY_DIR}/install/$<CONFIG>)
 set(libjpeg_library_files
-    ${libjpeg_install_directory}/lib/turbojpeg-static.lib
-    ${libjpeg_install_directory}/lib/jpeg-static.lib
+    ${libjpeg_install_directory}/lib/${turbojpeg_library_name}
+    ${libjpeg_install_directory}/lib/${jpeg_library_name}
 )
 
 # external cmake build
@@ -71,8 +79,8 @@ INTERFACE
     ${libjpeg_install_directory}/include
 )
 set_target_properties(libjpeg_turbo_turbojpeg_static PROPERTIES
-    IMPORTED_LOCATION       ${CMAKE_BINARY_DIR}/install/Release/lib/turbojpeg-static.lib
-    IMPORTED_LOCATION_DEBUG ${CMAKE_BINARY_DIR}/install/Debug/lib/turbojpeg-static.lib
+    IMPORTED_LOCATION       ${CMAKE_BINARY_DIR}/install/Release/lib/${turbojpeg_library_name}
+    IMPORTED_LOCATION_DEBUG ${CMAKE_BINARY_DIR}/install/Debug/lib/${turbojpeg_library_name}
 )
 add_dependencies(libjpeg_turbo_turbojpeg_static libjpeg_build)
 
@@ -85,7 +93,7 @@ INTERFACE
     ${libjpeg_install_directory}/include
 )
 set_target_properties(libjpeg_turbo_jpeg_static PROPERTIES
-    IMPORTED_LOCATION       ${CMAKE_BINARY_DIR}/install/Release/lib/jpeg-static.lib
-    IMPORTED_LOCATION_DEBUG ${CMAKE_BINARY_DIR}/install/Debug/lib/jpeg-static.lib
+    IMPORTED_LOCATION       ${CMAKE_BINARY_DIR}/install/Release/lib/${jpeg_library_name}
+    IMPORTED_LOCATION_DEBUG ${CMAKE_BINARY_DIR}/install/Debug/lib/${jpeg_library_name}
 )
 add_dependencies(libjpeg_turbo_jpeg_static libjpeg_build)

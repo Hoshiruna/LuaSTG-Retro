@@ -156,7 +156,7 @@ namespace luastg
             for(size_t i = 1; i <= 32; i += 1) {
                 constexpr float const da = std::numbers::pi_v<float> * 2.0f / 32.0f;
                 float const angle = (float)(i - 1) * da;
-                vert[i] = IRenderer::DrawVertex(x + r * std::cosf(angle), y + r * std::sinf(angle), 0.5f, 0.0f, 0.0f, color.color());
+                vert[i] = IRenderer::DrawVertex(x + r * std::cos(angle), y + r * std::sin(angle), 0.5f, 0.0f, 0.0f, color.color());
             }
             // 计算索引
             IRenderer::DrawIndex* p_vidx = vidx;
@@ -186,8 +186,8 @@ namespace luastg
                 IRenderer::DrawVertex(-a, b, 0.5f, 1.0f, 0.0f, color.color()),
             };
             // 变换
-            float const cos_v = std::cosf(rot);
-            float const sin_v = std::sinf(rot);
+            float const cos_v = std::cos(rot);
+            float const sin_v = std::sin(rot);
             for(size_t i = 0; i < 4; i += 1) {
                 float const tx = vert[i].x * cos_v - vert[i].y * sin_v;
                 float const ty = vert[i].x * sin_v + vert[i].y * cos_v;
@@ -215,16 +215,16 @@ namespace luastg
                 constexpr float const da = std::numbers::pi_v<float> * 2.0f / 36.0f;
                 float const angle = (float)(i - 1) * da;
                 vert[i] = IRenderer::DrawVertex(
-                    a * std::cosf(angle),
-                    b * std::sinf(angle),
+                    a * std::cos(angle),
+                    b * std::sin(angle),
                     0.5f,
                     0.0f,
                     0.0f,
                     color.color());
             }
             // 变换
-            float const cos_v = std::cosf(rot);
-            float const sin_v = std::sinf(rot);
+            float const cos_v = std::cos(rot);
+            float const sin_v = std::sin(rot);
             for(size_t i = 1; i <= 36; i += 1) {
                 float const tx = vert[i].x * cos_v - vert[i].y * sin_v;
                 float const ty = vert[i].x * sin_v + vert[i].y * cos_v;

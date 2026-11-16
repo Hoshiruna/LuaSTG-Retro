@@ -199,17 +199,19 @@ function GameInit()
     resource_pool:createSprite("bullet-rect", white, 0, 0, 16, 16)
     lstg.SetImageState("bullet-rect", "", lstg.Color(96, 0, 0, 0))
     local font_error
-    sans_font, font_error = resource_pool:loadDynamicFont("Sans", {
-        pixelWidth = 48,
-        pixelHeight = 48,
-        sources = { { path = "C:/Windows/Fonts/msyh.ttc", faceIndex = 0 } },
-    })
-    if not sans_font then
+    for _, font_path in ipairs({
+        "assets/fonts/NotoSansCJK-Regular.ttc",
+        "C:/Windows/Fonts/msyh.ttc",
+        "C:/Windows/Fonts/msyh.ttf",
+    }) do
         sans_font, font_error = resource_pool:loadDynamicFont("Sans", {
             pixelWidth = 48,
             pixelHeight = 48,
-            sources = { { path = "C:/Windows/Fonts/msyh.ttf", faceIndex = 0 } }, -- Windows 7
+            sources = { { path = font_path, faceIndex = 0 } },
         })
+        if sans_font then
+            break
+        end
     end
     assert(sans_font, font_error)
     buildGameObjectScene()

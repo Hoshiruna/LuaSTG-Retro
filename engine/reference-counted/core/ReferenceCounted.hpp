@@ -2,7 +2,11 @@
 #include <cstdint>
 #include "core/UUID.hpp"
 
+#ifdef _MSC_VER
 #define CORE_NO_VIRTUAL_TABLE __declspec(novtable)
+#else
+#define CORE_NO_VIRTUAL_TABLE
+#endif
 #define CORE_INTERFACE struct CORE_NO_VIRTUAL_TABLE
 
 #define CORE_INTERFACE_ID(NAME, ID)              \

@@ -6,7 +6,6 @@
 #include <ranges>
 #include <algorithm>
 
-#include "Platform/HResultChecker.hpp"
 
 using std::string_view_literals::operator""sv;
 using std::string_literals::operator""s;

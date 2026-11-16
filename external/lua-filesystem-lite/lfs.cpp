@@ -6,7 +6,9 @@ extern "C"
 #include <string>
 #include <filesystem>
 
+#ifdef _WIN32
 #define _lfs_utf8
+#endif
 
 #ifdef _lfs_utf8
 #define WIN32_LEAN_AND_MEAN

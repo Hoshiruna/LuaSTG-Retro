@@ -17,14 +17,14 @@ endif ()
 luastg_cmake_external_build_prepare_directories(include/webp)
 
 set(libwebp_source_directory  ${libwebp_SOURCE_DIR})
-set(libwebp_build_directory   ${CMAKE_BINARY_DIR}/build/libwebp)
+set(libwebp_build_directory   ${CMAKE_BINARY_DIR}/build/libwebp/$<CONFIG>)
 set(libwebp_install_directory ${CMAKE_BINARY_DIR}/install/$<CONFIG>)
 set(libwebp_library_files
-    ${libwebp_install_directory}/lib/libsharpyuv.lib
-    ${libwebp_install_directory}/lib/libwebpdecoder.lib
-    ${libwebp_install_directory}/lib/libwebp.lib
-    ${libwebp_install_directory}/lib/libwebpdemux.lib
-    ${libwebp_install_directory}/lib/libwebpmux.lib
+    ${libwebp_install_directory}/lib/libsharpyuv${CMAKE_STATIC_LIBRARY_SUFFIX}
+    ${libwebp_install_directory}/lib/libwebpdecoder${CMAKE_STATIC_LIBRARY_SUFFIX}
+    ${libwebp_install_directory}/lib/libwebp${CMAKE_STATIC_LIBRARY_SUFFIX}
+    ${libwebp_install_directory}/lib/libwebpdemux${CMAKE_STATIC_LIBRARY_SUFFIX}
+    ${libwebp_install_directory}/lib/libwebpmux${CMAKE_STATIC_LIBRARY_SUFFIX}
 )
 
 # external cmake build
@@ -39,7 +39,6 @@ add_custom_command(
         # generator
         ${LUASTG_CMAKE_EXTERNAL_BUILD_GENERATOR_OPTIONS}
         # crt
-        -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded$<$<CONFIG:Debug>:Debug>
         # install
         -DCMAKE_INSTALL_PREFIX=${libwebp_install_directory}
         # options
@@ -87,8 +86,8 @@ INTERFACE
     ${libwebp_install_directory}/include/webp
 )
 set_target_properties(webp_sharpyuv PROPERTIES
-    IMPORTED_LOCATION       ${CMAKE_BINARY_DIR}/install/Release/lib/libsharpyuv.lib
-    IMPORTED_LOCATION_DEBUG ${CMAKE_BINARY_DIR}/install/Debug/lib/libsharpyuv.lib
+    IMPORTED_LOCATION       ${CMAKE_BINARY_DIR}/install/Release/lib/libsharpyuv${CMAKE_STATIC_LIBRARY_SUFFIX}
+    IMPORTED_LOCATION_DEBUG ${CMAKE_BINARY_DIR}/install/Debug/lib/libsharpyuv${CMAKE_STATIC_LIBRARY_SUFFIX}
 )
 add_dependencies(webp_sharpyuv libwebp_build)
 
@@ -102,13 +101,13 @@ INTERFACE
 )
 target_link_libraries(webp_webpdecoder
 INTERFACE
-    shlwapi.lib
-    ole32.lib
-    windowscodecs.lib
+    $<$<PLATFORM_ID:Windows>:shlwapi>
+    $<$<PLATFORM_ID:Windows>:ole32>
+    $<$<PLATFORM_ID:Windows>:windowscodecs>
 )
 set_target_properties(webp_webpdecoder PROPERTIES
-    IMPORTED_LOCATION       ${CMAKE_BINARY_DIR}/install/Release/lib/libwebpdecoder.lib
-    IMPORTED_LOCATION_DEBUG ${CMAKE_BINARY_DIR}/install/Debug/lib/libwebpdecoder.lib
+    IMPORTED_LOCATION       ${CMAKE_BINARY_DIR}/install/Release/lib/libwebpdecoder${CMAKE_STATIC_LIBRARY_SUFFIX}
+    IMPORTED_LOCATION_DEBUG ${CMAKE_BINARY_DIR}/install/Debug/lib/libwebpdecoder${CMAKE_STATIC_LIBRARY_SUFFIX}
 )
 add_dependencies(webp_webpdecoder libwebp_build)
 
@@ -123,13 +122,13 @@ INTERFACE
 target_link_libraries(webp_webp
 INTERFACE
     WebP::sharpyuv
-    shlwapi.lib
-    ole32.lib
-    windowscodecs.lib
+    $<$<PLATFORM_ID:Windows>:shlwapi>
+    $<$<PLATFORM_ID:Windows>:ole32>
+    $<$<PLATFORM_ID:Windows>:windowscodecs>
 )
 set_target_properties(webp_webp PROPERTIES
-    IMPORTED_LOCATION       ${CMAKE_BINARY_DIR}/install/Release/lib/libwebp.lib
-    IMPORTED_LOCATION_DEBUG ${CMAKE_BINARY_DIR}/install/Debug/lib/libwebp.lib
+    IMPORTED_LOCATION       ${CMAKE_BINARY_DIR}/install/Release/lib/libwebp${CMAKE_STATIC_LIBRARY_SUFFIX}
+    IMPORTED_LOCATION_DEBUG ${CMAKE_BINARY_DIR}/install/Debug/lib/libwebp${CMAKE_STATIC_LIBRARY_SUFFIX}
 )
 add_dependencies(webp_webp libwebp_build)
 
@@ -146,8 +145,8 @@ INTERFACE
     WebP::webp
 )
 set_target_properties(webp_webpdemux PROPERTIES
-    IMPORTED_LOCATION       ${CMAKE_BINARY_DIR}/install/Release/lib/libwebpdemux.lib
-    IMPORTED_LOCATION_DEBUG ${CMAKE_BINARY_DIR}/install/Debug/lib/libwebpdemux.lib
+    IMPORTED_LOCATION       ${CMAKE_BINARY_DIR}/install/Release/lib/libwebpdemux${CMAKE_STATIC_LIBRARY_SUFFIX}
+    IMPORTED_LOCATION_DEBUG ${CMAKE_BINARY_DIR}/install/Debug/lib/libwebpdemux${CMAKE_STATIC_LIBRARY_SUFFIX}
 )
 add_dependencies(webp_webpdemux libwebp_build)
 
@@ -164,7 +163,7 @@ INTERFACE
     WebP::webp
 )
 set_target_properties(webp_libwebpmux PROPERTIES
-    IMPORTED_LOCATION       ${CMAKE_BINARY_DIR}/install/Release/lib/libwebpmux.lib
-    IMPORTED_LOCATION_DEBUG ${CMAKE_BINARY_DIR}/install/Debug/lib/libwebpmux.lib
+    IMPORTED_LOCATION       ${CMAKE_BINARY_DIR}/install/Release/lib/libwebpmux${CMAKE_STATIC_LIBRARY_SUFFIX}
+    IMPORTED_LOCATION_DEBUG ${CMAKE_BINARY_DIR}/install/Debug/lib/libwebpmux${CMAKE_STATIC_LIBRARY_SUFFIX}
 )
 add_dependencies(webp_libwebpmux libwebp_build)

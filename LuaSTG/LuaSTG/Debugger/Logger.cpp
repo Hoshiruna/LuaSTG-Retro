@@ -2,21 +2,36 @@
 #include "Debugger/Logger.hpp"
 #include "spdlog/spdlog.h"
 #include "spdlog/sinks/basic_file_sink.h"
-#include "spdlog/sinks/wincolor_sink.h"
+#include "spdlog/sinks/stdout_color_sinks.h"
+#include "Platform/Console.hpp"
+#ifdef _WIN32
 #include "spdlog/sinks/msvc_sink.h"
 #include "Platform/HResultChecker.hpp"
-#include "core/Configuration.hpp"
-#include "utf8.hpp"
 #include "win32/base.hpp"
-#include <SDL3/SDL_timer.h>
+#endif
+#include "core/Configuration.hpp"
+#include <chrono>
+#include <filesystem>
+#include <format>
+#ifdef __APPLE__
+#include <ctime>
+#include <stdexcept>
+#endif
 
 namespace
 {
     std::filesystem::path rolling_file_root;
-    bool openWin32Console();
-    void closeWin32Console();
     std::string generateRollingFileName()
     {
+#ifdef __APPLE__
+        const auto now = std::time(nullptr);
+        std::tm local_time{};
+        char filename[64]{};
+        if(!localtime_r(&now, &local_time) || std::strftime(filename, sizeof(filename), "engine-%Y%m%d-%H%M%S.log", &local_time) == 0) {
+            throw std::runtime_error("Cannot format the rolling log filename");
+        }
+        return filename;
+#else
         auto const now = std::chrono::zoned_time{
             std::chrono::current_zone(),
             std::chrono::utc_clock::to_sys(std::chrono::utc_clock::now()),
@@ -33,6 +48,7 @@ namespace
             local_time.hours().count(),
             local_time.minutes().count(),
             local_time.seconds().count());
+#endif
     }
     spdlog::level::level_enum mapLevel(core::ConfigurationLoader::Logging::Level const level)
     {
@@ -51,10 +67,12 @@ namespace
                 return (spdlog::level::critical);
         }
     }
+#ifdef _WIN32
     void writeMessage(std::string_view const message)
     {
         spdlog::error("[luastg] {}", message);
     }
+#endif
 }
 
 namespace luastg
@@ -65,7 +83,7 @@ namespace luastg
 
         std::vector<spdlog::sink_ptr> sinks;
 
-#ifndef NDEBUG
+#if defined(_WIN32) && !defined(NDEBUG)
         if(auto const& logging_debugger = config.getDebugger(); logging_debugger.isEnable()) {
             auto sink = std::make_shared<spdlog::sinks::windebug_sink_mt>();
             sink->set_pattern("[%Y-%m-%d %H:%M:%S] [%L] %v");
@@ -75,8 +93,8 @@ namespace luastg
 #endif
 
 #ifdef LUASTG_LOGGING_CONSOLE_WINDOW_ALLOWED
-        if(auto const& logging_console = config.getConsole(); logging_console.isEnable() && openWin32Console()) {
-            auto sink = std::make_shared<spdlog::sinks::wincolor_stdout_sink_mt>();
+        if(auto const& logging_console = config.getConsole(); logging_console.isEnable() && Platform::openConsole(LUASTG_INFO)) {
+            auto sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
             sink->set_pattern("%^[%Y-%m-%d %H:%M:%S] [%L]%$ %v");
             sink->set_level(mapLevel(logging_console.getThreshold()));
             sinks.emplace_back(sink);
@@ -88,9 +106,9 @@ namespace luastg
             if(logging_file.hasPath()) {
                 core::ConfigurationLoader::resolveFilePathWithPredefinedVariables(logging_file.getPath(), file_path, true);
             } else {
-                file_path = (L"" LUASTG_LOGGING_DEFAULT_FILE_PATH);
+                file_path = std::filesystem::u8path(LUASTG_LOGGING_DEFAULT_FILE_PATH);
             }
-            auto sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(file_path.generic_wstring(), true);
+            auto sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(file_path.native(), true);
             sink->set_pattern("[%Y-%m-%d %H:%M:%S] [%L] %v");
             sink->set_level(mapLevel(logging_file.getThreshold()));
             sinks.emplace_back(sink);
@@ -101,14 +119,14 @@ namespace luastg
             if(logging_rolling_file.hasPath()) {
                 std::filesystem::path directory;
                 core::ConfigurationLoader::resolvePathWithPredefinedVariables(logging_rolling_file.getPath(), directory, true);
-                path = directory / utf8::to_wstring(generateRollingFileName());
+                path = directory / generateRollingFileName();
                 rolling_file_root = directory;
             } else {
-                std::filesystem::path directory(L"logs/"); // TODO: MAGIC VALUE
-                path = directory / utf8::to_wstring(generateRollingFileName());
+                std::filesystem::path directory("logs/"); // TODO: MAGIC VALUE
+                path = directory / generateRollingFileName();
                 rolling_file_root = directory;
             }
-            auto sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(path.wstring(), true);
+            auto sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(path.native(), true);
             sink->set_pattern("[%Y-%m-%d %H:%M:%S] [%L] %v");
             sink->set_level(mapLevel(logging_rolling_file.getThreshold()));
             sinks.emplace_back(sink);
@@ -123,8 +141,10 @@ namespace luastg
 
         spdlog::set_default_logger(logger);
 
+#ifdef _WIN32
         Platform::HResultChecker::SetPrintCallback(&writeMessage);
         win32::set_logger_writer(writeMessage);
+#endif
     }
     void Logger::destroy()
     {
@@ -134,13 +154,15 @@ namespace luastg
             logger->flush();
         }
 
+#ifdef _WIN32
         Platform::HResultChecker::SetPrintCallback();
+#endif
 
         spdlog::drop_all();
         spdlog::shutdown();
 
 #ifdef LUASTG_LOGGING_CONSOLE_WINDOW_ALLOWED
-        closeWin32Console();
+        Platform::closeConsole(config.getConsole().isPreserve());
 #endif
 
         if(auto const& logging_rolling_file = config.getRollingFile(); logging_rolling_file.isEnable()) {
@@ -163,43 +185,3 @@ namespace luastg
         }
     }
 };
-
-#include "Platform/CleanWindows.hpp"
-
-namespace
-{
-    bool g_alloc_console{ false };
-    bool openWin32Console()
-    {
-        auto const& logging_console = core::ConfigurationLoader::getInstance().getLogging().getConsole();
-        if(!logging_console.isEnable()) {
-            return false;
-        }
-        if(!AllocConsole()) {
-            return false;
-        }
-        g_alloc_console = true;
-        HWND const window = GetConsoleWindow();
-        HMENU const menu = GetSystemMenu(window, FALSE);
-        RemoveMenu(menu, SC_CLOSE, MF_BYCOMMAND);
-        const auto title = utf8::to_wstring(LUASTG_INFO);
-        SetConsoleTitleW(title.c_str());
-        ShowWindow(window, SW_MAXIMIZE);
-        SetConsoleOutputCP(CP_UTF8);
-        return true;
-    }
-    void closeWin32Console()
-    {
-        auto const& logging_console = core::ConfigurationLoader::getInstance().getLogging().getConsole();
-        if(g_alloc_console) {
-            if(logging_console.isPreserve()) {
-                constexpr std::wstring_view exit_message(L"按 ESC 关闭引擎日志窗口 | Press ESC to close the engine log window\n");
-                WriteConsoleW(GetStdHandle(STD_OUTPUT_HANDLE), exit_message.data(), static_cast<DWORD>(exit_message.length()), nullptr, nullptr);
-                while((GetAsyncKeyState(VK_ESCAPE) & 0x8000) != 0x8000) {
-                    SDL_Delay(1);
-                }
-            }
-            FreeConsole();
-        }
-    }
-}

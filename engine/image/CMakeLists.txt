@@ -10,6 +10,12 @@ file(GLOB_RECURSE
     backend/*.hpp
     backend/*.cpp
 )
+if (NOT WIN32)
+    list(REMOVE_ITEM lib_src
+        backend/WicImage.cpp backend/WicImage.hpp
+        backend/WicImageFactory.cpp backend/WicImageFactory.hpp
+    )
+endif ()
 source_group(TREE ${CMAKE_CURRENT_LIST_DIR} FILES ${lib_src})
 
 add_library(${lib_name})
@@ -24,6 +30,9 @@ target_link_libraries(${lib_name} PUBLIC
     Core.Math
     libqoi
 )
+if (NOT WIN32)
+    target_link_libraries(${lib_name} PRIVATE luastg_directxmath_headers)
+endif ()
 if (LUASTG_IMAGE_JPEG_ENABLE)
     target_compile_definitions(${lib_name} PUBLIC LUASTG_IMAGE_JPEG_ENABLE)
     target_link_libraries(${lib_name} PUBLIC libjpeg-turbo::turbojpeg-static)
@@ -40,7 +49,7 @@ if (LUASTG_IMAGE_STB_ENABLE)
     target_compile_definitions(${lib_name} PUBLIC LUASTG_IMAGE_STB_ENABLE)
     target_link_libraries(${lib_name} PUBLIC nothings_stb)
 endif ()
-if (LUASTG_IMAGE_WINDOWS_IMAGING_COMPONENT_ENABLE)
+if (WIN32 AND LUASTG_IMAGE_WINDOWS_IMAGING_COMPONENT_ENABLE)
     target_compile_definitions(${lib_name} PUBLIC LUASTG_IMAGE_WINDOWS_IMAGING_COMPONENT_ENABLE)
     target_link_libraries(${lib_name} PUBLIC win32 windowscodecs.lib)
 endif ()

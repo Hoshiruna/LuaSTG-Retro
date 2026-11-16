@@ -1,0 +1,37 @@
+{
+  "version": 6,
+  "configurePresets": [
+    {
+      "name": "macos-arm64",
+      "hidden": true,
+      "inherits": "cpm-cache",
+      "generator": "Ninja",
+      "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Darwin" },
+      "cacheVariables": {
+        "CMAKE_OSX_ARCHITECTURES": "arm64",
+        "CMAKE_OSX_DEPLOYMENT_TARGET": "14.0",
+        "LUASTG_BUILD_RUNTIME": true,
+        "LUASTG_BUILD_TESTS": false,
+        "LUASTG_GRAPHICS_BACKEND": "SDLGPU",
+        "LUASTG_STEAM_API_ENABLE": false,
+        "LUASTG_DISCORD_RPC_ENABLE": false
+      }
+    },
+    {
+      "name": "macos-arm64-debug",
+      "inherits": "macos-arm64",
+      "binaryDir": "${sourceDir}/build/macos-arm64-debug",
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Debug" }
+    },
+    {
+      "name": "macos-arm64-release",
+      "inherits": "macos-arm64",
+      "binaryDir": "${sourceDir}/build/macos-arm64-release",
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Release" }
+    }
+  ],
+  "buildPresets": [
+    { "name": "macos-arm64-debug", "configurePreset": "macos-arm64-debug", "targets": ["LuaSTG"] },
+    { "name": "macos-arm64-release", "configurePreset": "macos-arm64-release", "targets": ["LuaSTG"] }
+  ]
+}

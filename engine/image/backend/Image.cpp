@@ -4,6 +4,10 @@
 #include <cassert>
 #include <algorithm>
 #include <DirectXPackedVector.h>
+#include <cstdlib>
+#ifdef _WIN32
+#include <malloc.h>
+#endif
 
 namespace
 {
@@ -215,9 +219,13 @@ namespace core
         m_description = description;
         m_read_only = false;
         m_aligned = true;
-        m_pixels = _aligned_malloc(
-            getImageFormatPixelSize(m_description.format) * m_description.size.x * m_description.size.y,
-            getImageFormatAlignment(m_description.format));
+        auto const size = static_cast<size_t>(getImageFormatPixelSize(m_description.format)) * m_description.size.x * m_description.size.y;
+        auto const alignment = getImageFormatAlignment(m_description.format);
+#ifdef _WIN32
+        m_pixels = _aligned_malloc(size, alignment);
+#else
+        (void)posix_memalign(&m_pixels, std::max(static_cast<size_t>(alignment), sizeof(void*)), size);
+#endif
         return m_pixels != nullptr;
     }
     bool Image::initializeFromMemory(const ImageDescription& description, void* const pixels, const bool aligned)
@@ -239,11 +247,15 @@ namespace core
     void Image::destroyPixels()
     {
         if(m_pixels != nullptr) {
+#ifdef _WIN32
             if(m_aligned) {
                 _aligned_free(m_pixels);
             } else {
                 std::free(m_pixels);
             }
+#else
+            std::free(m_pixels);
+#endif
             m_pixels = nullptr;
         }
     }
