@@ -1805,7 +1805,8 @@ namespace core::Graphics
         if(!m_disable_modern_swap_chain && m_modern_swap_chain_available) {
             // TODO: 这样就没法独占全屏了，因为拿不到包含的Output
             m_canvas_size = size;
-            if(!createCompositionSwapChain(size, /* latency event */ true)) // 让它创建渲染附件
+            // 先在引擎内完成缩放，交给合成器的缓冲区与窗口物理像素尺寸一致。
+            if(!createCompositionSwapChain(getDrawableSize(m_window.get()), /* latency event */ true)) // 让它创建渲染附件
             {
                 return false;
             }
@@ -2026,7 +2027,9 @@ namespace core::Graphics
         m_disable_exclusive_fullscreen = false;
         m_disable_modern_swap_chain = false;
         m_enable_composition = false; // TODO
-        m_disable_composition = false;
+        // 不因 MPO 可用而自动将低分辨率画布交给系统缩放。
+        // 保留独立画布和引擎采样器，使前后台切换时的缩放方式一致。
+        m_disable_composition = true;
         m_scaling_renderer.AttachDevice(m_device->GetD3D11Device());
         m_window->addEventListener(this);
         m_device->addEventListener(this);
