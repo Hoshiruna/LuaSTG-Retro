@@ -9,9 +9,11 @@
 #endif
 
 #include "imgui.h"
+#include "imgui_internal.h"
 #include "imgui_stdlib.h"
 #include "imgui_freetype.h"
 #include "imgui_impl_sdl3.h"
+#include <SDL3/SDL.h>
 #if defined(LUASTG_GRAPHICS_SDLGPU)
 #define LUASTG_IMGUI_SDL_INIT ImGui_ImplSDL3_InitForSDLGPU
 #else
@@ -19,6 +21,7 @@
 #endif
 #include "Core/Graphics/Runtime.hpp"
 #include <limits>
+#include <cmath>
 #include "implot.h"
 
 #include "lua.hpp"
@@ -256,6 +259,165 @@ namespace imgui
 
 namespace
 {
+    struct ImGuiDisplayMapping
+    {
+        ImVec2 display_size{};
+        ImVec2 offset{};
+        ImVec2 scale{ 1.0f, 1.0f };
+
+        [[nodiscard]] bool isEnabled() const noexcept
+        {
+            return display_size.x > 0.0f && display_size.y > 0.0f;
+        }
+
+        [[nodiscard]] ImVec2 windowToDisplay(ImVec2 position) const noexcept
+        {
+            return { (position.x - offset.x) * scale.x, (position.y - offset.y) * scale.y };
+        }
+
+        [[nodiscard]] ImVec2 displayToWindow(ImVec2 position) const noexcept
+        {
+            return { position.x / scale.x + offset.x, position.y / scale.y + offset.y };
+        }
+    };
+
+    ImGuiDisplayMapping g_imgui_display_mapping;
+    void (*g_imgui_set_ime_data)(ImGuiContext*, ImGuiViewport*, ImGuiPlatformImeData*){};
+
+    // SDL compares new positions with the last queued position in window units.
+    // Restore those units during each backend call, then map only its new events.
+    class ImGuiWindowCoordinates
+    {
+    public:
+        ImGuiWindowCoordinates()
+        {
+            if(!g_imgui_display_mapping.isEnabled()) {
+                return;
+            }
+            auto& context = *ImGui::GetCurrentContext();
+            m_first_event = context.InputEventsQueue.Size;
+            m_mouse_position = context.IO.MousePos;
+            if(ImGui::IsMousePosValid(&m_mouse_position)) {
+                context.IO.MousePos = g_imgui_display_mapping.displayToWindow(m_mouse_position);
+            }
+            for(int index = m_first_event - 1; index >= 0; --index) {
+                auto& event = context.InputEventsQueue[index];
+                if(event.Type == ImGuiInputEventType_MousePos) {
+                    m_previous_event = index;
+                    m_previous_position = { event.MousePos.PosX, event.MousePos.PosY };
+                    if(ImGui::IsMousePosValid(&m_previous_position)) {
+                        const auto position = g_imgui_display_mapping.displayToWindow(m_previous_position);
+                        event.MousePos.PosX = position.x;
+                        event.MousePos.PosY = position.y;
+                    }
+                    break;
+                }
+            }
+        }
+
+        ~ImGuiWindowCoordinates()
+        {
+            if(m_first_event < 0) {
+                return;
+            }
+            auto& context = *ImGui::GetCurrentContext();
+            context.IO.MousePos = m_mouse_position;
+            if(m_previous_event >= 0) {
+                auto& event = context.InputEventsQueue[m_previous_event];
+                event.MousePos.PosX = m_previous_position.x;
+                event.MousePos.PosY = m_previous_position.y;
+            }
+            for(int index = m_first_event; index < context.InputEventsQueue.Size; ++index) {
+                auto& event = context.InputEventsQueue[index];
+                if(event.Type == ImGuiInputEventType_MousePos) {
+                    const ImVec2 position{ event.MousePos.PosX, event.MousePos.PosY };
+                    if(ImGui::IsMousePosValid(&position)) {
+                        const auto mapped = g_imgui_display_mapping.windowToDisplay(position);
+                        event.MousePos.PosX = mapped.x;
+                        event.MousePos.PosY = mapped.y;
+                    }
+                }
+            }
+        }
+
+        ImGuiWindowCoordinates(const ImGuiWindowCoordinates&) = delete;
+        ImGuiWindowCoordinates& operator=(const ImGuiWindowCoordinates&) = delete;
+
+    private:
+        int m_first_event{ -1 };
+        int m_previous_event{ -1 };
+        ImVec2 m_mouse_position{};
+        ImVec2 m_previous_position{};
+    };
+
+    void setImGuiImeData(ImGuiContext* context, ImGuiViewport* viewport, ImGuiPlatformImeData* data)
+    {
+        auto mapped = *data;
+        if(g_imgui_display_mapping.isEnabled()) {
+            mapped.InputPos = g_imgui_display_mapping.displayToWindow(data->InputPos);
+            mapped.InputLineHeight /= g_imgui_display_mapping.scale.y;
+        }
+        g_imgui_set_ime_data(context, viewport, &mapped);
+    }
+
+    // SetDisplayTransform(width, height, offset_x, offset_y, scale_x, scale_y).
+    // display = (window - offset) * scale. Call before backend.NewFrame().
+    // SetDisplayTransform() restores window coordinates.
+    int lib_SetDisplayTransform(lua_State* L)
+    {
+        ImGuiDisplayMapping mapping;
+        if(!lua_isnoneornil(L, 1)) {
+            float values[] = {
+                static_cast<float>(luaL_checknumber(L, 1)),
+                static_cast<float>(luaL_checknumber(L, 2)),
+                static_cast<float>(luaL_optnumber(L, 3, 0.0)),
+                static_cast<float>(luaL_optnumber(L, 4, 0.0)),
+                static_cast<float>(luaL_optnumber(L, 5, 1.0)),
+                static_cast<float>(luaL_optnumber(L, 6, 1.0)),
+            };
+            for(int index = 0; index < 6; ++index) {
+                luaL_argcheck(L, std::isfinite(values[index]), index + 1, "expected a finite number");
+            }
+            luaL_argcheck(L, values[0] > 0.0f, 1, "display width must be positive");
+            luaL_argcheck(L, values[1] > 0.0f, 2, "display height must be positive");
+            luaL_argcheck(L, values[4] > 0.0f, 5, "mouse scale must be positive");
+            luaL_argcheck(L, values[5] > 0.0f, 6, "mouse scale must be positive");
+            mapping = { { values[0], values[1] }, { values[2], values[3] }, { values[4], values[5] } };
+        }
+
+        if(mapping.display_size.x == g_imgui_display_mapping.display_size.x
+            && mapping.display_size.y == g_imgui_display_mapping.display_size.y
+            && mapping.offset.x == g_imgui_display_mapping.offset.x
+            && mapping.offset.y == g_imgui_display_mapping.offset.y
+            && mapping.scale.x == g_imgui_display_mapping.scale.x
+            && mapping.scale.y == g_imgui_display_mapping.scale.y) {
+            return 0;
+        }
+
+        // Events may already be queued when Lua updates the presentation mapping.
+        auto& events = ImGui::GetCurrentContext()->InputEventsQueue;
+        for(auto& event : events) {
+            if(event.Type == ImGuiInputEventType_MousePos) {
+                const ImVec2 position{ event.MousePos.PosX, event.MousePos.PosY };
+                if(ImGui::IsMousePosValid(&position)) {
+                    const auto window_position = g_imgui_display_mapping.displayToWindow(position);
+                    const auto mapped = mapping.windowToDisplay(window_position);
+                    event.MousePos.PosX = mapped.x;
+                    event.MousePos.PosY = mapped.y;
+                }
+            }
+        }
+        g_imgui_display_mapping = mapping;
+        auto const window = LAPP.GetAppModel()->getWindow()->getSDLWindow();
+        if(SDL_GetMouseFocus() == window && !SDL_GetWindowRelativeMouseMode(window)) {
+            const ImGuiWindowCoordinates window_coordinates;
+            float x{}, y{};
+            SDL_GetMouseState(&x, &y);
+            ImGui::GetIO().AddMousePosEvent(x, y);
+        }
+        return 0;
+    }
+
     void showParticleSystemEditor(bool* p_open, luastg::IParticlePool* sys)
     {
         struct EditorData
@@ -833,6 +995,7 @@ namespace
     {
         const luaL_Reg lib_fun[] = {
             { "NewFrame", &lib_NewFrame },
+            { "SetDisplayTransform", &lib_SetDisplayTransform },
             { "RenderDrawData", &lib_RenderDrawData },
             { "CacheGlyphFromString", &lib_CacheGlyphFromString },
             { "ShowTestInputWindow", &lib_ShowTestInputWindow },
@@ -863,6 +1026,7 @@ namespace
 {
     bool g_imgui_initialized = false;
     bool g_imgui_renderer_initialized = false;
+
 }
 
 namespace imgui
@@ -894,11 +1058,16 @@ namespace imgui
         {
             if(!LUASTG_IMGUI_SDL_INIT(LAPP.GetAppModel()->getWindow()->getSDLWindow())) {
                 spdlog::error("[imgui] ImGui SDL platform initialization failed");
+            } else {
+                auto& platform = ImGui::GetPlatformIO();
+                g_imgui_set_ime_data = platform.Platform_SetImeDataFn;
+                platform.Platform_SetImeDataFn = &setImGuiImeData;
             }
         }
         void onWindowDestroy() override
         {
             ImGui_ImplSDL3_Shutdown();
+            g_imgui_set_ime_data = nullptr;
             m_dpi_changed.store(0);
         }
         void onWindowDpiChange() override
@@ -908,6 +1077,12 @@ namespace imgui
 
         void processSDLEvent(const SDL_Event& event) override
         {
+            const ImGuiWindowCoordinates window_coordinates;
+            if(g_imgui_display_mapping.isEnabled()
+                && (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN || event.type == SDL_EVENT_MOUSE_BUTTON_UP)
+                && event.button.windowID == SDL_GetWindowID(LAPP.GetAppModel()->getWindow()->getSDLWindow())) {
+                ImGui::GetIO().AddMousePosEvent(event.button.x, event.button.y);
+            }
             ImGui_ImplSDL3_ProcessEvent(&event);
         }
         // ImGuiBackendEventListener
@@ -984,6 +1159,7 @@ namespace imgui
     {
         lua_hot_reload::shutdown();
         IMGUI_CHECKVERSION();
+        g_imgui_display_mapping = {};
         ImGui::CreateContext();
         ImPlot::CreateContext();
 
@@ -1034,6 +1210,7 @@ namespace imgui
 
         g_imgui_initialized = false;
         g_imgui_renderer_initialized = false;
+        g_imgui_display_mapping = {};
     }
 
     void cancelSetCursor()
@@ -1063,7 +1240,15 @@ namespace imgui
 
             {
                 tracy_zone_scoped_with_name("imgui.backend.NewFrame-SDL3");
-                ImGui_ImplSDL3_NewFrame();
+                {
+                    const ImGuiWindowCoordinates window_coordinates;
+                    ImGui_ImplSDL3_NewFrame();
+                }
+                auto& io = ImGui::GetIO();
+                if(g_imgui_display_mapping.isEnabled() && io.DisplaySize.x > 0.0f && io.DisplaySize.y > 0.0f) {
+                    io.DisplaySize = g_imgui_display_mapping.display_size;
+                    io.DisplayFramebufferScale = { 1.0f, 1.0f };
+                }
             }
 
             g_imgui_renderer_initialized = true;
