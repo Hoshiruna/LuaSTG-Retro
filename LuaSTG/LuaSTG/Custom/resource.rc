@@ -68,12 +68,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Hoshiruna"
             VALUE "FileDescription", "Luastg Retro"
-            VALUE "FileVersion", "0.0.2"
+            VALUE "FileVersion", "0.0.3"
             VALUE "InternalName", "Luastg Retro"
             VALUE "LegalCopyright", "Copyright 2025-2026 Hoshiruna"
             VALUE "OriginalFilename", "LuaSTGRetro.exe"
             VALUE "ProductName", "Luastg Retro"
-            VALUE "ProductVersion", "0.0.2"
+            VALUE "ProductVersion", "0.0.3"
         END
     END
     BLOCK "VarFileInfo"
