@@ -28,6 +28,7 @@ if (LUASTG_BUILD_RUNTIME)
     include(${CMAKE_CURRENT_LIST_DIR}/ada_url.cmake)
 
     if (WIN32)
+        include(${CMAKE_CURRENT_LIST_DIR}/gameinput.cmake)
         include(${CMAKE_CURRENT_LIST_DIR}/wil.cmake)
         if (NOT LUASTG_USE_SDLGPU)
             include(${CMAKE_CURRENT_LIST_DIR}/directx_tex.cmake)

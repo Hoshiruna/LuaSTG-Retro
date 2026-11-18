@@ -309,6 +309,23 @@ TEST_F(InputSystemTest, TracksVirtualJoystickAndKeepsStaleIdsSafe)
     EXPECT_EQ(input.getJoystickHat(id, 0), core::JoystickHat::centered);
 
     EXPECT_TRUE(SDL_DetachVirtualJoystick(id));
+
+    const SDL_JoystickID reconnected_id = SDL_AttachVirtualJoystick(&descriptor);
+    ASSERT_NE(reconnected_id, 0u);
+    EXPECT_NE(reconnected_id, id);
+    added.jdevice.which = reconnected_id;
+    input.processEvent(added);
+    input.update();
+
+    EXPECT_FALSE(input.isJoystickConnected(id));
+    EXPECT_TRUE(input.isJoystickConnected(reconnected_id));
+    EXPECT_FALSE(input.isJoystickButtonDown(reconnected_id, 0));
+    EXPECT_FALSE(input.wasJoystickButtonPressed(reconnected_id, 0));
+    EXPECT_FALSE(input.wasJoystickButtonReleased(reconnected_id, 0));
+    EXPECT_FLOAT_EQ(input.getJoystickAxis(reconnected_id, 0), 0.0f);
+    EXPECT_EQ(input.getJoystickHat(reconnected_id, 0), core::JoystickHat::centered);
+
+    EXPECT_TRUE(SDL_DetachVirtualJoystick(reconnected_id));
     SDL_FlushEvents(SDL_EVENT_JOYSTICK_ADDED, SDL_EVENT_JOYSTICK_UPDATE_COMPLETE);
 }
 

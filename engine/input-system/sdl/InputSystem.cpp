@@ -1,21 +1,14 @@
-#include "core/InputSystem.hpp"
+#include "core/ControllerInput.hpp"
 #include "core/Logger.hpp"
 #include <SDL3/SDL.h>
 #include <algorithm>
 #include <array>
 #include <cmath>
 #include <ranges>
-#include <unordered_map>
 #include <utility>
 
 namespace
 {
-    template<typename Enum>
-    constexpr size_t indexOf(const Enum value) noexcept
-    {
-        return static_cast<size_t>(value);
-    }
-
     core::Key toKey(const SDL_Scancode code) noexcept
     {
 #define MAP_KEY(name, sdl_name) case SDL_SCANCODE_##sdl_name: return core::Key::name
@@ -64,59 +57,6 @@ namespace
         }
     }
 
-    SDL_GamepadButton toSDLButton(const core::GamepadButton button) noexcept
-    {
-        static constexpr std::array values{
-            SDL_GAMEPAD_BUTTON_SOUTH, SDL_GAMEPAD_BUTTON_EAST, SDL_GAMEPAD_BUTTON_WEST, SDL_GAMEPAD_BUTTON_NORTH,
-            SDL_GAMEPAD_BUTTON_BACK, SDL_GAMEPAD_BUTTON_GUIDE, SDL_GAMEPAD_BUTTON_START,
-            SDL_GAMEPAD_BUTTON_LEFT_STICK, SDL_GAMEPAD_BUTTON_RIGHT_STICK,
-            SDL_GAMEPAD_BUTTON_LEFT_SHOULDER, SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER,
-            SDL_GAMEPAD_BUTTON_DPAD_UP, SDL_GAMEPAD_BUTTON_DPAD_DOWN, SDL_GAMEPAD_BUTTON_DPAD_LEFT, SDL_GAMEPAD_BUTTON_DPAD_RIGHT,
-            SDL_GAMEPAD_BUTTON_MISC1, SDL_GAMEPAD_BUTTON_RIGHT_PADDLE1, SDL_GAMEPAD_BUTTON_LEFT_PADDLE1,
-            SDL_GAMEPAD_BUTTON_RIGHT_PADDLE2, SDL_GAMEPAD_BUTTON_LEFT_PADDLE2, SDL_GAMEPAD_BUTTON_TOUCHPAD,
-            SDL_GAMEPAD_BUTTON_MISC2, SDL_GAMEPAD_BUTTON_MISC3, SDL_GAMEPAD_BUTTON_MISC4,
-            SDL_GAMEPAD_BUTTON_MISC5, SDL_GAMEPAD_BUTTON_MISC6,
-        };
-        const size_t index = indexOf(button);
-        return index < values.size() ? values[index] : SDL_GAMEPAD_BUTTON_INVALID;
-    }
-
-    core::GamepadButton toGamepadButton(const SDL_GamepadButton button) noexcept
-    {
-        for(size_t i = 0; i < indexOf(core::GamepadButton::count); ++i) {
-            const auto candidate = static_cast<core::GamepadButton>(i);
-            if(toSDLButton(candidate) == button) {
-                return candidate;
-            }
-        }
-        return core::GamepadButton::count;
-    }
-
-    SDL_GamepadAxis toSDLAxis(const core::GamepadAxis axis) noexcept
-    {
-        static constexpr std::array values{
-            SDL_GAMEPAD_AXIS_LEFTX,
-            SDL_GAMEPAD_AXIS_LEFTY,
-            SDL_GAMEPAD_AXIS_RIGHTX,
-            SDL_GAMEPAD_AXIS_RIGHTY,
-            SDL_GAMEPAD_AXIS_LEFT_TRIGGER,
-            SDL_GAMEPAD_AXIS_RIGHT_TRIGGER,
-        };
-        const size_t index = indexOf(axis);
-        return index < values.size() ? values[index] : SDL_GAMEPAD_AXIS_INVALID;
-    }
-
-    core::GamepadAxis toGamepadAxis(const SDL_GamepadAxis axis) noexcept
-    {
-        for(size_t i = 0; i < indexOf(core::GamepadAxis::count); ++i) {
-            const auto candidate = static_cast<core::GamepadAxis>(i);
-            if(toSDLAxis(candidate) == axis) {
-                return candidate;
-            }
-        }
-        return core::GamepadAxis::count;
-    }
-
     float normalizeAxis(const int16_t value) noexcept
     {
         return value < 0 ? static_cast<float>(value) / 32768.0f : static_cast<float>(value) / 32767.0f;
@@ -127,15 +67,6 @@ namespace
         return std::clamp(static_cast<float>(value) / 32767.0f, 0.0f, 1.0f);
     }
 
-    core::JoystickHat toJoystickHat(const uint8_t value) noexcept
-    {
-        uint8_t result{};
-        if((value & SDL_HAT_UP) != 0) result |= static_cast<uint8_t>(core::JoystickHat::up);
-        if((value & SDL_HAT_RIGHT) != 0) result |= static_cast<uint8_t>(core::JoystickHat::right);
-        if((value & SDL_HAT_DOWN) != 0) result |= static_cast<uint8_t>(core::JoystickHat::down);
-        if((value & SDL_HAT_LEFT) != 0) result |= static_cast<uint8_t>(core::JoystickHat::left);
-        return static_cast<core::JoystickHat>(result);
-    }
 }
 
 namespace core
@@ -180,76 +111,6 @@ namespace core
 
     struct InputSystem::Impl
     {
-        template<size_t Size>
-        struct ButtonState
-        {
-            std::array<bool, Size> current{};
-            std::array<bool, Size> pending_pressed{};
-            std::array<bool, Size> pending_released{};
-            std::array<bool, Size> pressed{};
-            std::array<bool, Size> released{};
-
-            void publish() noexcept
-            {
-                pressed = pending_pressed;
-                released = pending_released;
-                pending_pressed.fill(false);
-                pending_released.fill(false);
-            }
-
-            void set(const size_t index, const bool down) noexcept
-            {
-                if(down != current[index]) {
-                    if(down) {
-                        pending_pressed[index] = true;
-                    } else {
-                        pending_released[index] = true;
-                    }
-                    current[index] = down;
-                }
-            }
-
-            void releaseAll() noexcept
-            {
-                for(size_t i = 0; i < current.size(); ++i) {
-                    if(current[i]) {
-                        current[i] = false;
-                        pending_released[i] = true;
-                    }
-                }
-            }
-
-            void clear() noexcept
-            {
-                current.fill(false);
-                pending_pressed.fill(false);
-                pending_released.fill(false);
-                pressed.fill(false);
-                released.fill(false);
-            }
-        };
-
-        struct Gamepad
-        {
-            SDL_Gamepad* handle{};
-            std::string name;
-            ButtonState<indexOf(GamepadButton::count)> buttons;
-            std::array<int16_t, indexOf(GamepadAxis::count)> axes{};
-        };
-
-        struct Joystick
-        {
-            SDL_Joystick* handle{};
-            std::string name;
-            std::vector<bool> buttons;
-            std::vector<bool> pending_pressed;
-            std::vector<bool> pending_released;
-            std::vector<bool> pressed;
-            std::vector<bool> released;
-            std::vector<int16_t> axes;
-            std::vector<uint8_t> hats;
-        };
-
         ButtonState<indexOf(Key::count)> keys;
         ButtonState<indexOf(MouseButton::count)> mouse_buttons;
         MouseState raw_mouse;
@@ -261,89 +122,7 @@ namespace core
         bool capture_keyboard{};
         bool capture_mouse{};
         bool initialized{};
-        std::unordered_map<uint32_t, Gamepad> gamepads;
-        std::unordered_map<uint32_t, Joystick> joysticks;
-
-        void addGamepad(const SDL_JoystickID id)
-        {
-            if(gamepads.contains(id)) {
-                return;
-            }
-            removeJoystick(id);
-            SDL_Gamepad* const handle = SDL_OpenGamepad(id);
-            if(handle == nullptr) {
-                Logger::error("[sdl] SDL_OpenGamepad({}) failed: {}", id, SDL_GetError());
-                return;
-            }
-            const char* const name = SDL_GetGamepadName(handle);
-            Gamepad gamepad{ handle, name != nullptr ? name : "" };
-            for(size_t i = 0; i < gamepad.buttons.current.size(); ++i) {
-                gamepad.buttons.current[i] = SDL_GetGamepadButton(handle, toSDLButton(static_cast<GamepadButton>(i)));
-            }
-            for(size_t i = 0; i < gamepad.axes.size(); ++i) {
-                gamepad.axes[i] = SDL_GetGamepadAxis(handle, toSDLAxis(static_cast<GamepadAxis>(i)));
-            }
-            gamepads.emplace(id, std::move(gamepad));
-        }
-
-        void addJoystick(const SDL_JoystickID id)
-        {
-            if(joysticks.contains(id) || gamepads.contains(id) || SDL_IsGamepad(id)) {
-                return;
-            }
-            SDL_Joystick* const handle = SDL_OpenJoystick(id);
-            if(handle == nullptr) {
-                Logger::error("[sdl] SDL_OpenJoystick({}) failed: {}", id, SDL_GetError());
-                return;
-            }
-            const char* const name = SDL_GetJoystickName(handle);
-            Joystick joystick{ handle, name != nullptr ? name : "" };
-            joystick.buttons.resize(static_cast<size_t>(std::max(SDL_GetNumJoystickButtons(handle), 0)));
-            joystick.pending_pressed.resize(joystick.buttons.size());
-            joystick.pending_released.resize(joystick.buttons.size());
-            joystick.pressed.resize(joystick.buttons.size());
-            joystick.released.resize(joystick.buttons.size());
-            joystick.axes.resize(static_cast<size_t>(std::max(SDL_GetNumJoystickAxes(handle), 0)));
-            joystick.hats.resize(static_cast<size_t>(std::max(SDL_GetNumJoystickHats(handle), 0)));
-            for(size_t i = 0; i < joystick.buttons.size(); ++i) {
-                joystick.buttons[i] = SDL_GetJoystickButton(handle, static_cast<int>(i));
-            }
-            for(size_t i = 0; i < joystick.axes.size(); ++i) {
-                joystick.axes[i] = SDL_GetJoystickAxis(handle, static_cast<int>(i));
-            }
-            for(size_t i = 0; i < joystick.hats.size(); ++i) {
-                joystick.hats[i] = SDL_GetJoystickHat(handle, static_cast<int>(i));
-            }
-            joysticks.emplace(id, std::move(joystick));
-        }
-
-        void removeGamepad(const uint32_t id)
-        {
-            if(const auto it = gamepads.find(id); it != gamepads.end()) {
-                SDL_CloseGamepad(it->second.handle);
-                gamepads.erase(it);
-            }
-        }
-
-        void removeJoystick(const uint32_t id)
-        {
-            if(const auto it = joysticks.find(id); it != joysticks.end()) {
-                SDL_CloseJoystick(it->second.handle);
-                joysticks.erase(it);
-            }
-        }
-
-        bool isJoystickPresent(const uint32_t id) const
-        {
-            int count{};
-            SDL_JoystickID* const ids = SDL_GetJoysticks(&count);
-            if(ids == nullptr) {
-                return false;
-            }
-            const bool found = std::find(ids, ids + count, id) != ids + count;
-            SDL_free(ids);
-            return found;
-        }
+        ControllerInput controllers;
     };
 
     InputSystem::InputSystem()
@@ -362,9 +141,9 @@ namespace core
             return true;
         }
 
-        constexpr SDL_InitFlags required_subsystems = SDL_INIT_EVENTS | SDL_INIT_JOYSTICK | SDL_INIT_GAMEPAD;
+        constexpr SDL_InitFlags required_subsystems = SDL_INIT_EVENTS;
         if((SDL_WasInit(required_subsystems) & required_subsystems) != required_subsystems) {
-            Logger::error("[sdl] InputSystem::initialize requires the SDL events, joystick, and gamepad subsystems");
+            Logger::error("[sdl] InputSystem::initialize requires the SDL events subsystem");
             return false;
         }
 
@@ -391,18 +170,9 @@ namespace core
         }
         m_impl->frame_mouse = m_impl->raw_mouse;
 
-        int count{};
-        if(SDL_JoystickID* ids = SDL_GetGamepads(&count); ids != nullptr) {
-            for(int i = 0; i < count; ++i) {
-                m_impl->addGamepad(ids[i]);
-            }
-            SDL_free(ids);
-        }
-        if(SDL_JoystickID* ids = SDL_GetJoysticks(&count); ids != nullptr) {
-            for(int i = 0; i < count; ++i) {
-                m_impl->addJoystick(ids[i]);
-            }
-            SDL_free(ids);
+        if(!m_impl->controllers.initialize()) {
+            shutdown();
+            return false;
         }
         m_impl->initialized = true;
         return true;
@@ -410,14 +180,7 @@ namespace core
 
     void InputSystem::shutdown()
     {
-        for(auto& entry : m_impl->gamepads) {
-            SDL_CloseGamepad(entry.second.handle);
-        }
-        m_impl->gamepads.clear();
-        for(auto& entry : m_impl->joysticks) {
-            SDL_CloseJoystick(entry.second.handle);
-        }
-        m_impl->joysticks.clear();
+        m_impl->controllers.shutdown();
         m_impl->keys.clear();
         m_impl->mouse_buttons.clear();
         m_impl->raw_mouse = {};
@@ -478,84 +241,8 @@ namespace core
             case SDL_EVENT_WINDOW_FOCUS_LOST:
                 resetKeyboardAndMouse();
                 break;
-            case SDL_EVENT_GAMEPAD_ADDED:
-                m_impl->addGamepad(event.gdevice.which);
-                break;
-            case SDL_EVENT_GAMEPAD_REMOVED:
-                m_impl->removeGamepad(event.gdevice.which);
-                if(m_impl->isJoystickPresent(event.gdevice.which)) {
-                    m_impl->addJoystick(event.gdevice.which);
-                }
-                break;
-            case SDL_EVENT_GAMEPAD_REMAPPED:
-                m_impl->removeGamepad(event.gdevice.which);
-                if(SDL_IsGamepad(event.gdevice.which)) {
-                    m_impl->addGamepad(event.gdevice.which);
-                } else if(m_impl->isJoystickPresent(event.gdevice.which)) {
-                    m_impl->addJoystick(event.gdevice.which);
-                }
-                break;
-            case SDL_EVENT_GAMEPAD_STEAM_HANDLE_UPDATED:
-                if(const auto it = m_impl->gamepads.find(event.gdevice.which); it != m_impl->gamepads.end()) {
-                    const char* const name = SDL_GetGamepadName(it->second.handle);
-                    it->second.name = name != nullptr ? name : "";
-                }
-                break;
-            case SDL_EVENT_GAMEPAD_BUTTON_DOWN:
-            case SDL_EVENT_GAMEPAD_BUTTON_UP:
-                if(const auto it = m_impl->gamepads.find(event.gbutton.which); it != m_impl->gamepads.end()) {
-                    const GamepadButton button = toGamepadButton(static_cast<SDL_GamepadButton>(event.gbutton.button));
-                    if(button != GamepadButton::count) {
-                        it->second.buttons.set(indexOf(button), event.type == SDL_EVENT_GAMEPAD_BUTTON_DOWN);
-                    }
-                }
-                break;
-            case SDL_EVENT_GAMEPAD_AXIS_MOTION:
-                if(const auto it = m_impl->gamepads.find(event.gaxis.which); it != m_impl->gamepads.end()) {
-                    const GamepadAxis axis = toGamepadAxis(static_cast<SDL_GamepadAxis>(event.gaxis.axis));
-                    if(axis != GamepadAxis::count) {
-                        it->second.axes[indexOf(axis)] = event.gaxis.value;
-                    }
-                }
-                break;
-            case SDL_EVENT_JOYSTICK_ADDED:
-                m_impl->addJoystick(event.jdevice.which);
-                break;
-            case SDL_EVENT_JOYSTICK_REMOVED:
-                m_impl->removeJoystick(event.jdevice.which);
-                m_impl->removeGamepad(event.jdevice.which);
-                break;
-            case SDL_EVENT_JOYSTICK_BUTTON_DOWN:
-            case SDL_EVENT_JOYSTICK_BUTTON_UP:
-                if(const auto it = m_impl->joysticks.find(event.jbutton.which); it != m_impl->joysticks.end()) {
-                    if(event.jbutton.button < it->second.buttons.size()) {
-                        const bool down = event.type == SDL_EVENT_JOYSTICK_BUTTON_DOWN;
-                        if(down != it->second.buttons[event.jbutton.button]) {
-                            if(down) {
-                                it->second.pending_pressed[event.jbutton.button] = true;
-                            } else {
-                                it->second.pending_released[event.jbutton.button] = true;
-                            }
-                            it->second.buttons[event.jbutton.button] = down;
-                        }
-                    }
-                }
-                break;
-            case SDL_EVENT_JOYSTICK_AXIS_MOTION:
-                if(const auto it = m_impl->joysticks.find(event.jaxis.which); it != m_impl->joysticks.end()) {
-                    if(event.jaxis.axis < it->second.axes.size()) {
-                        it->second.axes[event.jaxis.axis] = event.jaxis.value;
-                    }
-                }
-                break;
-            case SDL_EVENT_JOYSTICK_HAT_MOTION:
-                if(const auto it = m_impl->joysticks.find(event.jhat.which); it != m_impl->joysticks.end()) {
-                    if(event.jhat.hat < it->second.hats.size()) {
-                        it->second.hats[event.jhat.hat] = event.jhat.value;
-                    }
-                }
-                break;
             default:
+                m_impl->controllers.processEvent(event);
                 break;
         }
     }
@@ -569,10 +256,11 @@ namespace core
         m_impl->frame_mouse.delta_y = std::exchange(m_impl->pending_delta_y, 0.0f);
         m_impl->frame_mouse.wheel_x = std::exchange(m_impl->pending_wheel_x, 0.0f);
         m_impl->frame_mouse.wheel_y = std::exchange(m_impl->pending_wheel_y, 0.0f);
-        for(auto& entry : m_impl->gamepads) {
+        m_impl->controllers.update();
+        for(auto& entry : m_impl->controllers.gamepads) {
             entry.second.buttons.publish();
         }
-        for(auto& entry : m_impl->joysticks) {
+        for(auto& entry : m_impl->controllers.joysticks) {
             entry.second.pressed = entry.second.pending_pressed;
             entry.second.released = entry.second.pending_released;
             std::fill(entry.second.pending_pressed.begin(), entry.second.pending_pressed.end(), false);
@@ -666,8 +354,8 @@ namespace core
     std::vector<InputDeviceInfo> InputSystem::getGamepads() const
     {
         std::vector<InputDeviceInfo> result;
-        result.reserve(m_impl->gamepads.size());
-        for(const auto& [id, gamepad] : m_impl->gamepads) {
+        result.reserve(m_impl->controllers.gamepads.size());
+        for(const auto& [id, gamepad] : m_impl->controllers.gamepads) {
             result.push_back({ id, gamepad.name });
         }
         std::ranges::sort(result, {}, &InputDeviceInfo::id);
@@ -676,37 +364,37 @@ namespace core
 
     bool InputSystem::isGamepadConnected(const uint32_t id) const noexcept
     {
-        return m_impl->gamepads.contains(id);
+        return m_impl->controllers.gamepads.contains(id);
     }
 
     std::string InputSystem::getGamepadName(const uint32_t id) const
     {
-        const auto it = m_impl->gamepads.find(id);
-        return it != m_impl->gamepads.end() ? it->second.name : std::string{};
+        const auto it = m_impl->controllers.gamepads.find(id);
+        return it != m_impl->controllers.gamepads.end() ? it->second.name : std::string{};
     }
 
     bool InputSystem::isGamepadButtonDown(const uint32_t id, const GamepadButton button) const noexcept
     {
-        const auto it = m_impl->gamepads.find(id);
-        return it != m_impl->gamepads.end() && button < GamepadButton::count && it->second.buttons.current[indexOf(button)];
+        const auto it = m_impl->controllers.gamepads.find(id);
+        return it != m_impl->controllers.gamepads.end() && button < GamepadButton::count && it->second.buttons.current[indexOf(button)];
     }
 
     bool InputSystem::wasGamepadButtonPressed(const uint32_t id, const GamepadButton button) const noexcept
     {
-        const auto it = m_impl->gamepads.find(id);
-        return it != m_impl->gamepads.end() && button < GamepadButton::count && it->second.buttons.pressed[indexOf(button)];
+        const auto it = m_impl->controllers.gamepads.find(id);
+        return it != m_impl->controllers.gamepads.end() && button < GamepadButton::count && it->second.buttons.pressed[indexOf(button)];
     }
 
     bool InputSystem::wasGamepadButtonReleased(const uint32_t id, const GamepadButton button) const noexcept
     {
-        const auto it = m_impl->gamepads.find(id);
-        return it != m_impl->gamepads.end() && button < GamepadButton::count && it->second.buttons.released[indexOf(button)];
+        const auto it = m_impl->controllers.gamepads.find(id);
+        return it != m_impl->controllers.gamepads.end() && button < GamepadButton::count && it->second.buttons.released[indexOf(button)];
     }
 
     float InputSystem::getGamepadAxis(const uint32_t id, const GamepadAxis axis) const noexcept
     {
-        const auto it = m_impl->gamepads.find(id);
-        if(it == m_impl->gamepads.end() || axis >= GamepadAxis::count) {
+        const auto it = m_impl->controllers.gamepads.find(id);
+        if(it == m_impl->controllers.gamepads.end() || axis >= GamepadAxis::count) {
             return 0.0f;
         }
         const int16_t value = it->second.axes[indexOf(axis)];
@@ -715,41 +403,24 @@ namespace core
 
     int32_t InputSystem::getGamepadPlayerIndex(const uint32_t id) const noexcept
     {
-        const auto it = m_impl->gamepads.find(id);
-        return it != m_impl->gamepads.end() ? SDL_GetGamepadPlayerIndex(it->second.handle) : -1;
+        return m_impl->controllers.getGamepadPlayerIndex(id);
     }
 
     bool InputSystem::setGamepadPlayerIndex(const uint32_t id, const int32_t player_index) noexcept
     {
-        const auto it = m_impl->gamepads.find(id);
-        if(it == m_impl->gamepads.end()) {
-            return false;
-        }
-        return SDL_SetGamepadPlayerIndex(it->second.handle, player_index);
+        return m_impl->controllers.setGamepadPlayerIndex(id, player_index);
     }
 
     bool InputSystem::rumbleGamepad(const uint32_t id, const float low, const float high, const uint32_t duration_ms) noexcept
     {
-        const auto it = m_impl->gamepads.find(id);
-        if(it == m_impl->gamepads.end()) {
-            return false;
-        }
-        const SDL_PropertiesID properties = SDL_GetGamepadProperties(it->second.handle);
-        if(properties == 0 || !SDL_GetBooleanProperty(properties, SDL_PROP_GAMEPAD_CAP_RUMBLE_BOOLEAN, false)) {
-            return false;
-        }
-        const auto toMagnitude = [](const float value) {
-            const float finite_value = std::isfinite(value) ? value : 0.0f;
-            return static_cast<uint16_t>(std::clamp(finite_value, 0.0f, 1.0f) * 65535.0f);
-        };
-        return SDL_RumbleGamepad(it->second.handle, toMagnitude(low), toMagnitude(high), duration_ms);
+        return m_impl->controllers.rumbleGamepad(id, low, high, duration_ms);
     }
 
     std::vector<InputDeviceInfo> InputSystem::getJoysticks() const
     {
         std::vector<InputDeviceInfo> result;
-        result.reserve(m_impl->joysticks.size());
-        for(const auto& [id, joystick] : m_impl->joysticks) {
+        result.reserve(m_impl->controllers.joysticks.size());
+        for(const auto& [id, joystick] : m_impl->controllers.joysticks) {
             result.push_back({ id, joystick.name });
         }
         std::ranges::sort(result, {}, &InputDeviceInfo::id);
@@ -758,60 +429,60 @@ namespace core
 
     bool InputSystem::isJoystickConnected(const uint32_t id) const noexcept
     {
-        return m_impl->joysticks.contains(id);
+        return m_impl->controllers.joysticks.contains(id);
     }
 
     std::string InputSystem::getJoystickName(const uint32_t id) const
     {
-        const auto it = m_impl->joysticks.find(id);
-        return it != m_impl->joysticks.end() ? it->second.name : std::string{};
+        const auto it = m_impl->controllers.joysticks.find(id);
+        return it != m_impl->controllers.joysticks.end() ? it->second.name : std::string{};
     }
 
     uint32_t InputSystem::getJoystickButtonCount(const uint32_t id) const noexcept
     {
-        const auto it = m_impl->joysticks.find(id);
-        return it != m_impl->joysticks.end() ? static_cast<uint32_t>(it->second.buttons.size()) : 0;
+        const auto it = m_impl->controllers.joysticks.find(id);
+        return it != m_impl->controllers.joysticks.end() ? static_cast<uint32_t>(it->second.buttons.size()) : 0;
     }
 
     bool InputSystem::isJoystickButtonDown(const uint32_t id, const uint32_t button) const noexcept
     {
-        const auto it = m_impl->joysticks.find(id);
-        return it != m_impl->joysticks.end() && button < it->second.buttons.size() && it->second.buttons[button];
+        const auto it = m_impl->controllers.joysticks.find(id);
+        return it != m_impl->controllers.joysticks.end() && button < it->second.buttons.size() && it->second.buttons[button];
     }
 
     bool InputSystem::wasJoystickButtonPressed(const uint32_t id, const uint32_t button) const noexcept
     {
-        const auto it = m_impl->joysticks.find(id);
-        return it != m_impl->joysticks.end() && button < it->second.pressed.size() && it->second.pressed[button];
+        const auto it = m_impl->controllers.joysticks.find(id);
+        return it != m_impl->controllers.joysticks.end() && button < it->second.pressed.size() && it->second.pressed[button];
     }
 
     bool InputSystem::wasJoystickButtonReleased(const uint32_t id, const uint32_t button) const noexcept
     {
-        const auto it = m_impl->joysticks.find(id);
-        return it != m_impl->joysticks.end() && button < it->second.released.size() && it->second.released[button];
+        const auto it = m_impl->controllers.joysticks.find(id);
+        return it != m_impl->controllers.joysticks.end() && button < it->second.released.size() && it->second.released[button];
     }
 
     uint32_t InputSystem::getJoystickAxisCount(const uint32_t id) const noexcept
     {
-        const auto it = m_impl->joysticks.find(id);
-        return it != m_impl->joysticks.end() ? static_cast<uint32_t>(it->second.axes.size()) : 0;
+        const auto it = m_impl->controllers.joysticks.find(id);
+        return it != m_impl->controllers.joysticks.end() ? static_cast<uint32_t>(it->second.axes.size()) : 0;
     }
 
     float InputSystem::getJoystickAxis(const uint32_t id, const uint32_t axis) const noexcept
     {
-        const auto it = m_impl->joysticks.find(id);
-        return it != m_impl->joysticks.end() && axis < it->second.axes.size() ? normalizeAxis(it->second.axes[axis]) : 0.0f;
+        const auto it = m_impl->controllers.joysticks.find(id);
+        return it != m_impl->controllers.joysticks.end() && axis < it->second.axes.size() ? normalizeAxis(it->second.axes[axis]) : 0.0f;
     }
 
     uint32_t InputSystem::getJoystickHatCount(const uint32_t id) const noexcept
     {
-        const auto it = m_impl->joysticks.find(id);
-        return it != m_impl->joysticks.end() ? static_cast<uint32_t>(it->second.hats.size()) : 0;
+        const auto it = m_impl->controllers.joysticks.find(id);
+        return it != m_impl->controllers.joysticks.end() ? static_cast<uint32_t>(it->second.hats.size()) : 0;
     }
 
     JoystickHat InputSystem::getJoystickHat(const uint32_t id, const uint32_t hat) const noexcept
     {
-        const auto it = m_impl->joysticks.find(id);
-        return it != m_impl->joysticks.end() && hat < it->second.hats.size() ? toJoystickHat(it->second.hats[hat]) : JoystickHat::centered;
+        const auto it = m_impl->controllers.joysticks.find(id);
+        return it != m_impl->controllers.joysticks.end() && hat < it->second.hats.size() ? it->second.hats[hat] : JoystickHat::centered;
     }
 }

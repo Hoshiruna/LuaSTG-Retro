@@ -273,6 +273,17 @@ add_custom_command(TARGET LuaSTG POST_BUILD
     VERBATIM
 )
 
+if (WIN32)
+    add_custom_command(TARGET LuaSTG POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different ${LUASTG_GAMEINPUT_RUNTIME_FILES} "$<TARGET_FILE_DIR:LuaSTG>"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different ${LUASTG_GAMEINPUT_RUNTIME_FILES} "${CMAKE_BINARY_DIR}/bin"
+        COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:LuaSTG>/licenses/GameInput" "${CMAKE_BINARY_DIR}/bin/licenses/GameInput"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different ${LUASTG_GAMEINPUT_LICENSE_FILES} "$<TARGET_FILE_DIR:LuaSTG>/licenses/GameInput"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different ${LUASTG_GAMEINPUT_LICENSE_FILES} "${CMAKE_BINARY_DIR}/bin/licenses/GameInput"
+        VERBATIM
+    )
+endif ()
+
 if (WIN32 AND NOT LUASTG_USE_SDLGPU)
     add_custom_command(TARGET LuaSTG POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Microsoft.D3DCompiler.Redist> $<TARGET_FILE_DIR:LuaSTG>/$<TARGET_FILE_NAME:Microsoft.D3DCompiler.Redist>
